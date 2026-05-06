@@ -493,159 +493,35 @@ body.logged-in{padding-top:36px}
 <div id="adminPanel">
   <div class="admin-box">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;border-bottom:1px solid #21262d">
-      <span style="font-size:14px;font-weight:700;color:#f0f6fc">⚙ Admin Panel</span>
+      <span style="font-size:14px;font-weight:700;color:#f0f6fc">📋 Change Log</span>
       <button class="admin-close" onclick="closeAdmin()">✕</button>
     </div>
-    <div class="admin-tabs">
-      <div class="admin-tab on" onclick="switchAdminTab('users',this)">👥 Users</div>
-      <div class="admin-tab" onclick="switchAdminTab('roles',this)">🎭 Roles</div>
-      <div class="admin-tab" onclick="switchAdminTab('log',this)">📋 Change Log</div>
-    </div>
     <div class="admin-body">
-      <!-- USERS TAB -->
-      <div id="adminUsers">
-        <div style="font-size:11px;color:#8b949e;margin-bottom:10px">Manage accounts and permissions. Admin has full access to all modules.</div>
-
-        <!-- Add User Form -->
-        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:600;color:#7aa8c7;margin-bottom:8px">Create New Account</div>
-          <div class="add-user-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:10px">
-            <input type="text" id="newUsername" placeholder="Username">
-            <input type="password" id="newPassword" placeholder="Password">
-            <select id="newRole" onchange="toggleNewUserModules()">
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
-              <option value="partner">Partner</option>
-            </select>
-          </div>
-          <!-- Module permissions (staff only) -->
-          <div id="newUserModules" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-            <!-- Tools -->
-            <div style="border:1px solid #1e3a5f;border-radius:6px;overflow:hidden">
-              <div style="background:#0d1e35;padding:6px 10px;display:flex;align-items:center;gap:7px">
-                <input type="checkbox" id="nu_tools" class="perm-ck" onchange="toggleModulePerms('tools',this.checked)">
-                <label for="nu_tools" style="font-size:11px;font-weight:600;color:#58a6ff;cursor:pointer">Tools</label>
-                <span style="font-size:9px;color:#2a4a6a;margin-left:auto">tools.huangmotor.com</span>
-              </div>
-              <div id="nu_tools_perms" style="padding:7px 10px 6px;display:none;flex-direction:column;gap:5px">
-                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Edit permissions</div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_pl" class="perm-ck"> Edit Pricelist</label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_gen" class="perm-ck"> Edit Generator</label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_mf" class="perm-ck"> Edit Max Finance</label>
-                <div style="height:1px;background:#1e2d45;margin:3px 0"></div>
-                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">View restriction</div>
-                <label style="display:flex;align-items:flex-start;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer">
-                  <input type="checkbox" id="nu_viewer" class="perm-ck" style="margin-top:2px">
-                  <span>Viewer Mode<span style="display:block;font-size:9px;color:#4a6fa5">Limits visible fields in Pricelist & Calculator</span></span>
-                </label>
-              </div>
-            </div>
-            <!-- Team -->
-            <div style="border:1px solid #1a3a1a;border-radius:6px;overflow:hidden">
-              <div style="background:#0d2318;padding:6px 10px;display:flex;align-items:center;gap:7px">
-                <input type="checkbox" id="nu_team" class="perm-ck" onchange="toggleModulePerms('team',this.checked)">
-                <label for="nu_team" style="font-size:11px;font-weight:600;color:#3fb950;cursor:pointer">Team</label>
-                <span style="font-size:9px;color:#1a3a1a;margin-left:auto">team.huangmotor.com</span>
-              </div>
-              <div id="nu_team_perms" style="padding:7px 10px 6px;display:none;flex-direction:column;gap:5px">
-                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Tasks</div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_task_dept" class="perm-ck"> Assign tasks (own dept)</label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_task_cross" class="perm-ck"> Assign tasks (cross-dept)</label>
-                <div style="height:1px;background:#1e2d45;margin:3px 0"></div>
-                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Attendance</div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_attendance" class="perm-ck"> View attendance</label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_leave" class="perm-ck"> Approve leave</label>
-                <div style="height:1px;background:#1e2d45;margin:3px 0"></div>
-                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Performance</div>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_perf_own" class="perm-ck" checked> View own performance</label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_perf_dept" class="perm-ck"> View dept performance</label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_perf_all" class="perm-ck"> View all performance</label>
-              </div>
-            </div>
-          </div>
-          <!-- Partner placeholder -->
-          <div style="border:1px dashed #21262d;border-radius:6px;padding:6px 10px;display:flex;align-items:center;gap:7px;opacity:.4;margin-bottom:10px">
-            <input type="checkbox" disabled class="perm-ck">
-            <span style="font-size:11px;color:#8b949e">Partner — coming soon</span>
-          </div>
-          <button class="add-user-btn" onclick="addUser()">+ Create Account</button>
-        </div>
-        <div id="userTableWrap" style="overflow-x:auto"></div>
+      <div class="log-filter">
+        <select id="logFilterUser"><option value="">All Users</option></select>
+        <select id="logFilterAction"><option value="">All Actions</option>
+          <option value="login">🔑 Login</option>
+          <option value="add_pricelist">➕ Add Pricelist</option>
+          <option value="edit_pricelist">✏️ Edit Pricelist</option>
+          <option value="delete_pricelist">🗑️ Delete Pricelist</option>
+          <option value="add_mf">➕ Add Max Finance</option>
+          <option value="delete_mf">🗑️ Delete Max Finance</option>
+          <option value="add_gift_group">🎁 Add Gift Group</option>
+          <option value="delete_gift_group">🗑️ Delete Gift Group</option>
+          <option value="add_gift_item">🎁 Add Gift Item</option>
+          <option value="delete_gift_item">🗑️ Delete Gift Item</option>
+          <option value="add_row">➕ Add Row</option>
+          <option value="delete_row">🗑️ Delete Row</option>
+          <option value="change_tenure">🔄 Change Tenure</option>
+          <option value="generate_html">⚙️ Generate HTML</option>
+          <option value="generate_quotation">📄 Generate Quotation</option>
+          <option value="save_all">💾 Save All</option>
+        </select>
+        <input type="date" id="logFilterDate" style="color:#c9d1d9">
+        <button onclick="loadLog()" style="padding:5px 10px;border:1px solid #30363d;border-radius:6px;background:#1f6feb;color:#fff;font-size:11px;cursor:pointer">Load</button>
       </div>
-      <!-- ROLES TAB -->
-      <div id="adminRoles" style="display:none">
-        <div style="font-size:11px;color:#8b949e;margin-bottom:10px">Create custom roles with specific permissions. Users can be assigned these roles.</div>
-        <!-- New role form -->
-        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:600;color:#7aa8c7;margin-bottom:8px">Create New Role</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-            <div>
-              <label style="font-size:10px;color:#8b949e;display:block;margin-bottom:2px">Role Name</label>
-              <input type="text" id="nr_name" placeholder="e.g. Sales Rep" class="dark-inp" style="margin:0">
-            </div>
-            <div>
-              <label style="font-size:10px;color:#8b949e;display:block;margin-bottom:2px">Permission Level (1=lowest)</label>
-              <input type="number" id="nr_level" min="1" max="9" value="1" class="dark-inp" style="margin:0">
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
-            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;cursor:pointer">
-              <input type="checkbox" id="nr_pl" class="perm-ck"> PL Edit
-            </label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;cursor:pointer">
-              <input type="checkbox" id="nr_gen" class="perm-ck"> Generator Edit
-            </label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;cursor:pointer">
-              <input type="checkbox" id="nr_mf" class="perm-ck"> MF Edit
-            </label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;cursor:pointer">
-              <input type="checkbox" id="nr_viewer" class="perm-ck"> Viewer Mode
-            </label>
-            <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;cursor:pointer">
-              <input type="checkbox" id="nr_manage" class="perm-ck"> Manage Below
-            </label>
-          </div>
-          <button class="add-user-btn" onclick="createCustomRole()">+ Create Role</button>
-        </div>
-        <div id="rolesTableWrap"></div>
-      </div>
-
-      <!-- LOG TAB -->
-      <div id="adminLog" style="display:none">
-        <div class="log-filter">
-          <select id="logFilterUser"><option value="">All Users</option></select>
-          <select id="logFilterAction"><option value="">All Actions</option>
-            <option value="login">🔑 Login</option>
-            <option value="add_pricelist">➕ Add Pricelist</option>
-            <option value="edit_pricelist">✏️ Edit Pricelist</option>
-            <option value="delete_pricelist">🗑️ Delete Pricelist</option>
-            <option value="add_mf">➕ Add Max Finance</option>
-            <option value="delete_mf">🗑️ Delete Max Finance</option>
-            <option value="add_gift_group">🎁 Add Gift Group</option>
-            <option value="delete_gift_group">🗑️ Delete Gift Group</option>
-            <option value="add_gift_item">🎁 Add Gift Item</option>
-            <option value="delete_gift_item">🗑️ Delete Gift Item</option>
-            <option value="add_row">➕ Add Row</option>
-            <option value="delete_row">🗑️ Delete Row</option>
-            <option value="change_tenure">🔄 Change Tenure</option>
-            <option value="generate_html">⚙️ Generate HTML</option>
-            <option value="generate_quotation">📄 Generate Quotation</option>
-            <option value="import_all">📂 Import All</option>
-            <option value="save_all">💾 Save All</option>
-            <option value="add_user">👤 Add User</option>
-            <option value="delete_user">🗑️ Delete User</option>
-            <option value="enable_user">✅ Enable User</option>
-            <option value="disable_user">🚫 Disable User</option>
-            <option value="reset_password">🔑 Reset Password</option>
-            <option value="update_permission">🔒 Update Permission</option>
-            <option value="update_profile">👤 Update Profile</option>
-          </select>
-          <input type="date" id="logFilterDate" style="color:#c9d1d9">
-          <button onclick="loadLog()" style="padding:5px 10px;border:1px solid #30363d;border-radius:6px;background:#1f6feb;color:#fff;font-size:11px;cursor:pointer">Load</button>
-        </div>
-        <div style="overflow-x:auto;max-height:400px;overflow-y:auto" id="logTableWrap">
-          <p style="font-size:11px;color:#8b949e">Click Load to fetch change history.</p>
-        </div>
+      <div style="overflow-x:auto;max-height:450px;overflow-y:auto" id="logTableWrap">
+        <p style="font-size:11px;color:#8b949e">Click Load to fetch change history.</p>
       </div>
     </div>
   </div>
@@ -2470,16 +2346,8 @@ async function saveAll(){
 setInterval(saveAll,5*60*1000);
 
 /* ══ ADMIN PANEL ══ */
-function openAdmin(){document.getElementById('adminPanel').style.display='block';loadUserTable();}
+function openAdmin(){document.getElementById('adminPanel').style.display='block';loadLog();}
 function closeAdmin(){document.getElementById('adminPanel').style.display='none';}
-function switchAdminTab(tab,el){
-  document.querySelectorAll('.admin-tab').forEach(function(t){t.classList.remove('on');});el.classList.add('on');
-  document.getElementById('adminUsers').style.display=tab==='users'?'':'none';
-  document.getElementById('adminRoles').style.display=tab==='roles'?'':'none';
-  document.getElementById('adminLog').style.display=tab==='log'?'':'none';
-  if(tab==='log')loadLog();
-  if(tab==='roles')loadRolesTable();
-}
 
 /* ── Custom Roles ── */
 var customRoles=[];
