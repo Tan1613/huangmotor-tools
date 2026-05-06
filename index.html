@@ -2798,18 +2798,17 @@ window.addEventListener('beforeunload', function(){
     try{
       var decoded=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(urlToken)))));
       sessionStorage.setItem('hm_session',JSON.stringify(decoded));
-      // Clean URL
       window.history.replaceState({},'',window.location.pathname);
-    }catch(e){}
+    }catch(e){sessionStorage.removeItem('hm_session');}
   }
   var sess=sessionStorage.getItem('hm_session');
-  if(!sess){window.location.href='https://login.huangmotor.com';return;}
+  if(!sess){showLoginPrompt();return;}
   try{
     var s=JSON.parse(sess);
-    if(s.module!=='tools'&&s.role!=='admin'){window.location.href='https://login.huangmotor.com';return;}
+    if(s.module!=='tools'&&s.role!=='admin'){sessionStorage.removeItem('hm_session');showLoginPrompt();return;}
     var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,is_active,display_name,position,phone,email,department');
     if(!rows.length||rows[0].is_active===false||(!rows[0].can_access_tools&&rows[0].role!=='admin')){
-      sessionStorage.removeItem('hm_session');window.location.href='https://login.huangmotor.com';return;
+      sessionStorage.removeItem('hm_session');showLoginPrompt();return;
     }
     currentUser=rows[0];
     document.getElementById('loginScreen').style.display='none';
@@ -2822,8 +2821,19 @@ window.addEventListener('beforeunload', function(){
     await loadAllFromCloud();
     buildRows();buildGiftGroups();R();renderMFTable();renderPLList();
     startRealtimeSync();
-  }catch(e){sessionStorage.removeItem('hm_session');window.location.href='https://login.huangmotor.com';}
+  }catch(e){sessionStorage.removeItem('hm_session');showLoginPrompt();}
 })();
+
+function showLoginPrompt(){
+  document.getElementById('loginScreen').innerHTML=
+    '<div style="text-align:center;padding:2rem">'
+    +'<div style="font-size:40px;margin-bottom:1rem">🔧</div>'
+    +'<div style="font-size:18px;font-weight:700;color:#f0f6fc;margin-bottom:.5rem">HuangMotor Tools</div>'
+    +'<div style="font-size:13px;color:#8b949e;margin-bottom:1.5rem">Please sign in to continue</div>'
+    +'<a href="https://login.huangmotor.com" style="display:inline-block;padding:10px 28px;background:#1f6feb;border-radius:8px;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Sign In</a>'
+    +'</div>';
+  document.getElementById('loginScreen').style.display='flex';
+}
 
 
 </script>
