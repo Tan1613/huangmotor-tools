@@ -2639,6 +2639,16 @@ window.addEventListener('beforeunload', function(){
 });
 
 (async function(){
+  // Accept token from login.huangmotor.com via URL parameter
+  var urlToken=new URLSearchParams(window.location.search).get('token');
+  if(urlToken){
+    try{
+      var decoded=JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(urlToken)))));
+      sessionStorage.setItem('hm_session',JSON.stringify(decoded));
+      // Clean URL
+      window.history.replaceState({},'',window.location.pathname);
+    }catch(e){}
+  }
   var sess=sessionStorage.getItem('hm_session');
   if(!sess){window.location.href='https://login.huangmotor.com';return;}
   try{
