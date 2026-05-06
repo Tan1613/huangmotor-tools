@@ -504,19 +504,71 @@ body.logged-in{padding-top:36px}
     <div class="admin-body">
       <!-- USERS TAB -->
       <div id="adminUsers">
-        <div style="font-size:11px;color:#8b949e;margin-bottom:10px">Manage accounts and permissions. Admin role has full access.</div>
-        <div class="add-user-grid" style="grid-template-columns:1fr 1fr 1fr 1fr auto">
-          <input type="text" id="newUsername" placeholder="Username">
-          <input type="password" id="newPassword" placeholder="Password">
-          <select id="newRole">
-            <option value="staff">Staff</option>
-            <option value="viewer">Viewer</option>
-            <option value="admin">Admin</option>
-          </select>
-          <div style="display:flex;gap:6px;align-items:center;font-size:11px;color:#8b949e">
-            <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="newCanEdit" checked class="perm-ck"> Edit</label>
+        <div style="font-size:11px;color:#8b949e;margin-bottom:10px">Manage accounts and permissions. Admin has full access to all modules.</div>
+
+        <!-- Add User Form -->
+        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:600;color:#7aa8c7;margin-bottom:8px">Create New Account</div>
+          <div class="add-user-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:10px">
+            <input type="text" id="newUsername" placeholder="Username">
+            <input type="password" id="newPassword" placeholder="Password">
+            <select id="newRole" onchange="toggleNewUserModules()">
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+              <option value="partner">Partner</option>
+            </select>
           </div>
-          <button class="add-user-btn" onclick="addUser()">+ Add</button>
+          <!-- Module permissions (staff only) -->
+          <div id="newUserModules" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <!-- Tools -->
+            <div style="border:1px solid #1e3a5f;border-radius:6px;overflow:hidden">
+              <div style="background:#0d1e35;padding:6px 10px;display:flex;align-items:center;gap:7px">
+                <input type="checkbox" id="nu_tools" class="perm-ck" onchange="toggleModulePerms('tools',this.checked)">
+                <label for="nu_tools" style="font-size:11px;font-weight:600;color:#58a6ff;cursor:pointer">Tools</label>
+                <span style="font-size:9px;color:#2a4a6a;margin-left:auto">tools.huangmotor.com</span>
+              </div>
+              <div id="nu_tools_perms" style="padding:7px 10px 6px;display:none;flex-direction:column;gap:5px">
+                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Edit permissions</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_pl" class="perm-ck"> Edit Pricelist</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_gen" class="perm-ck"> Edit Generator</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_mf" class="perm-ck"> Edit Max Finance</label>
+                <div style="height:1px;background:#1e2d45;margin:3px 0"></div>
+                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">View restriction</div>
+                <label style="display:flex;align-items:flex-start;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer">
+                  <input type="checkbox" id="nu_viewer" class="perm-ck" style="margin-top:2px">
+                  <span>Viewer Mode<span style="display:block;font-size:9px;color:#4a6fa5">Limits visible fields in Pricelist & Calculator</span></span>
+                </label>
+              </div>
+            </div>
+            <!-- Team -->
+            <div style="border:1px solid #1a3a1a;border-radius:6px;overflow:hidden">
+              <div style="background:#0d2318;padding:6px 10px;display:flex;align-items:center;gap:7px">
+                <input type="checkbox" id="nu_team" class="perm-ck" onchange="toggleModulePerms('team',this.checked)">
+                <label for="nu_team" style="font-size:11px;font-weight:600;color:#3fb950;cursor:pointer">Team</label>
+                <span style="font-size:9px;color:#1a3a1a;margin-left:auto">team.huangmotor.com</span>
+              </div>
+              <div id="nu_team_perms" style="padding:7px 10px 6px;display:none;flex-direction:column;gap:5px">
+                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Tasks</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_task_dept" class="perm-ck"> Assign tasks (own dept)</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_task_cross" class="perm-ck"> Assign tasks (cross-dept)</label>
+                <div style="height:1px;background:#1e2d45;margin:3px 0"></div>
+                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Attendance</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_attendance" class="perm-ck"> View attendance</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_leave" class="perm-ck"> Approve leave</label>
+                <div style="height:1px;background:#1e2d45;margin:3px 0"></div>
+                <div style="font-size:9px;color:#3a5a7a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Performance</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_perf_own" class="perm-ck" checked> View own performance</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_perf_dept" class="perm-ck"> View dept performance</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" id="nu_perf_all" class="perm-ck"> View all performance</label>
+              </div>
+            </div>
+          </div>
+          <!-- Partner placeholder -->
+          <div style="border:1px dashed #21262d;border-radius:6px;padding:6px 10px;display:flex;align-items:center;gap:7px;opacity:.4;margin-bottom:10px">
+            <input type="checkbox" disabled class="perm-ck">
+            <span style="font-size:11px;color:#8b949e">Partner — coming soon</span>
+          </div>
+          <button class="add-user-btn" onclick="addUser()">+ Create Account</button>
         </div>
         <div id="userTableWrap" style="overflow-x:auto"></div>
       </div>
@@ -2480,30 +2532,95 @@ async function deleteCustomRole(id,name){
 
 async function loadUserTable(){
   await loadCustomRoles();
-  var rows=await sbGet('users','select=username,role,can_edit_pricelist,can_edit_generator,can_edit_mf,is_active,custom_role_id&order=username.asc');
-  var roleOpts='<option value="">— Default —</option>'+customRoles.map(function(r){return '<option value="'+r.id+'">'+esc(r.name)+' (L'+r.level+')</option>';}).join('');
-  var html='<table class="user-table"><thead><tr><th>Username</th><th>System</th><th>Custom Role</th><th>PL</th><th>Gen</th><th>MF</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  var rows=await sbGet('users','select=username,role,is_active,can_access_tools,can_access_team,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_assign_task_dept,can_assign_task_cross,can_view_attendance,can_approve_leave,can_view_perf_own,can_view_perf_dept,can_view_perf_all,custom_role_id&order=username.asc');
+  var ck=function(v){return v?'<span style="color:#3fb950;font-size:12px">✓</span>':'<span style="color:#21262d;font-size:12px">—</span>';};
+  var html='<table class="user-table" style="font-size:10px"><thead><tr>'
+    +'<th>User</th><th>Role</th>'
+    +'<th colspan="2" style="text-align:center;background:#0d1e35;color:#58a6ff">Tools</th>'
+    +'<th colspan="5" style="text-align:center;background:#0d2318;color:#3fb950">Team</th>'
+    +'<th>Status</th><th>Actions</th>'
+    +'</tr><tr style="font-size:9px">'
+    +'<th></th><th></th>'
+    +'<th style="background:#0d1e2a;color:#4a7fa5">Access</th>'
+    +'<th style="background:#0d1e2a;color:#4a7fa5">PL/Gen/MF/View</th>'
+    +'<th style="background:#0d2010;color:#2a7a2a">Access</th>'
+    +'<th style="background:#0d2010;color:#2a7a2a">Tasks</th>'
+    +'<th style="background:#0d2010;color:#2a7a2a">Attend</th>'
+    +'<th style="background:#0d2010;color:#2a7a2a">Leave</th>'
+    +'<th style="background:#0d2010;color:#2a7a2a">Perf</th>'
+    +'<th></th><th></th>'
+    +'</tr></thead><tbody>';
   rows.forEach(function(u){
     var isSelf=u.username===currentUser.username;
-    var selOpts=roleOpts.replace('value="'+(u.custom_role_id||'')+'"','value="'+(u.custom_role_id||'')+'" selected');
+    var isAdm=u.role==='admin';
+    var toolsPerms=isAdm?'All':[u.can_edit_pricelist?'PL':'',u.can_edit_generator?'Gen':'',u.can_edit_mf?'MF':'',u.is_viewer_mode?'👁':''].filter(Boolean).join(' ')||'—';
+    var taskPerms=isAdm?'All':[u.can_assign_task_dept?'Dept':'',u.can_assign_task_cross?'Cross':''].filter(Boolean).join('+') ||'—';
+    var perfPerms=isAdm?'All':[u.can_view_perf_own?'Own':'',u.can_view_perf_dept?'Dept':'',u.can_view_perf_all?'All':''].filter(Boolean).join('+') ||'—';
     html+='<tr>'
-      +'<td>'+esc(u.username)+'</td>'
-      +'<td><span style="font-size:10px;padding:2px 7px;border-radius:4px;background:'+(u.role==='admin'?'#2d1a0d':'#0d1a2d')+';color:'+(u.role==='admin'?'#f0a040':'#58a6ff')+'">'+u.role+'</span></td>'
-      +'<td><select onchange="assignCustomRole(\''+u.username+'\',this.value)" style="padding:2px 5px;border:1px solid #30363d;border-radius:4px;font-size:10px;background:#0d1117;color:#c9d1d9;cursor:pointer">'+selOpts+'</select></td>'
-      +'<td style="text-align:center"><input type="checkbox" class="perm-ck" '+(u.can_edit_pricelist!==false?'checked':'')+' onchange="updatePerm(\''+u.username+'\',\'can_edit_pricelist\',this.checked)"></td>'
-      +'<td style="text-align:center"><input type="checkbox" class="perm-ck" '+(u.can_edit_generator!==false?'checked':'')+' onchange="updatePerm(\''+u.username+'\',\'can_edit_generator\',this.checked)"></td>'
-      +'<td style="text-align:center"><input type="checkbox" class="perm-ck" '+(u.can_edit_mf!==false?'checked':'')+' onchange="updatePerm(\''+u.username+'\',\'can_edit_mf\',this.checked)"></td>'
+      +'<td style="font-weight:600">'+esc(u.username)+'</td>'
+      +'<td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:'+(isAdm?'#2d1a0d':'#0d1a2d')+';color:'+(isAdm?'#f0a040':'#58a6ff')+'">'+u.role+'</span></td>'
+      +'<td style="text-align:center">'+(isAdm?ck(true):ck(u.can_access_tools))+'</td>'
+      +'<td style="font-size:10px;color:#8b949e">'+toolsPerms+'</td>'
+      +'<td style="text-align:center">'+(isAdm?ck(true):ck(u.can_access_team))+'</td>'
+      +'<td style="font-size:10px;color:#8b949e">'+taskPerms+'</td>'
+      +'<td style="text-align:center">'+(isAdm?ck(true):ck(u.can_view_attendance))+'</td>'
+      +'<td style="text-align:center">'+(isAdm?ck(true):ck(u.can_approve_leave))+'</td>'
+      +'<td style="font-size:10px;color:#8b949e">'+perfPerms+'</td>'
       +'<td><span class="user-status '+(u.is_active!==false?'active':'inactive')+'">'+(u.is_active!==false?'Active':'Disabled')+'</span></td>'
-      +'<td style="display:flex;gap:4px;flex-wrap:wrap">'
-      +'<button onclick="toggleUserActive(\''+u.username+'\','+(u.is_active!==false?'false':'true')+')" style="padding:2px 8px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e">'+(u.is_active!==false?'Disable':'Enable')+'</button>'
-      +(!isSelf?'<button onclick="resetPassword(\''+u.username+'\')" style="padding:2px 8px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e">Reset PW</button>':'')
-      +(!isSelf?'<button onclick="deleteUser(\''+u.username+'\')" style="padding:2px 8px;border:1px solid #6a2020;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#f85149">Delete</button>':'')
+      +'<td style="display:flex;gap:3px;flex-wrap:wrap">'
+      +'<button onclick="editUserPerms(\''+u.username+'\')" style="padding:2px 7px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e">Edit</button>'
+      +'<button onclick="toggleUserActive(\''+u.username+'\','+(u.is_active!==false?'false':'true')+')" style="padding:2px 7px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e">'+(u.is_active!==false?'Disable':'Enable')+'</button>'
+      +(!isSelf?'<button onclick="resetPassword(\''+u.username+'\')" style="padding:2px 7px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e">PW</button>':'')
+      +(!isSelf?'<button onclick="deleteUser(\''+u.username+'\')" style="padding:2px 7px;border:1px solid #6a2020;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#f85149">✕</button>':'')
       +'</td></tr>';
   });
   html+='</tbody></table>';
   document.getElementById('userTableWrap').innerHTML=html;
 }
 
+async function editUserPerms(username){
+  var rows=await sbGet('users','username=eq.'+encodeURIComponent(username)+'&select=username,role,can_access_tools,can_access_team,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_assign_task_dept,can_assign_task_cross,can_view_attendance,can_approve_leave,can_view_perf_own,can_view_perf_dept,can_view_perf_all');
+  if(!rows.length)return;
+  var u=rows[0];
+  var isAdm=u.role==='admin';
+  var fields=[
+    ['can_access_tools','Tools Access'],['can_edit_pricelist','Edit Pricelist'],['can_edit_generator','Edit Generator'],
+    ['can_edit_mf','Edit Max Finance'],['is_viewer_mode','Viewer Mode (Tools)'],
+    ['can_access_team','Team Access'],['can_assign_task_dept','Assign Tasks (Dept)'],['can_assign_task_cross','Assign Tasks (Cross-dept)'],
+    ['can_view_attendance','View Attendance'],['can_approve_leave','Approve Leave'],
+    ['can_view_perf_own','View Own Performance'],['can_view_perf_dept','View Dept Performance'],['can_view_perf_all','View All Performance']
+  ];
+  var toolsFields=fields.slice(0,5);var teamFields=fields.slice(5);
+  var makeSection=function(title,flds,color){
+    return '<div style="border:1px solid '+color+';border-radius:6px;overflow:hidden;margin-bottom:8px">'
+      +'<div style="background:'+color+'22;padding:5px 8px;font-size:10px;font-weight:600;color:'+color+'">'+title+'</div>'
+      +'<div style="padding:6px 8px;display:grid;grid-template-columns:1fr 1fr;gap:4px">'
+      +flds.map(function(f){return '<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c9d1d9;cursor:pointer"><input type="checkbox" class="perm-ck eu_'+f[0]+'" '+(isAdm||u[f[0]]?'checked':'')+' '+(isAdm?'disabled':'')+'>'+f[1]+'</label>';}).join('')
+      +'</div></div>';
+  };
+  var html='<div style="padding:.8rem">'
+    +'<div style="font-size:12px;font-weight:600;color:#f0f6fc;margin-bottom:10px">Edit permissions: <span style="color:#58a6ff">'+esc(username)+'</span>'+(isAdm?' <span style="font-size:10px;color:#f0a040">(Admin — all permissions locked)</span>':'')+'</div>'
+    +makeSection('Tools',toolsFields,'#58a6ff')
+    +makeSection('Team',teamFields,'#3fb950')
+    +'<div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">'
+    +'<button class="pl-cancel-btn" onclick="closeAdmin();openAdmin()">Cancel</button>'
+    +(isAdm?'':'<button class="pl-save-btn" onclick="saveUserPerms(\''+username+'\')">Save Permissions</button>')
+    +'</div></div>';
+  // Replace users tab content temporarily
+  ge('adminUsers').innerHTML=html;
+}
+
+async function saveUserPerms(username){
+  var data={};
+  ['can_access_tools','can_edit_pricelist','can_edit_generator','can_edit_mf','is_viewer_mode',
+   'can_access_team','can_assign_task_dept','can_assign_task_cross','can_view_attendance',
+   'can_approve_leave','can_view_perf_own','can_view_perf_dept','can_view_perf_all'].forEach(function(f){
+    var el=document.querySelector('.eu_'+f);if(el)data[f]=el.checked;
+  });
+  await fetch(SB_URL+'/rest/v1/users?username=eq.'+encodeURIComponent(username),{method:'PATCH',headers:sbHeaders(),body:JSON.stringify(data)});
+  await logAction('update_permissions','users',username,null,data);
+  closeAdmin();openAdmin();
+}
 async function assignCustomRole(username,roleId){
   var val=roleId?parseInt(roleId):null;
   await fetch(SB_URL+'/rest/v1/users?username=eq.'+encodeURIComponent(username),{method:'PATCH',headers:sbHeaders(),body:JSON.stringify({custom_role_id:val})});
@@ -2518,15 +2635,51 @@ async function assignCustomRole(username,roleId){
   await loadUserTable();
 }
 
+function toggleNewUserModules(){
+  var role=gv('newRole');
+  var show=role==='staff';
+  ge('newUserModules').style.display=show?'grid':'none';
+}
+function toggleModulePerms(mod,checked){
+  var el=ge('nu_'+mod+'_perms');
+  if(el)el.style.display=checked?'flex':'none';
+}
+
 async function addUser(){
-  var u=gv('newUsername').trim(),p=gv('newPassword'),r=gv('newRole'),e=document.getElementById('newCanEdit').checked;
+  var u=gv('newUsername').trim(),p=gv('newPassword'),r=gv('newRole');
   if(!u||!p){alert('Username and password required.');return;}
   var hash=await sha256(p);
-  var res=await fetch(SB_URL+'/rest/v1/users',{method:'POST',headers:sbHeaders(),body:JSON.stringify({username:u,password_hash:hash,role:r,can_edit_pricelist:e,can_edit_generator:e,can_edit_mf:e,is_active:true})});
+  var isAdmin=r==='admin';
+  var data={
+    username:u,password_hash:hash,role:r,is_active:true,
+    // Module access
+    can_access_tools:isAdmin||ge('nu_tools').checked,
+    can_access_team:isAdmin||ge('nu_team').checked,
+    can_access_partner:false,
+    // Tools permissions
+    can_edit_pricelist:isAdmin||ge('nu_pl').checked,
+    can_edit_generator:isAdmin||ge('nu_gen').checked,
+    can_edit_mf:isAdmin||ge('nu_mf').checked,
+    is_viewer_mode:!isAdmin&&ge('nu_viewer').checked,
+    // Team permissions
+    can_assign_task_dept:isAdmin||ge('nu_task_dept').checked,
+    can_assign_task_cross:isAdmin||ge('nu_task_cross').checked,
+    can_view_attendance:isAdmin||ge('nu_attendance').checked,
+    can_approve_leave:isAdmin||ge('nu_leave').checked,
+    can_view_perf_own:true,
+    can_view_perf_dept:isAdmin||ge('nu_perf_dept').checked,
+    can_view_perf_all:isAdmin||ge('nu_perf_all').checked
+  };
+  var res=await fetch(SB_URL+'/rest/v1/users',{method:'POST',headers:sbHeaders(),body:JSON.stringify(data)});
   if(res.ok||res.status===201){
     ge('newUsername').value='';ge('newPassword').value='';
+    // Reset checkboxes
+    ['nu_tools','nu_team','nu_pl','nu_gen','nu_mf','nu_viewer','nu_task_dept','nu_task_cross','nu_attendance','nu_leave','nu_perf_dept','nu_perf_all'].forEach(function(id){var el=ge(id);if(el)el.checked=false;});
+    ge('nu_perf_own').checked=true;
+    ge('nu_tools_perms').style.display='none';ge('nu_team_perms').style.display='none';
     await logAction('add_user','users',u,null,{username:u,role:r});
-    await loadUserTable();alert('User "'+u+'" added.');
+    await loadUserTable();
+    alert('Account "'+u+'" created.');
   } else {var t=await res.text();alert('Error: '+t);}
 }
 
