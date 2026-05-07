@@ -2082,9 +2082,7 @@ async function saveProfile(){
 }
 
 function applyPermissions(){
-  // Check if user has a custom role with viewer_mode
-  var customRole=currentUser.customRole||null;
-  var isViewer=(currentUser.role==='viewer')||(customRole&&customRole.is_viewer_mode);
+  var isViewer=currentUser.role!=='admin'&&currentUser.is_viewer_mode===true;
   var canEdit=!isViewer&&(currentUser.role==='admin'||currentUser.can_edit_pricelist!==false);
   var canGen=!isViewer&&(currentUser.role==='admin'||currentUser.can_edit_generator!==false);
   var canMF=!isViewer&&(currentUser.role==='admin'||currentUser.can_edit_mf!==false);
