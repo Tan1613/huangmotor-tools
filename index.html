@@ -1217,31 +1217,34 @@ body.theme-white .home-welcome{color:#555}
       <div id="newVehicleList" style="font-size:12px;color:#4a6fa5">Loading...</div>
     </div>
     <div id="plPanelUsed" style="display:none;height:calc(100% - 37px);overflow:auto">
-    <div class="up-wrap">
-      <div class="up-toolbar">
-        <input class="up-inp" id="upSearch" placeholder="Search plate / brand / model..." oninput="renderUPList()" style="width:220px">
-        <select class="up-inp" id="upFilterBrand" onchange="renderUPList()"><option value="">All brands</option></select>
-        <select class="up-inp" id="upFilterCond" onchange="renderUPList()">
-          <option value="">All condition</option><option value="good">Good</option>
-          <option value="fair">Fair</option><option value="poor">Poor</option>
-        </select>
-        <select class="up-inp" id="upFilterSold" onchange="renderUPList()">
-          <option value="available">Available only</option>
-          <option value="all">Show all</option><option value="sold">Sold only</option>
-        </select>
+      <div id="upToolbar" style="padding:10px 12px 8px;position:sticky;top:0;background:#0d1117;z-index:2;border-bottom:1px solid #0d1626">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input class="up-inp" id="upSearch" placeholder="🔍 Plate / brand / model..." oninput="renderUPList()" style="flex:1;min-width:120px">
+          <select class="up-inp" id="upFilterBrand" onchange="renderUPList()"><option value="">All brands</option></select>
+          <select class="up-inp" id="upFilterCond" onchange="renderUPList()">
+            <option value="">All condition</option><option value="good">Good</option>
+            <option value="fair">Fair</option><option value="poor">Poor</option>
+          </select>
+          <select class="up-inp" id="upFilterSold" onchange="renderUPList()">
+            <option value="available">Available only</option>
+            <option value="all">Show all</option><option value="sold">Sold only</option>
+          </select>
+          <select class="up-inp" id="upSortBy" onchange="renderUPList()" style="min-width:130px">
+            <option value="created">Latest first</option>
+            <option value="brand_asc">Brand A→Z</option>
+            <option value="brand_desc">Brand Z→A</option>
+            <option value="cash_asc">Cash ↑</option>
+            <option value="cash_desc">Cash ↓</option>
+            <option value="plate_asc">Plate A→Z</option>
+            <option value="plate_desc">Plate Z→A</option>
+          </select>
+        </div>
+        <div id="upEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px">
+          <button onclick="openUPModal(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ Add Vehicle</button>
+          <span id="upCountLabel" style="font-size:10px;color:#4a6fa5;margin-left:4px"></span>
+        </div>
       </div>
-      <div style="overflow-x:auto">
-        <table class="up-table">
-          <thead><tr>
-            <th>Plate</th><th>Brand</th><th>Model</th><th>Year</th>
-            <th>Cash</th><th>Loan</th><th>Down</th><th>Monthly</th>
-            <th>Road Tax</th><th>1st Party</th><th>3rd Party</th>
-            <th>Condition</th><th>Notes</th><th></th>
-          </tr></thead>
-          <tbody id="upTableBody"></tbody>
-        </table>
-      </div>
-    </div>
+      <div id="upList" style="padding:8px 12px"></div>
     </div><!-- /plPanelUsed -->
   </div>
 </div>
@@ -1272,14 +1275,33 @@ body.theme-white .home-welcome{color:#555}
       <div><label>Condition</label>
         <select id="up_condition"><option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select>
       </div>
-      <div><label>Cash Price (RM)</label><input id="up_cash" type="number" placeholder="0"></div>
-      <div><label>Loan Price (RM)</label><input id="up_loan" type="number" placeholder="0"></div>
-      <div><label>Down Payment (RM)</label><input id="up_down" type="number" placeholder="0"></div>
-      <div><label>Loan Amount (RM)</label><input id="up_loan_amt" type="number" placeholder="0"></div>
-      <div><label>Monthly Instalment (RM)</label><input id="up_instalment" type="number" placeholder="0"></div>
+      <div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Pricing</div>
+      <div><label>Cash Price (RM) <span style="font-size:9px;color:#444">名称转让费 +RM60</span></label><input id="up_cash" type="number" placeholder="0" oninput="upFormCalc()"></div>
+      <div><label>Kedai HP (RM) <span style="font-size:9px;color:#444">名称转让费 +RM80</span></label><input id="up_loan" type="number" placeholder="0" oninput="upFormCalc()"></div>
+      <div><label>Kedai DP (RM)</label><input id="up_down" type="number" placeholder="0" oninput="upFormCalc()"></div>
+      <div>
+        <label style="color:#3fb950">Kedai Loan <span style="font-size:9px;color:#444">(auto)</span></label>
+        <div id="up_loan_amt_disp" style="padding:5px 8px;background:#0a0f1a;border:1px solid #0d1626;border-radius:5px;font-size:11px;color:#3fb950;min-height:28px">—</div>
+        <input type="hidden" id="up_loan_amt">
+      </div>
+      <div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Interest & Loan</div>
+      <div><label>PA % <span style="font-size:9px;color:#444">blank = default (10%)</span></label><input id="up_pa" type="number" placeholder="leave blank" step="0.1" oninput="upFormCalc()"></div>
+      <div><label>Max Loan Year</label>
+        <select id="up_loanyear" onchange="upFormCalc()">
+          <option value="5">5yr (default)</option>
+          <option value="1">1yr</option><option value="2">2yr</option>
+          <option value="3">3yr</option><option value="4">4yr</option>
+        </select>
+      </div>
+      <div style="grid-column:1/-1;background:#0a0f1a;border:1px solid #1e2d45;border-radius:7px;padding:7px 10px">
+        <div style="font-size:9px;color:#2a4a6a;margin-bottom:4px;font-weight:700;text-transform:uppercase">Instalment Preview</div>
+        <div id="up_inst_table" style="font-size:11px;color:#4a6fa5">Fill HP, DP and PA% to preview</div>
+      </div>
+      <div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Insurance</div>
+      <div><label>Ins 1st Party (RM)</label><input id="up_ins1st" type="number" placeholder="0"></div>
+      <div><label>Ins 1st Party+ (RM)</label><input id="up_ins1p" type="number" placeholder="0"></div>
+      <div><label>Ins 3rd Party (RM)</label><input id="up_ins3rd" type="number" placeholder="0"></div>
       <div><label>Road Tax (RM)</label><input id="up_rtax" type="number" placeholder="0"></div>
-      <div><label>1st Party Insurance (RM)</label><input id="up_ins1st" type="number" placeholder="0"></div>
-      <div><label>3rd Party Insurance (RM)</label><input id="up_ins3rd" type="number" placeholder="0"></div>
       <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 0">
         <label style="margin:0;font-size:11px;color:#8b949e;display:flex;align-items:center;gap:6px">
           <input type="checkbox" id="up_sold"> Mark as Sold
@@ -3884,55 +3906,172 @@ function initNewPLData(){
 
 /* ══ USED PRICELIST ══ */
 var _upData=[];
+var _upDefaultPa=10;
+var _upMinInst=0;
+var _upSelectedId=null;
+
 async function loadUPData(){
   _upData=await sbGet('used_vehicles','order=created_at.desc');
-  renderUPList();
-  // Populate brand filter
+  try{
+    var cfg=await sbGet('app_config','key=in.(used_default_pa,pl_min_instalment)&select=key,value');
+    (cfg||[]).forEach(function(r){
+      if(r.key==='used_default_pa')_upDefaultPa=parseFloat(r.value)||10;
+      if(r.key==='pl_min_instalment')_upMinInst=parseFloat(r.value)||0;
+    });
+  }catch(e){}
   var brands=[...new Set(_upData.map(function(r){return r.brand;}).filter(Boolean))].sort();
   var sel=ge('upFilterBrand');
-  sel.innerHTML='<option value="">All brands</option>'+brands.map(function(b){return '<option>'+esc(b)+'</option>';}).join('');
+  if(sel)sel.innerHTML='<option value="">All brands</option>'+brands.map(function(b){return '<option>'+esc(b)+'</option>';}).join('');
+  renderUPList();
+  upSyncEditBar();
 }
-function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+
+function upSyncEditBar(){
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  var eb=ge('upEditBar');if(eb)eb.style.display=canEdit?'flex':'none';
+  var avail=_upData.filter(function(r){return !r.is_sold;}).length;
+  var lbl=ge('upCountLabel');if(lbl)lbl.textContent=avail+' available / '+_upData.length+' total';
+}
+
 function renderUPList(){
-  var q=(ge('upSearch').value||'').toLowerCase();
-  var brand=ge('upFilterBrand').value;
-  var cond=ge('upFilterCond').value;
-  var sold=ge('upFilterSold').value;
+  var q=(ge('upSearch')&&ge('upSearch').value||'').toLowerCase();
+  var brand=ge('upFilterBrand')&&ge('upFilterBrand').value||'';
+  var cond=ge('upFilterCond')&&ge('upFilterCond').value||'';
+  var sold=ge('upFilterSold')&&ge('upFilterSold').value||'available';
+  var sortBy=ge('upSortBy')&&ge('upSortBy').value||'created';
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
   var rows=_upData.filter(function(r){
     if(brand&&r.brand!==brand)return false;
     if(cond&&r.condition!==cond)return false;
     if(sold==='available'&&r.is_sold)return false;
     if(sold==='sold'&&!r.is_sold)return false;
-    if(q){var s=(r.plate_no+r.brand+r.model+r.notes).toLowerCase();if(!s.includes(q))return false;}
+    if(q){var s=((r.plate_no||'')+(r.brand||'')+(r.model||'')+(r.notes||'')).toLowerCase();if(!s.includes(q))return false;}
     return true;
   });
-  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
-  var tb=ge('upTableBody');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="14" style="text-align:center;color:#30363d;padding:20px">No records found</td></tr>';return;}
-  tb.innerHTML=rows.map(function(r){
-    var badge='<span class="up-badge '+r.condition+'">'+(r.condition||'—')+'</span>';
-    if(r.is_sold)badge='<span class="up-badge sold">Sold</span>';
-    var rowCls=r.is_sold?'class="sold"':'';
-    return '<tr '+rowCls+'>'
-      +'<td class="plate">'+esc(r.plate_no||'—')+'</td>'
-      +'<td>'+esc(r.brand||'—')+'</td>'
-      +'<td>'+esc(r.model||'—')+'</td>'
-      +'<td>'+esc(r.year||'—')+'</td>'
-      +'<td class="price">'+(r.cash_price?'RM '+fmt(r.cash_price):'—')+'</td>'
-      +'<td>'+(r.loan_price?'RM '+fmt(r.loan_price):'—')+'</td>'
-      +'<td>'+(r.down_payment?'RM '+fmt(r.down_payment):'—')+'</td>'
-      +'<td>'+(r.installment?'RM '+fmt(r.installment):'—')+'</td>'
-      +'<td>'+(r.road_tax_1yr?'RM '+fmt(r.road_tax_1yr):'—')+'</td>'
-      +'<td>'+(r.insurance_1st?'RM '+fmt(r.insurance_1st):'—')+'</td>'
-      +'<td>'+(r.insurance_3rd?'RM '+fmt(r.insurance_3rd):'—')+'</td>'
-      +'<td>'+badge+'</td>'
-      +'<td style="color:#8b949e;font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis">'+esc(r.notes||'')+'</td>'
-      +'<td>'+(canEdit?'<button class="up-act-btn" onclick="openUPModal('+r.id+')">Edit</button> '
-        +'<button class="up-act-btn del" onclick="deleteUP('+r.id+')">Del</button>':'')+'</td>'
-      +'</tr>';
-  }).join('');
+  rows.sort(function(a,b){
+    if(sortBy==='brand_asc')return (a.brand||'').localeCompare(b.brand||'');
+    if(sortBy==='brand_desc')return (b.brand||'').localeCompare(a.brand||'');
+    if(sortBy==='cash_asc')return (parseFloat(a.cash_price)||0)-(parseFloat(b.cash_price)||0);
+    if(sortBy==='cash_desc')return (parseFloat(b.cash_price)||0)-(parseFloat(a.cash_price)||0);
+    if(sortBy==='plate_asc')return (a.plate_no||'').localeCompare(b.plate_no||'');
+    if(sortBy==='plate_desc')return (b.plate_no||'').localeCompare(a.plate_no||'');
+    return 0;
+  });
+  var wrap=ge('upList');if(!wrap)return;
+  if(!rows.length){wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">No vehicles found</div>';return;}
+  wrap.innerHTML=rows.map(function(r){return renderUPCard(r,r.id===_upSelectedId,canEdit);}).join('');
+  upSyncEditBar();
 }
-function fmt(v){return parseFloat(v||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function upCalcInst(loan,pa,yr){
+  if(!loan||loan<=0||!pa||!yr)return null;
+  return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
+}
+
+function renderUPCard(r,expanded,canEdit){
+  var cash=parseFloat(r.cash_price)||0;
+  var hp=parseFloat(r.loan_price)||0;
+  var dp=parseFloat(r.down_payment)||0;
+  var loan=hp-dp;
+  var pa=parseFloat(r.pa)||_upDefaultPa;
+  var loanyear=parseInt(r.loanyear)||5;
+  var ins1=parseFloat(r.insurance_1st)||0;
+  var ins1p=parseFloat(r.ins1p)||0;
+  var ins3=parseFloat(r.insurance_3rd)||0;
+  var rtax=parseFloat(r.road_tax_1yr)||0;
+  var condColor={'good':'#3fb950','fair':'#f0c060','poor':'#e24b4a'}[r.condition]||'#8b949e';
+  var yrcols=[2,3,4,5];
+  function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
+  function instCells(){
+    return yrcols.map(function(yr){
+      if(yr>loanyear)return '<td style="text-align:center;color:#2a4a6a;padding:5px 6px">—</td>';
+      var v=upCalcInst(loan,pa,yr);
+      if(!v||(_upMinInst&&v<_upMinInst))return '<td style="text-align:center;color:#2a4a6a;padding:5px 6px">—</td>';
+      return '<td style="text-align:center;font-size:12px;font-weight:700;color:#60a5fa;padding:5px 6px">'+Math.round(v).toLocaleString()+'</td>';
+    }).join('');
+  }
+  var yrHdr=yrcols.map(function(yr){return '<th style="text-align:center;font-size:9px;color:#2a4a6a;padding:4px 6px">'+yr+'yr</th>';}).join('');
+  var html='<div style="border:1px solid #161b22;border-radius:8px;margin-bottom:6px;overflow:hidden;background:'+(expanded?'#060b12':'#0d1117')+(r.is_sold?';opacity:.6':'') +'">'
+    +'<div onclick="upSelectEntry('+r.id+')" style="display:flex;align-items:center;padding:10px 14px;gap:10px;cursor:pointer">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+          +'<span style="font-size:13px;font-weight:700;color:#60a5fa;font-family:monospace">'+esc(r.plate_no||'—')+'</span>'
+          +(r.is_sold?'<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:#2a1a0a;color:#f0883e;border:1px solid #8b4513">Sold</span>':'')
+          +'<span style="font-size:11px;color:#c9d1d9">'+esc((r.brand||'')+(r.model?' '+r.model:''))+'</span>'
+          +(r.year?'<span style="font-size:10px;color:#4a6fa5">'+r.year+'</span>':'')
+          +'<span style="font-size:10px;color:'+condColor+';background:#0a0f1a;padding:1px 6px;border-radius:4px;border:1px solid '+condColor+'">'+esc(r.condition||'—')+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">'
+          +(cash?'<span style="font-size:12px;color:#4ade80;font-weight:700">RM '+Math.round(cash).toLocaleString()+'</span>':'')
+          +(dp?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">DP RM'+Math.round(dp).toLocaleString()+'</span>':'')
+          +(ins1?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">Ins RM'+Math.round(ins1).toLocaleString()+'</span>':'')
+          +(rtax?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
+        +'</div>'
+      +'</div>'
+      +(canEdit?'<div style="display:flex;gap:5px;flex-shrink:0">'
+        +'<button onclick="event.stopPropagation();openUPModal('+r.id+')" style="padding:3px 9px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>'
+        +'<button onclick="event.stopPropagation();deleteUP('+r.id+')" style="padding:3px 9px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">🗑</button>'
+        +'</div>':'')
+      +'<span style="color:#4a6fa5;font-size:11px;flex-shrink:0">'+(expanded?'▲':'▼')+'</span>'
+    +'</div>';
+  if(expanded){
+    html+='<div style="padding:0 14px 14px;background:#060b12;border-top:1px solid #161b22">'
+      +(loan>0?'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
+        +'<thead><tr><th style="text-align:left;font-size:9px;color:#2a4a6a;padding:4px 8px 4px 0;min-width:80px"></th>'+yrHdr+'</tr></thead>'
+        +'<tbody><tr style="background:#080d18">'
+          +'<td style="font-size:10px;color:#60a5fa;padding:6px 8px 6px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dp).toLocaleString()+'</span></td>'
+          +instCells()+'</tr></tbody></table>':'')
+      +'<div style="font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Insurance & Fees</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:11px">'
+        +upDRow('Ins 1st',rm(ins1),'#c9d1d9')
+        +upDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
+        +upDRow('Ins 3rd',rm(ins3),'#c9d1d9')
+        +upDRow('Road Tax',rm(rtax),'#c9d1d9')
+        +upDRow('Kedai HP',rm(hp),'#c9d1d9')
+        +upDRow('Loan Amt',loan>0?rm(loan):'—','#60a5fa')
+        +(r.notes?upDRow('Notes',esc(r.notes),'#8b949e'):'')
+        +(canEdit?upDRow('PA Rate',r.pa?r.pa+'%':_upDefaultPa+'% (default)','#8b949e'):'')
+        +(canEdit?upDRow('Max Loan',loanyear+'yr','#8b949e'):'')
+      +'</div>'
+    +'</div>';
+  }
+  return html+'</div>';
+}
+
+function upDRow(label,val,color){
+  return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a0f1a">'
+    +'<span style="color:#4a6fa5">'+label+'</span>'
+    +'<span style="font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span></div>';
+}
+
+function upSelectEntry(id){
+  _upSelectedId=_upSelectedId===id?null:id;
+  renderUPList();
+}
+
+function upFormCalc(){
+  var hp=parseFloat(ge('up_loan')&&ge('up_loan').value)||0;
+  var dp=parseFloat(ge('up_down')&&ge('up_down').value)||0;
+  var pa=parseFloat(ge('up_pa')&&ge('up_pa').value)||_upDefaultPa;
+  var loanyear=parseInt(ge('up_loanyear')&&ge('up_loanyear').value)||5;
+  var loan=hp-dp;
+  var lad=ge('up_loan_amt_disp');if(lad)lad.textContent=loan>0?'RM '+Math.round(loan).toLocaleString():'—';
+  var la=ge('up_loan_amt');if(la)la.value=loan>0?loan:'';
+  var tbl=ge('up_inst_table');if(!tbl)return;
+  if(!loan||loan<=0||!pa){tbl.innerHTML='<span style="color:#4a6fa5">Fill HP, DP and PA%</span>';return;}
+  var cols=[2,3,4,5];
+  tbl.innerHTML='<table style="width:100%;border-collapse:collapse"><tr>'
+    +'<td style="font-size:9px;color:#2a4a6a;padding-right:8px">Monthly</td>'
+    +cols.map(function(yr){
+      if(yr>loanyear)return '<td style="text-align:center;color:#2a4a6a;font-size:10px;padding:4px 6px">'+yr+'yr<br>—</td>';
+      var v=upCalcInst(loan,pa,yr);
+      var ok=v&&(!_upMinInst||v>=_upMinInst);
+      return '<td style="text-align:center;padding:4px 6px"><span style="font-size:9px;color:#4a6fa5">'+yr+'yr</span><br>'
+        +'<span style="font-size:12px;font-weight:700;color:'+(ok?'#60a5fa':'#2a4a6a')+'">'+( ok?Math.round(v).toLocaleString():'N/A')+'</span></td>';
+    }).join('')
+  +'</tr></table>';
+}
+
 function openUPModal(id){
   var r=id?_upData.find(function(x){return x.id===id;}):null;
   ge('up_id').value=id||'';
@@ -3945,41 +4084,63 @@ function openUPModal(id){
   ge('up_cash').value=r?r.cash_price||'':'';
   ge('up_loan').value=r?r.loan_price||'':'';
   ge('up_down').value=r?r.down_payment||'':'';
-  ge('up_loan_amt').value=r?r.loan_amount||'':'';
-  ge('up_instalment').value=r?r.installment||'':'';
-  ge('up_rtax').value=r?r.road_tax_1yr||'':'';
+  ge('up_pa').value=r&&r.pa!=null?r.pa:'';
+  ge('up_loanyear').value=r?r.loanyear||5:5;
   ge('up_ins1st').value=r?r.insurance_1st||'':'';
+  ge('up_ins1p').value=r?r.ins1p||'':'';
   ge('up_ins3rd').value=r?r.insurance_3rd||'':'';
+  ge('up_rtax').value=r?r.road_tax_1yr||'':'';
   ge('up_sold').checked=r?!!r.is_sold:false;
   ge('up_notes').value=r?r.notes||'':'';
   ge('upModal').classList.add('open');
+  setTimeout(upFormCalc,0);
 }
 function closeUPModal(){ge('upModal').classList.remove('open');}
+
 async function saveUPRecord(){
   var id=ge('up_id').value;
-  function n(id){var v=parseFloat(ge(id).value);return isNaN(v)||!ge(id).value?null:v;}
+  function nv(fid){var el=ge(fid);var v=parseFloat(el&&el.value);return (!el||el.value===''||isNaN(v))?null:v;}
+  var hp=nv('up_loan'),dp=nv('up_down');
   var data={
     plate_no:(ge('up_plate').value||'').trim().toUpperCase(),
-    brand:ge('up_brand').value.trim(),model:ge('up_model').value.trim(),
-    year:parseInt(ge('up_year').value)||null,condition:ge('up_condition').value,
-    cash_price:n('up_cash'),loan_price:n('up_loan'),down_payment:n('up_down'),
-    loan_amount:n('up_loan_amt'),installment:n('up_instalment'),
-    road_tax_1yr:n('up_rtax'),insurance_1st:n('up_ins1st'),insurance_3rd:n('up_ins3rd'),
-    is_sold:ge('up_sold').checked,notes:ge('up_notes').value.trim()||null,
+    brand:(ge('up_brand').value||'').trim(),
+    model:(ge('up_model').value||'').trim(),
+    year:parseInt(ge('up_year').value)||null,
+    condition:ge('up_condition').value,
+    cash_price:nv('up_cash'),
+    loan_price:hp,
+    down_payment:dp,
+    loan_amount:(hp!=null&&dp!=null)?hp-dp:null,
+    pa:nv('up_pa'),
+    loanyear:parseInt(ge('up_loanyear').value)||5,
+    road_tax_1yr:nv('up_rtax'),
+    insurance_1st:nv('up_ins1st'),
+    ins1p:nv('up_ins1p'),
+    insurance_3rd:nv('up_ins3rd'),
+    is_sold:ge('up_sold').checked,
+    notes:ge('up_notes').value.trim()||null,
     created_by:currentUser.username
   };
   if(!data.plate_no){alert('Plate No required');return;}
   if(id){
-    await fetch(SB_URL+'/rest/v1/used_vehicles?id=eq.'+id,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(data)});
+    await sbPatch('used_vehicles',{id:id},data);
+    var idx=_upData.findIndex(function(x){return x.id==id;});
+    if(idx>=0)_upData[idx]=Object.assign({},_upData[idx],data,{id:parseInt(id)});
+    renderUPList();
   } else {
-    await fetch(SB_URL+'/rest/v1/used_vehicles',{method:'POST',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(data)});
+    await sbPost('used_vehicles',data);
+    await loadUPData();
   }
-  closeUPModal();await loadUPData();
+  closeUPModal();
 }
+
 async function deleteUP(id){
-  if(!confirm('Delete this vehicle record?'))return;
+  var r=_upData.find(function(x){return x.id===id;});
+  if(!r||!confirm('Delete "'+( r.plate_no||'?')+' '+(r.brand||'')+' '+(r.model||'')+'"?'))return;
   await fetch(SB_URL+'/rest/v1/used_vehicles?id=eq.'+id,{method:'DELETE',headers:sbHeaders()});
-  await loadUPData();
+  _upData=_upData.filter(function(x){return x.id!==id;});
+  if(_upSelectedId===id)_upSelectedId=null;
+  renderUPList();
 }
 
 /* ══ PRICE COMPARE ══ */
