@@ -466,6 +466,8 @@ body.theme-white .home-welcome{color:#555}
 .mod-page.active{display:flex}
 .mod-topbar{background:#161b22;border-bottom:1px solid #21262d;padding:6px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
 .mod-back{padding:3px 10px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:11px;cursor:pointer}
+.edit-mode-btn{padding:3px 10px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:11px;cursor:pointer;transition:all .15s}
+.edit-mode-btn:hover{border-color:#388bfd;color:#93c5fd}
 .mod-back:hover{border-color:#58a6ff;color:#58a6ff}
 .mod-title-bar{font-size:12px;font-weight:700;color:#f0f6fc}
 .mod-body{flex:1;overflow-y:auto;background:#0d1117}
@@ -1144,47 +1146,57 @@ body.theme-white .home-welcome{color:#555}
 <div id="homeScreen" style="display:none;padding:32px 24px;background:#0d1117;min-height:calc(100vh - 36px)">
   <div class="home-welcome">Welcome, <span id="homeUser" style="color:#f0f6fc;font-weight:600"></span> — select a tool</div>
   <div class="tools-grid" id="toolsGrid">
-    <div class="tool-card" id="tcNewPL" onclick="openModule('new-pricelist')">
+    <div class="tool-card" id="tcPricelist" onclick="openModule('pricelist')">
       <div class="tc-icon">🏍</div>
-      <div class="tc-tag tc-tag-e" id="tcNewTag">Edit</div>
-      <div class="tc-name">New Vehicle Pricelist</div>
-      <div class="tc-desc">Motorcycle pricelist, loan calculator and quotation generator</div>
+      <div class="tc-tag tc-tag-v" id="tcPricelistTag">View</div>
+      <div class="tc-name">Pricelist</div>
+      <div class="tc-desc">New and used vehicle price management</div>
     </div>
-    <div class="tool-card" id="tcUsedPL" onclick="openModule('used-pricelist')">
-      <div class="tc-icon">🔄</div>
-      <div class="tc-tag tc-tag-e" id="tcUsedTag">Edit</div>
-      <div class="tc-name">Used Vehicle Pricelist</div>
-      <div class="tc-desc">Second-hand motorcycle listings with pricing and insurance details</div>
+    <div class="tool-card" id="tcCalc" onclick="openModule('calculator')">
+      <div class="tc-icon">🧮</div>
+      <div class="tc-tag tc-tag-v" id="tcCalcTag">View</div>
+      <div class="tc-name">Calculator</div>
+      <div class="tc-desc">Show customers Cash / Kedai / Bank / EPP cost comparison</div>
     </div>
-    <div class="tool-card" id="tcPC" onclick="openModule('price-compare')">
-      <div class="tc-icon">💰</div>
-      <div class="tc-tag tc-tag-v" id="tcPCTag">View</div>
-      <div class="tc-name">Price Compare</div>
-      <div class="tc-desc">Compare Cash OTR, Kedai Loan, Bank/AEON and EPP side by side</div>
+    <div class="tool-card" id="tcGen" onclick="openModule('generator')">
+      <div class="tc-icon">📄</div>
+      <div class="tc-tag tc-tag-e" id="tcGenTag">Use</div>
+      <div class="tc-name">Generator</div>
+      <div class="tc-desc">Generate HTML / PDF quotations</div>
     </div>
     <div class="tool-card" id="tcStock" onclick="openModule('stock-kit')">
       <div class="tc-icon">🔧</div>
-      <div class="tc-tag tc-tag-e" id="tcStockTag">Edit</div>
+      <div class="tc-tag tc-tag-v" id="tcStockTag">View</div>
       <div class="tc-name">Stock Kit</div>
-      <div class="tc-desc">Parts inventory with cost codes, sell price and install price</div>
+      <div class="tc-desc">Parts inventory with cost codes, sell and install price</div>
     </div>
     <div class="tool-card" id="tcService" onclick="openModule('service')">
       <div class="tc-icon">📋</div>
-      <div class="tc-tag tc-tag-e" id="tcServiceTag">Manage</div>
+      <div class="tc-tag tc-tag-v" id="tcServiceTag">View</div>
       <div class="tc-name">Service</div>
-      <div class="tc-desc">Service orders, vehicle history and parts selection for repairs</div>
+      <div class="tc-desc">Service orders, vehicle history and parts selection</div>
     </div>
   </div>
 </div>
 
 <!-- MODULE: USED PRICELIST -->
-<div class="mod-page" id="mod-used-pricelist">
+<div class="mod-page" id="mod-pricelist">
   <div class="mod-topbar">
     <button class="mod-back" onclick="goHome()">← Home</button>
-    <span class="mod-title-bar">🔄 Used Vehicle Pricelist</span>
-    <button class="up-add-btn" id="upAddBtn" onclick="openUPModal()" style="margin-left:auto">+ Add Vehicle</button>
+    <span class="mod-title-bar">🏍 Pricelist</span>
+    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" style="display:none;margin-left:8px">✏ Edit Mode</button>
+    <button class="up-add-btn" id="upAddBtn" onclick="openUPModal()" id="upAddEditBtn" style="margin-left:auto;display:none">+ Add Vehicle</button>
   </div>
   <div class="mod-body">
+    <div style="display:flex;gap:0;border-bottom:1px solid #21262d;background:#161b22">
+      <button id="plTabNew" onclick="switchPLTab('new')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer">🏍 New Vehicles</button>
+      <button id="plTabUsed" onclick="switchPLTab('used')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer">🔄 Used Vehicles</button>
+    </div>
+    <div id="plPanelNew" style="display:none;height:calc(100% - 37px);overflow:auto">
+      <!-- New vehicle pricelist loaded here -->
+      <div id="newVehicleList" style="padding:14px;font-size:12px;color:#4a6fa5">Loading...</div>
+    </div>
+    <div id="plPanelUsed" style="display:none;height:calc(100% - 37px);overflow:auto">
     <div class="up-wrap">
       <div class="up-toolbar">
         <input class="up-inp" id="upSearch" placeholder="Search plate / brand / model..." oninput="renderUPList()" style="width:220px">
@@ -1210,9 +1222,20 @@ body.theme-white .home-welcome{color:#555}
         </table>
       </div>
     </div>
+    </div><!-- /plPanelUsed -->
   </div>
 </div>
 
+<!-- MODULE: GENERATOR (wraps existing mainApp) -->
+<div class="mod-page" id="mod-generator">
+  <div class="mod-topbar">
+    <button class="mod-back" onclick="goHome()">← Home</button>
+    <span class="mod-title-bar">📄 Generator</span>
+  </div>
+  <div style="flex:1;overflow:hidden" id="genContent">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#30363d;font-size:12px">Loading generator...</div>
+  </div>
+</div>
 <!-- UP Modal -->
 <div class="up-modal" id="upModal">
   <div class="up-modal-box">
@@ -1252,10 +1275,11 @@ body.theme-white .home-welcome{color:#555}
 </div>
 
 <!-- MODULE: PRICE COMPARE -->
-<div class="mod-page" id="mod-price-compare">
+<div class="mod-page" id="mod-calculator">
   <div class="mod-topbar">
     <button class="mod-back" onclick="goHome()">← Home</button>
-    <span class="mod-title-bar">💰 Price Compare</span>
+    <span class="mod-title-bar">🧮 Auto Calculator</span>
+    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" style="display:none;margin-left:8px">✏ Edit Mode</button>
   </div>
   <div class="mod-body">
     <div class="pc-wrap">
@@ -1291,6 +1315,7 @@ body.theme-white .home-welcome{color:#555}
   <div class="mod-topbar">
     <button class="mod-back" onclick="goHome()">← Home</button>
     <span class="mod-title-bar">🔧 Stock Kit</span>
+    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" style="display:none;margin-left:8px">✏ Edit Mode</button>
     <button class="sk-add-btn" id="skAddBtn" onclick="openSKModal()" style="margin-left:auto">+ Add Item</button>
   </div>
   <div class="mod-body" style="overflow:hidden;height:calc(100vh - 36px - 35px)">
@@ -1359,6 +1384,7 @@ body.theme-white .home-welcome{color:#555}
   <div class="mod-topbar">
     <button class="mod-back" onclick="goHome()">← Home</button>
     <span class="mod-title-bar">📋 Service</span>
+    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" style="display:none;margin-left:8px">✏ Edit Mode</button>
     <button class="sv-new-btn" id="svNewBtn" onclick="openSVModal()" style="margin-left:auto">+ New Order</button>
   </div>
   <div class="mod-body" style="overflow:hidden;height:calc(100vh - 36px - 35px)">
@@ -2492,7 +2518,7 @@ async function doLogin(){
   btn.disabled=true;document.getElementById('loginSpinner').style.display='block';document.getElementById('loginErr').textContent='';
   try{
     var hash=await sha256(pass);
-    var rows=await sbGet('users','username=eq.'+encodeURIComponent(user)+'&select=username,role,password_hash,is_active,custom_role_id,can_access_tools,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare');
+    var rows=await sbGet('users','username=eq.'+encodeURIComponent(user)+'&select=username,role,password_hash,is_active,custom_role_id,can_access_tools,can_view_pricelist,can_edit_pricelist,can_view_calculator,can_edit_calculator,can_use_generator,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service');
     if(!rows.length||rows[0].password_hash!==hash){
       document.getElementById('loginErr').textContent='Invalid username or password.';
       btn.disabled=false;document.getElementById('loginSpinner').style.display='none';return;
@@ -2581,7 +2607,7 @@ async function saveProfile(){
 
 function applyPermissions(){
   var isViewer=currentUser.role!=="admin"&&currentUser.is_viewer_mode===true;
-  var canEdit=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_new_pricelist);
+  var canEdit=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_pricelist);
   var canGen=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_generator);
   var canMF=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_mf);
   if(isViewer){
@@ -2887,7 +2913,7 @@ async function loadUserTable(){
 }
 
 async function editUserPerms(username){
-  var rows=await sbGet('users','username=eq.'+encodeURIComponent(username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare,can_access_team,can_assign_task_dept,can_assign_task_cross,can_view_attendance,can_approve_leave,can_view_perf_own,can_view_perf_dept,can_view_perf_all');
+  var rows=await sbGet('users','username=eq.'+encodeURIComponent(username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_view_pricelist,can_edit_pricelist,can_view_calculator,can_edit_calculator,can_use_generator,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_access_team,can_assign_task_dept,can_assign_task_cross,can_view_attendance,can_approve_leave,can_view_perf_own,can_view_perf_dept,can_view_perf_all');
   if(!rows.length)return;
   var u=rows[0];
   var isAdm=u.role==='admin';
@@ -2895,11 +2921,11 @@ async function editUserPerms(username){
     ['can_access_tools','Access Tools'],
     ['can_edit_pricelist','Edit New Pricelist (legacy)'],['can_edit_generator','Edit Generator'],['can_edit_mf','Edit Max Finance'],
     ['is_viewer_mode','Viewer Mode'],
-    ['can_edit_new_pricelist','Edit New Pricelist'],['can_view_new_pricelist','View New Pricelist'],
-    ['can_edit_used_pricelist','Edit Used Pricelist'],['can_view_used_pricelist','View Used Pricelist'],
+    ['can_view_pricelist','View Pricelist'],['can_edit_pricelist','Edit Pricelist'],
     ['can_edit_stock_kit','Edit Stock Kit (w/ cost)'],['can_view_stock_kit','View Stock Kit'],
     ['can_manage_service','Manage Service Orders'],['can_view_service','View Service Records'],
-    ['can_view_price_compare','View Price Compare'],['can_edit_price_compare','Edit PC Settings']
+    ['can_view_calculator','View Calculator'],['can_edit_calculator','Edit Calc Settings'],
+    ['can_use_generator','Use Generator']
   ];
   var teamFields=[
     ['can_access_team','Team Access'],['can_assign_task_dept','Assign Tasks (Dept)'],['can_assign_task_cross','Assign Tasks (Cross)'],
@@ -2926,10 +2952,10 @@ async function editUserPerms(username){
 
 async function saveUserPerms(username){
   var data={};
-  ['can_access_tools','can_edit_pricelist','can_edit_generator','can_edit_mf','is_viewer_mode',
-   'can_edit_new_pricelist','can_view_new_pricelist','can_edit_used_pricelist','can_view_used_pricelist',
+  ['can_access_tools',
+   'can_view_pricelist','can_edit_pricelist',
+   'can_view_calculator','can_edit_calculator','can_use_generator',
    'can_edit_stock_kit','can_view_stock_kit','can_manage_service','can_view_service',
-   'can_view_price_compare','can_edit_price_compare',
    'can_access_team','can_assign_task_dept','can_assign_task_cross','can_view_attendance',
    'can_approve_leave','can_view_perf_own','can_view_perf_dept','can_view_perf_all'].forEach(function(f){
     var el=document.querySelector('.eu_'+f);if(el)data[f]=el.checked;
@@ -3130,7 +3156,7 @@ window.addEventListener('beforeunload', function(){
   try{
     var s=JSON.parse(sess);
     if(s.module!=='tools'&&s.role!=='admin'){sessionStorage.removeItem('hm_session');showLoginPrompt();return;}
-    var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,is_active,display_name,position,phone,email,department,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare');
+    var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,is_active,display_name,position,phone,email,department,can_view_pricelist,can_edit_pricelist,can_view_calculator,can_edit_calculator,can_use_generator,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service');
     if(!rows.length||rows[0].is_active===false||(!rows[0].can_access_tools&&rows[0].role!=='admin')){
       sessionStorage.removeItem('hm_session');showLoginPrompt();return;
     }
@@ -3178,28 +3204,27 @@ function showHome(){
   document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
   document.getElementById('homeUser').textContent=currentUser.display_name||currentUser.username;
   var isAdmin=currentUser.role==='admin';
-  var canEditNew=isAdmin||currentUser.can_edit_new_pricelist;
-  var canViewNew=canEditNew||currentUser.can_view_new_pricelist;
-  var canEditUsed=isAdmin||currentUser.can_edit_used_pricelist;
-  var canViewUsed=canEditUsed||currentUser.can_view_used_pricelist;
-  var canViewPC=isAdmin||currentUser.can_view_price_compare||currentUser.can_edit_price_compare;
-  var canEditPC=isAdmin||currentUser.can_edit_price_compare;
+  var canEditPL=isAdmin||currentUser.can_edit_pricelist;
+  var canViewPL=canEditPL||currentUser.can_view_pricelist;
+  var canEditCalc=isAdmin||currentUser.can_edit_calculator;
+  var canViewCalc=canEditCalc||currentUser.can_view_calculator;
+  var canUseGen=isAdmin||currentUser.can_use_generator;
   var canEditStock=isAdmin||currentUser.can_edit_stock_kit;
   var canViewStock=canEditStock||currentUser.can_view_stock_kit;
   var canManageSvc=isAdmin||currentUser.can_manage_service;
   var canViewSvc=canManageSvc||currentUser.can_view_service;
-  ge('tcNewPL').style.display=canViewNew?'':'none';
-  ge('tcUsedPL').style.display=canViewUsed?'':'none';
-  ge('tcPC').style.display=canViewPC?'':'none';
+  ge('tcPricelist').style.display=canViewPL?'':'none';
+  ge('tcCalc').style.display=canViewCalc?'':'none';
+  ge('tcGen').style.display=canUseGen?'':'none';
   ge('tcStock').style.display=canViewStock?'':'none';
   ge('tcService').style.display=canViewSvc?'':'none';
-  var nt=ge('tcNewTag');if(nt){nt.textContent=canEditNew?'Edit':'View';nt.className='tc-tag '+(canEditNew?'tc-tag-e':'tc-tag-v');}
-  var ut=ge('tcUsedTag');if(ut){ut.textContent=canEditUsed?'Edit':'View';ut.className='tc-tag '+(canEditUsed?'tc-tag-e':'tc-tag-v');}
-  var pct=ge('tcPCTag');if(pct){pct.textContent=canEditPC?'Edit':'View';pct.className='tc-tag '+(canEditPC?'tc-tag-e':'tc-tag-v');}
+  var plt=ge('tcPricelistTag');if(plt){plt.textContent=canEditPL?'Edit':'View';plt.className='tc-tag '+(canEditPL?'tc-tag-e':'tc-tag-v');}
+  var clt=ge('tcCalcTag');if(clt){clt.textContent=canEditCalc?'Edit':'View';clt.className='tc-tag '+(canEditCalc?'tc-tag-e':'tc-tag-v');}
+  var gt=ge('tcGenTag');if(gt){gt.textContent='Use';gt.className='tc-tag tc-tag-e';}
   var st=ge('tcStockTag');if(st){st.textContent=canEditStock?'Edit':'View';st.className='tc-tag '+(canEditStock?'tc-tag-e':'tc-tag-v');}
   var svt=ge('tcServiceTag');if(svt){svt.textContent=canManageSvc?'Manage':'View';svt.className='tc-tag '+(canManageSvc?'tc-tag-e':'tc-tag-v');}
-  currentUser._canEditPC=canEditPC;
-  currentUser._canEditNew=canEditNew;
+  currentUser._canEditPL=canEditPL;
+  currentUser._canEditCalc=canEditCalc;
 }
 
 function goHome(){
@@ -3208,35 +3233,128 @@ function goHome(){
   document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
 }
 
+var _editMode=false;
+function setEditMode(on){
+  _editMode=on;
+  var btn=document.getElementById('editModeBtn');
+  if(btn){
+    btn.textContent=on?'✏ Edit Mode ON':'✏ Edit Mode';
+    btn.style.background=on?'#1f6feb':'none';
+    btn.style.color=on?'#fff':'#8b949e';
+    btn.style.borderColor=on?'#388bfd':'#30363d';
+  }
+  // Re-render current module to show/hide edit controls
+  var active=document.querySelector('.mod-page.active');
+  if(active){
+    var id=active.id.replace('mod-','');
+    if(id==='pricelist')renderPricelistModule();
+    else if(id==='stock-kit')renderSKTable();
+    else if(id==='service')renderSVList();
+    else if(id==='calculator')calcPC();
+  }
+}
+function toggleEditMode(){setEditMode(!_editMode);}
+
 function openModule(name){
   document.getElementById('homeScreen').style.display='none';
   document.getElementById('mainApp').style.display='none';
   document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
-  if(name==='new-pricelist'){
-    // Load original mainApp
+  _editMode=false;// reset edit mode on module change
+  if(name==='generator'){
+    // Generator uses original mainApp
     document.getElementById('mainApp').style.display='';
-    // Lazy-init original app
-    if(!window._newPLInited){
-      window._newPLInited=true;
+    if(!window._genInited){
+      window._genInited=true;
       applyPermissions();
       loadAllFromCloud().then(function(){buildRows();buildGiftGroups();R();renderMFTable();renderPLList();startRealtimeSync();});
     }
   } else {
     var el=ge('mod-'+name);
     if(el){el.classList.add('active');}
-    if(name==='used-pricelist')loadUPData();
-    else if(name==='price-compare'){
-      pcPopulateItems();
-      var canEditPC=currentUser.role==='admin'||currentUser.can_edit_price_compare;
-      ['pcKedaiRate','pcKedaiDP','pcBankRate','pcEppDiv','pcTenure'].forEach(function(id){
-        var el=document.getElementById(id);if(!el)return;
-        el.disabled=!canEditPC;
-        el.style.opacity=canEditPC?'':'0.5';
-        el.title=canEditPC?'':'View only — contact admin to adjust settings';
-      });
-    }
+    // Set up edit mode button
+    var canEdit=false;
+    if(name==='pricelist')canEdit=currentUser.role==='admin'||currentUser.can_edit_pricelist;
+    else if(name==='calculator')canEdit=currentUser.role==='admin'||currentUser.can_edit_calculator;
+    else if(name==='stock-kit')canEdit=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+    else if(name==='service')canEdit=currentUser.role==='admin'||currentUser.can_manage_service;
+    var btn=document.getElementById('editModeBtn');
+    if(btn){btn.style.display=canEdit?'':'none';btn.textContent='✏ Edit Mode';btn.style.background='none';btn.style.color='#8b949e';btn.style.borderColor='#30363d';}
+    // Load module
+    if(name==='pricelist')loadPricelistModule();
+    else if(name==='calculator')pcPopulateItems();
     else if(name==='stock-kit')loadSKData();
     else if(name==='service')loadSVData();
+  }
+}
+
+/* ══ PRICELIST MODULE ══ */
+var _plCurrentTab='new';
+function switchPLTab(tab){
+  _plCurrentTab=tab;
+  var newActive='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
+  var newInactive='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
+  var tn=ge('plTabNew');var tu=ge('plTabUsed');
+  if(tn)tn.style.cssText=tab==='new'?newActive:newInactive;
+  if(tu)tu.style.cssText=tab==='used'?newActive:newInactive;
+  var np=ge('plPanelNew');var up=ge('plPanelUsed');
+  if(np)np.style.display=tab==='new'?'block':'none';
+  if(up)up.style.display=tab==='used'?'block':'none';
+  var addBtn=ge('upAddEditBtn');
+  if(addBtn)addBtn.style.display=(tab==='used'&&_editMode)?'':'none';
+  if(tab==='used'&&!_upData.length)loadUPData();
+  if(tab==='new')renderNewVehicleList();
+}
+function loadPricelistModule(){
+  _plCurrentTab='new';
+  var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display='none';
+  switchPLTab('new');
+  if(!window._genInited)initNewPLData();
+}
+function renderPricelistModule(){
+  var addBtn=ge('upAddEditBtn');
+  if(addBtn)addBtn.style.display=(_plCurrentTab==='used'&&_editMode)?'':'none';
+  if(_plCurrentTab==='used')renderUPList();
+  else renderNewVehicleList();
+}
+function renderNewVehicleList(){
+  var wrap=ge('newVehicleList');if(!wrap)return;
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  var items=(window.PL&&window.PL.list)||[];
+  if(!items.length){
+    wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5">No pricelist data.'
+      +(currentUser.role==='admin'?'<br><button class="btn sm" onclick="initNewPLData()" style="margin-top:8px">Load</button>':'')+'</div>';
+    return;
+  }
+  var html='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'
+    +'<thead><tr style="background:#161b22">'
+    +'<th style="padding:6px 10px;text-align:left;color:#8b949e;border-bottom:1px solid #21262d">Model</th>'
+    +'<th style="padding:6px 8px;color:#8b949e;border-bottom:1px solid #21262d;text-align:right">Cash OTR</th>'
+    +'<th style="padding:6px 8px;color:#8b949e;border-bottom:1px solid #21262d;text-align:right">Road Tax</th>'
+    +'<th style="padding:6px 8px;color:#8b949e;border-bottom:1px solid #21262d;text-align:right">Insurance</th>'
+    +(canEdit?'<th style="padding:6px 8px;border-bottom:1px solid #21262d"></th>':'')
+    +'</tr></thead><tbody>';
+  var lastBrand='';
+  items.forEach(function(e){
+    if(e.brand&&e.brand!==lastBrand){
+      lastBrand=e.brand;
+      html+='<tr><td colspan="'+(canEdit?5:4)+'" style="padding:5px 10px;background:#0a0f1a;font-size:10px;font-weight:700;color:#2a4a6a;text-transform:uppercase">'+esc(e.brand)+'</td></tr>';
+    }
+    html+='<tr style="border-bottom:1px solid #0d1626">'
+      +'<td style="padding:6px 10px;color:#f0f6fc">'+esc(e.name||'—')+'</td>'
+      +'<td style="padding:6px 8px;color:#3fb950;text-align:right">'+(e.cashOTR?'RM '+fmt(e.cashOTR):'—')+'</td>'
+      +'<td style="padding:6px 8px;color:#c9d1d9;text-align:right">'+(e.roadTax?'RM '+fmt(e.roadTax):'—')+'</td>'
+      +'<td style="padding:6px 8px;color:#c9d1d9;text-align:right">'+(e.ins1?'RM '+fmt(e.ins1):'—')+'</td>'
+      +(canEdit?'<td style="padding:6px 8px;text-align:right"><button class="up-act-btn" onclick="openModule(\'generator\')">Edit in Generator</button></td>':'')
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+function initNewPLData(){
+  if(!window._genInited){
+    window._genInited=true;
+    applyPermissions();
+    loadAllFromCloud().then(function(){buildRows();buildGiftGroups();R();renderMFTable();renderPLList();renderNewVehicleList();startRealtimeSync();});
   }
 }
 
@@ -3264,7 +3382,7 @@ function renderUPList(){
     if(q){var s=(r.plate_no+r.brand+r.model+r.notes).toLowerCase();if(!s.includes(q))return false;}
     return true;
   });
-  var canEdit=currentUser.role==='admin'||currentUser.can_edit_used_pricelist;
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
   var tb=ge('upTableBody');
   if(!rows.length){tb.innerHTML='<tr><td colspan="14" style="text-align:center;color:#30363d;padding:20px">No records found</td></tr>';return;}
   tb.innerHTML=rows.map(function(r){
@@ -3421,7 +3539,7 @@ var _skData=[];var _skCat='';
 async function loadSKData(){
   _skData=await sbGet('stock_items','is_active=eq.true&order=category.asc,item_name.asc');
   renderSKCats();renderSKTable();
-  var canEdit=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_stock_kit);
   var canSee=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
   ge('skAddBtn').style.display=canEdit?'':'none';
   ge('skCostHdr').style.display=canSee?'':'none';
@@ -3445,7 +3563,7 @@ function renderSKTable(){
   var q=(ge('skSearch').value||'').toLowerCase();
   var sort=ge('skSortBy').value;
   var canSee=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
-  var canEdit=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_stock_kit);
   var rows=_skData.filter(function(r){
     if(_skCat&&r.category!==_skCat)return false;
     if(q){var s=(r.item_name+r.item_code+r.brand+r.category).toLowerCase();if(!s.includes(q))return false;}
@@ -3524,6 +3642,9 @@ var _svData=[];var _svSelectedId=null;
 async function loadSVData(){
   _svData=await sbGet('service_orders','order=created_at.desc&limit=200');
   renderSVList();
+  // Show/hide new order button based on edit mode
+  var svBtn=ge('svNewBtn');
+  if(svBtn)svBtn.style.display=(_editMode&&(currentUser.role==='admin'||currentUser.can_manage_service))?'':'none';
   // Populate technicians in modal
   var sel=ge('sv_assigned');
   try{
@@ -3570,7 +3691,7 @@ async function openSVDetail(id){
   renderSVList();
   var r=_svData.find(function(x){return x.id===id;});
   if(!r)return;
-  var canManage=currentUser.role==='admin'||currentUser.can_manage_service;
+  var canManage=_editMode&&(currentUser.role==='admin'||currentUser.can_manage_service);
   // Fetch history for this plate
   var history=r.plate_no?await sbGet('service_orders','plate_no=eq.'+encodeURIComponent(r.plate_no)+'&status=eq.completed&id=neq.'+r.id+'&order=created_at.desc&limit=5&select=id,created_at,service_type,parts_used,total'):'[]';
   var parts=r.parts_used||[];
