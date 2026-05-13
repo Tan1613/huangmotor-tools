@@ -3493,21 +3493,24 @@ function renderNVCard(e,expanded,canEdit){
 
   // Build Kedai instalment row (1~5yr)
   var loanyear=parseInt(e.loanyear)||7;
+  // AEON cols follow loanyear; Kedai always max 5yr — shared header
   var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+  var kedaiMax=5;
 
-  // Build instalment cells for given year columns
-  function instCells(loan,rate,color){
+  function instCell(loan,rate,yr,maxYr){
+    if(yr>(maxYr||99))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
+    var v=plCalcInst(loan,rate,yr);
+    if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
+    return '<td style="text-align:center;font-size:12px;font-weight:700;color:#c9d1d9;padding:6px 6px">'+Math.round(v).toLocaleString()+'</td>';
+  }
+  function instCells(loan,rate,maxYr,color){
     return yrcols.map(function(yr){
-      if(yr>loanyear)return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:5px 4px">—</td>';
+      if(yr>(maxYr||99))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
       var v=plCalcInst(loan,rate,yr);
-      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:5px 4px">—</td>';
-      return '<td style="text-align:center;font-size:11px;font-weight:700;color:'+color+';padding:5px 4px">'+Math.round(v).toLocaleString()+'</td>';
+      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
+      return '<td style="text-align:center;font-size:12px;font-weight:700;color:'+color+';padding:6px 6px">'+Math.round(v).toLocaleString()+'</td>';
     }).join('');
   }
-  // Year header cells
-  var yrHeaders=yrcols.map(function(yr){
-    return '<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">'+yr+'yr</th>';
-  }).join('');
 
   // Collapsed card — show key info in a grid
   var cardBg=expanded?'#080d16':'#0d1117';
@@ -3531,25 +3534,29 @@ function renderNVCard(e,expanded,canEdit){
     +'</div>';
 
   if(expanded){
+    var yrHdr=yrcols.map(function(yr){
+      return '<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px 6px">'+yr+'yr</th>';
+    }).join('');
     html+='<div style="padding:0 16px 14px">'
-      // Instalment tables
       +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
         +'<thead><tr>'
-          +'<th style="text-align:left;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;padding:4px 0;padding-right:8px">Loan / yr</th>'
-          +yrHeaders
+          +'<th style="text-align:left;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;padding:4px 8px 4px 0;min-width:70px"></th>'
+          +yrHdr
         +'</tr></thead>'
         +'<tbody>'
-        // Kedai row
+        // Kedai row — max 5yr
         +(kloan>0&&pa?'<tr style="border-top:1px solid #0d1626">'
-          +'<td style="font-size:10px;color:#58a6ff;padding:5px 8px 5px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
-          +instCells(kloan,pa,'#58a6ff')
+          +'<td style="font-size:10px;color:#58a6ff;padding:6px 8px 6px 0;white-space:nowrap">Kedai'
+            +'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
+          +instCells(kloan,pa,kedaiMax,'#58a6ff')
           +'</tr>':'')
-        // AEON row — show if TSP exists, installments only if aeon_pa set
+        // AEON row — max loanyear
         +(tsp>0?'<tr style="border-top:1px solid #0d1626">'
-          +'<td style="font-size:10px;color:#d2a8ff;padding:5px 8px 5px 0;white-space:nowrap">AEON'
-            +'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span>'
-          +'</td>'
-          +(aeon_pa?instCells(aeonLoan,aeon_pa,'#d2a8ff'):'<td colspan="4" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')
+          +'<td style="font-size:10px;color:#d2a8ff;padding:6px 8px 6px 0;white-space:nowrap">AEON'
+            +'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'
+          +(aeon_pa
+            ?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff')
+            :'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')
           +'</tr>':'')
         +'</tbody>'
       +'</table>'
