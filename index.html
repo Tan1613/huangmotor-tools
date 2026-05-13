@@ -3353,7 +3353,7 @@ function switchPLTab(tab){
 
 async function loadPricelistModule(){
   _plCurrentTab='new';
-  _plPrintMode=false;_plTrashMode=false;_plLogOpen=false;
+  _plPrintMode=false;_plTrashMode=false;_plLogOpen=false;_plExpandedBrands={};
   var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display='none';
   if(ge('plPanelNew'))ge('plPanelNew').style.display='block';
   if(ge('plPanelUsed'))ge('plPanelUsed').style.display='none';
@@ -3417,7 +3417,7 @@ function renderNewVehicleList(){
   var html='';
   brands.forEach(function(brand){
     var entries=seen[brand];
-    var isOpen=_plExpandedBrands[brand]!==false;
+    var isOpen=_plExpandedBrands[brand]===true;
     var bid=brand.replace(/[^a-z0-9]/gi,'_');
     html+='<div style="border-bottom:1px solid #0d1626">'
       +'<div onclick="plToggleBrand(\''+bid+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:#0d1117;cursor:pointer;user-select:none">'
@@ -3433,6 +3433,14 @@ function renderNewVehicleList(){
     });
     html+='</div></div>';
   });
+  // Edit mode: total count at bottom
+  var canEditFinal=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  if(canEditFinal){
+    var total=_plData.length;
+    html+='<div style="display:flex;justify-content:flex-end;padding:10px 16px;border-top:1px solid #0d1626">'
+      +'<span style="font-size:10px;color:#4a6fa5">'+total+' motorcycle'+(total!==1?'s':'')+'  total</span>'
+      +'</div>';
+  }
   wrap.innerHTML=html;
   plSyncToolbar();
 }
@@ -3497,9 +3505,9 @@ function renderNVCard(e,expanded,editing,canEdit){
         +plDRow('AEON DP','RM '+Math.round(aeonDP).toLocaleString()+(noMF?' (no MF)':''),'#d2a8ff')
         +(canEdit?plDRow('TSP',rm(tsp),'#8b949e'):'')
         +(canEdit?plDRow('Ins SUM',rm(parseFloat(e.inssum))):'')
-        +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('Max Loan',loanyear+'yr','#8b949e'):'')
+        +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
       +'</div>'
     +'</div>';
   }
@@ -3523,8 +3531,9 @@ function renderNVEditForm(e){
     +fld('dpk','Kedai DP (RM)',e.dpk)
     +'<div><label style="font-size:9px;color:#3fb950;display:block;margin-bottom:2px">Cash OTR <span style="color:#2a4a6a">(auto)</span></label><div id="plef_otr_'+e.id+'" style="padding:5px 8px;background:#0a0f1a;border:1px solid #0d1626;border-radius:5px;font-size:11px;color:#3fb950">—</div></div>'
     +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Interest Rates & Loan</div>'
-    +fld('pa','Kedai PA %',e.pa)+fld('aeon_pa','AEON PA %',e.aeon_pa)
-    +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Loan Year</label>'+lySel+'</div><div></div>'
+    +fld('aeon_pa','AEON PA %',e.aeon_pa)
+    +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Loan Year</label>'+lySel+'</div>'
+    +fld('pa','Kedai PA %',e.pa)+'<div></div>'
     +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Insurance</div>'
     +fld('ins1','Ins 1st (RM)',e.ins1)+fld('ins1p','Ins 1st+ (RM)',e.ins1p)
     +fld('inssum','Ins SUM (RM)',e.inssum)+fld('ins3','Ins 3rd (RM)',e.ins3)
@@ -3574,7 +3583,7 @@ async function plSaveEdit(id){
   renderNewVehicleList();
 }
 
-function plCloneEntry(id){
+async function plCloneEntry(id){
   var src=_plData.find(function(x){return x.id===id;});
   if(!src)return;
   var clone=Object.assign({},src,{id:'pl_'+Date.now(),model:(src.model||'')+'（Copy）'});
@@ -3620,6 +3629,9 @@ function plTogglePrintMode(){
 }
 function plToggleCheck(id){
   if(_plChecked.has(id))_plChecked.delete(id);else _plChecked.add(id);
+  // Update DOM directly — avoid full re-render which loses focus
+  var cb=document.querySelector('input[onchange*="plToggleCheck(\''+id+'\'"]');
+  if(cb)cb.checked=_plChecked.has(id);
   plSyncToolbar();
 }
 function plPrintSelected(){
@@ -3764,8 +3776,8 @@ async function plLog(entryId,action,before,after){
       entry_id:entryId,
       action:action,
       operator:currentUser?currentUser.username:'unknown',
-      before:before?JSON.stringify(before):null,
-      after:after?JSON.stringify(after):null
+      before:before||null,
+      after:after||null
     });
   }catch(e){}
 }
