@@ -1266,10 +1266,27 @@ body.theme-white .home-welcome{color:#555}
       <button class="up-modal-close" onclick="closeUPModal()">✕</button>
     </div>
     <input type="hidden" id="up_id">
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:1px solid #30363d;margin-bottom:14px">
+      <button id="upTab_form" onclick="upSwitchTab('form')" style="padding:7px 16px;background:none;border:none;border-bottom:2px solid #3b82f6;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer">✏ Edit</button>
+      <button id="upTab_pick" onclick="upSwitchTab('pick')" style="padding:7px 16px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer">📋 Quick Pick</button>
+    </div>
+    <!-- Form tab -->
+    <div id="upTabForm">
     <div class="up-form-grid">
-      <div><label>Plate No</label><input id="up_plate" placeholder="e.g. WA1234B" style="text-transform:uppercase"></div>
-      <div><label>Brand</label><input id="up_brand" placeholder="e.g. Yamaha"></div>
-      <div><label>Model</label><input id="up_model" placeholder="e.g. Y15ZR"></div>
+      <!-- Plate -->
+      <div style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <label style="margin:0">Plate No</label>
+          <label style="margin:0;font-size:11px;color:#8b949e;display:flex;align-items:center;gap:5px;margin-left:auto">
+            <input type="checkbox" id="up_special_plate" onchange="upToggleSpecialPlate()"> Special plate
+          </label>
+        </div>
+        <input id="up_plate" placeholder="e.g. WA1234B" oninput="upValidatePlate(this)" style="text-transform:uppercase;width:100%;box-sizing:border-box">
+        <div id="up_plate_err" style="font-size:10px;color:#e24b4a;margin-top:2px;display:none">Invalid plate format. Expected 1-3 letters + 1-4 digits (e.g. ABC1234)</div>
+      </div>
+      <div><label>Brand</label><input id="up_brand" placeholder="e.g. Yamaha" list="upBrandList"><datalist id="upBrandList"></datalist></div>
+      <div><label>Model</label><input id="up_model" placeholder="e.g. Y15ZR" list="upModelList"><datalist id="upModelList"></datalist></div>
       <div><label>Year</label><input id="up_year" type="number" placeholder="2021"></div>
       <div><label>Condition</label>
         <select id="up_condition"><option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select>
@@ -1307,6 +1324,21 @@ body.theme-white .home-welcome{color:#555}
         </label>
       </div>
       <div class="span3"><label>Notes</label><textarea id="up_notes" placeholder="Optional remarks"></textarea></div>
+    </div>
+    </div><!-- /upTabForm -->
+    <!-- Quick Pick tab -->
+    <div id="upTabPick" style="display:none">
+      <div style="font-size:11px;color:#8b949e;margin-bottom:10px">Select brand and model from existing new vehicle pricelist to auto-fill</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <select id="upPickBrand" onchange="upPickBrandChange()" style="flex:1;padding:7px 10px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none">
+          <option value="">— Select Brand —</option>
+        </select>
+        <select id="upPickModel" onchange="upPickModelChange()" style="flex:1;padding:7px 10px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none">
+          <option value="">— Select Model —</option>
+        </select>
+      </div>
+      <div id="upPickPreview" style="background:#0a0f1a;border:1px solid #1e2d45;border-radius:7px;padding:10px;font-size:11px;color:#4a6fa5;min-height:60px">Select a model to see details</div>
+      <button onclick="upApplyPick()" id="upPickApplyBtn" disabled style="margin-top:10px;width:100%;padding:8px;background:#1f6feb;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;opacity:.4">Apply to Form →</button>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="up-cancel-btn" onclick="closeUPModal()">Cancel</button>
@@ -3931,6 +3963,95 @@ function upSyncEditBar(){
   var lbl=ge('upCountLabel');if(lbl)lbl.textContent=avail+' available / '+_upData.length+' total';
 }
 
+function upSwitchTab(tab){
+  var ft=ge('upTab_form'),pt=ge('upTab_pick');
+  var ff=ge('upTabForm'),pf=ge('upTabPick');
+  var act='padding:7px 16px;background:none;border:none;border-bottom:2px solid #3b82f6;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
+  var inact='padding:7px 16px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
+  if(ft)ft.style.cssText=tab==='form'?act:inact;
+  if(pt)pt.style.cssText=tab==='pick'?act:inact;
+  if(ff)ff.style.display=tab==='form'?'':'none';
+  if(pf)pf.style.display=tab==='pick'?'':'none';
+  if(tab==='pick')upLoadPickData();
+}
+
+function upToggleSpecialPlate(){
+  var isSpecial=ge('up_special_plate')&&ge('up_special_plate').checked;
+  var inp=ge('up_plate');
+  if(inp){
+    inp.placeholder=isSpecial?'Special plate (any format)':'e.g. WA1234B';
+    // Clear error when unlocking
+    if(isSpecial){ge('up_plate_err').style.display='none';}
+  }
+}
+
+function upValidatePlate(inp){
+  // Remove spaces always
+  inp.value=inp.value.replace(/\s/g,'').toUpperCase();
+  var isSpecial=ge('up_special_plate')&&ge('up_special_plate').checked;
+  if(isSpecial)return true;
+  // Standard: 1-3 letters + 1-4 digits (optional trailing letter)
+  var v=inp.value;
+  var valid=/^[A-Z]{1,3}\d{1,4}[A-Z]?$/.test(v)||v==='';
+  var err=ge('up_plate_err');
+  if(err)err.style.display=(!valid&&v)?'block':'none';
+  return valid;
+}
+
+function upLoadPickData(){
+  // Populate brand dropdown from _plData (new pricelist)
+  var brands=[...new Set((_plData||[]).map(function(e){return e.brand;}).filter(Boolean))].sort();
+  var sel=ge('upPickBrand');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Select Brand —</option>'+brands.map(function(b){return '<option>'+esc(b)+'</option>';}).join('');
+  ge('upPickModel').innerHTML='<option value="">— Select Model —</option>';
+  ge('upPickPreview').textContent='Select a model to see details';
+  var applyBtn=ge('upPickApplyBtn');if(applyBtn){applyBtn.disabled=true;applyBtn.style.opacity='.4';}
+}
+
+function upPickBrandChange(){
+  var brand=ge('upPickBrand').value;
+  var models=(_plData||[]).filter(function(e){return e.brand===brand;});
+  var sel=ge('upPickModel');
+  sel.innerHTML='<option value="">— Select Model —</option>'+models.map(function(e){return '<option value="'+esc(e.id)+'">'+esc(e.model)+'</option>';}).join('');
+  ge('upPickPreview').textContent='Select a model to see details';
+  var applyBtn=ge('upPickApplyBtn');if(applyBtn){applyBtn.disabled=true;applyBtn.style.opacity='.4';}
+}
+
+function upPickModelChange(){
+  var id=ge('upPickModel').value;
+  var e=(_plData||[]).find(function(x){return String(x.id)===String(id);});
+  var preview=ge('upPickPreview');
+  var applyBtn=ge('upPickApplyBtn');
+  if(!e){preview.textContent='Select a model to see details';if(applyBtn){applyBtn.disabled=true;applyBtn.style.opacity='.4';}return;}
+  var ins1=parseFloat(e.ins1)||0,rtax=parseFloat(e.rtax)||0;
+  preview.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:11px">'
+    +[['Brand',e.brand],['Model',e.model],
+      ['Ins 1st','RM '+(ins1?Math.round(ins1).toLocaleString():'—')],
+      ['Ins 1st+',e.ins1p?'RM '+Math.round(parseFloat(e.ins1p)).toLocaleString():'—'],
+      ['Ins 3rd',e.ins3?'RM '+Math.round(parseFloat(e.ins3)).toLocaleString():'—'],
+      ['Road Tax','RM '+(rtax?Math.round(rtax).toLocaleString():'—')]
+    ].map(function(r){
+      return '<div style="color:#4a6fa5">'+r[0]+'</div><div style="color:#c9d1d9;font-weight:600">'+esc(String(r[1]))+'</div>';
+    }).join('')+'</div>';
+  if(applyBtn){applyBtn.disabled=false;applyBtn.style.opacity='1';}
+}
+
+function upApplyPick(){
+  var id=ge('upPickModel').value;
+  var e=(_plData||[]).find(function(x){return String(x.id)===String(id);});
+  if(!e)return;
+  // Fill brand/model/insurance fields
+  if(ge('up_brand'))ge('up_brand').value=e.brand||'';
+  if(ge('up_model'))ge('up_model').value=e.model||'';
+  if(ge('up_ins1st'))ge('up_ins1st').value=e.ins1||'';
+  if(ge('up_ins1p'))ge('up_ins1p').value=e.ins1p||'';
+  if(ge('up_ins3rd'))ge('up_ins3rd').value=e.ins3||'';
+  if(ge('up_rtax'))ge('up_rtax').value=e.rtax||'';
+  // Switch to form tab
+  upSwitchTab('form');
+}
+
 function renderUPList(){
   var q=(ge('upSearch')&&ge('upSearch').value||'').toLowerCase();
   var brand=ge('upFilterBrand')&&ge('upFilterBrand').value||'';
@@ -4025,11 +4146,11 @@ function renderUPCard(r,expanded,canEdit){
         +upDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
         +upDRow('Ins 3rd',rm(ins3),'#c9d1d9')
         +upDRow('Road Tax',rm(rtax),'#c9d1d9')
-        +upDRow('Kedai HP',rm(hp),'#c9d1d9')
-        +upDRow('Loan Amt',loan>0?rm(loan):'—','#60a5fa')
-        +(r.notes?upDRow('Notes',esc(r.notes),'#8b949e'):'')
+        +(canEdit?upDRow('Kedai HP',rm(hp),'#c9d1d9'):'')
+        +(canEdit?upDRow('Loan Amt',loan>0?rm(loan):'—','#60a5fa'):'')
         +(canEdit?upDRow('PA Rate',r.pa?r.pa+'%':_upDefaultPa+'% (default)','#8b949e'):'')
         +(canEdit?upDRow('Max Loan',loanyear+'yr','#8b949e'):'')
+        +(r.notes?upDRow('Notes',esc(r.notes),'#8b949e'):'')
       +'</div>'
     +'</div>';
   }
@@ -4090,6 +4211,16 @@ function openUPModal(id){
   ge('up_rtax').value=r?r.road_tax_1yr||'':'';
   ge('up_sold').checked=r?!!r.is_sold:false;
   ge('up_notes').value=r?r.notes||'':'';
+  // Reset special plate
+  if(ge('up_special_plate'))ge('up_special_plate').checked=false;
+  if(ge('up_plate_err'))ge('up_plate_err').style.display='none';
+  // Populate datalists from _upData
+  var existingBrands=[...new Set(_upData.map(function(x){return x.brand;}).filter(Boolean))].sort();
+  var bl=ge('upBrandList');if(bl)bl.innerHTML=existingBrands.map(function(b){return '<option value="'+esc(b)+'">';}).join('');
+  var existingModels=[...new Set(_upData.map(function(x){return x.model;}).filter(Boolean))].sort();
+  var ml=ge('upModelList');if(ml)ml.innerHTML=existingModels.map(function(m){return '<option value="'+esc(m)+'">';}).join('');
+  // Reset to form tab
+  upSwitchTab('form');
   ge('upModal').classList.add('open');
   setTimeout(upFormCalc,0);
 }
@@ -4120,6 +4251,10 @@ async function saveUPRecord(){
     created_by:currentUser.username
   };
   if(!data.plate_no){alert('Plate No required');return;}
+  var isSpecial=ge('up_special_plate')&&ge('up_special_plate').checked;
+  if(!isSpecial&&!/^[A-Z]{1,3}\d{1,4}[A-Z]?$/.test(data.plate_no)){
+    if(!confirm('Plate "'+data.plate_no+'" doesn\'t match standard format. Save anyway?'))return;
+  }
   if(id){
     await sbPatch('used_vehicles',{id:id},data);
     var idx=_upData.findIndex(function(x){return x.id==id;});
