@@ -4961,7 +4961,6 @@ function rmSyncFromDom(){
 }
 
 function renderRmPerms(){
-  // DO NOT sync from DOM here — that would overwrite freshly loaded state
   var filtered=PERM_DEFS.filter(function(p){
     if(rmCurrentFilter==='tools')return p.mod==='tools';
     if(rmCurrentFilter==='team')return p.mod==='team';
@@ -4969,129 +4968,106 @@ function renderRmPerms(){
     if(rmCurrentFilter==='future')return p.status==='future';
     return true;
   });
-
-  // Define sections with parent gates and paired fields
   var sections=[
-    {key:'tools-access',mod:'tools',label:'🔧 Tools',color:'#3b82f6',
-      gate:'can_access_tools',gateId:'rm_tools',
-      rows:[
-        {label:'New Pricelist',view:{id:'rm_view_new_pl',field:'can_view_new_pricelist'},edit:{id:'rm_edit_new_pl',field:'can_edit_new_pricelist'}},
-        {label:'Used Pricelist',view:{id:'rm_view_used_pl',field:'can_view_used_pricelist'},edit:{id:'rm_edit_used_pl',field:'can_edit_used_pricelist'}},
-        {label:'Price Compare',view:{id:'rm_view_pc',field:'can_view_price_compare'},edit:{id:'rm_edit_pc',field:'can_edit_price_compare'}},
-        {label:'Stock Kit',view:{id:'rm_view_stock',field:'can_view_stock_kit'},edit:{id:'rm_edit_stock',field:'can_edit_stock_kit'}},
-        {label:'Service',view:{id:'rm_view_svc',field:'can_view_service'},edit:{id:'rm_manage_svc',field:'can_manage_service'}},
-      ]
-    },
-    {key:'team-access',mod:'team',label:'👥 Team',color:'#10b981',
-      gate:'can_access_team',gateId:'rm_team',
-      rows:[
-        {label:'Assign Tasks',single:[{id:'rm_task_dept',label:'Dept'},{id:'rm_task_cross',label:'Cross-dept'}]},
-        {label:'Approve Tasks',single:[{id:'rm_approve_tasks',label:'Approve completion'}]},
-        {label:'Attendance',single:[{id:'rm_attendance',label:'View & approve check-in'}]},
-        {label:'Leave',single:[{id:'rm_leave_approve',label:'Approve leave'}]},
-        {label:'Performance',single:[{id:'rm_perf_own',label:'Own'},{id:'rm_perf_dept',label:'Dept'},{id:'rm_perf_all',label:'All'}]},
-        {label:'Sales',single:[{id:'rm_view_all_sales',label:'View all'},{id:'rm_export_sales',label:'Export'}]},
-        {label:'Announcements',single:[{id:'rm_create_ann',label:'Create'},{id:'rm_pin_ann',label:'Pin'}]},
-        {label:'Chat',single:[{id:'rm_create_chat',label:'Create rooms'}]},
-        {label:'Change Log',single:[{id:'rm_view_log',label:'View log'}]},
-      ]
-    },
-    {key:'team-admin',mod:'team',label:'⚙ Administration',color:'#a78bfa',
-      gate:null,
-      rows:[
-        {label:'Users',single:[{id:'rm_manage_users',label:'Manage users'}]},
-        {label:'Roles',single:[{id:'rm_manage_roles',label:'Manage roles'}]},
-        {label:'Departments',single:[{id:'rm_manage_depts',label:'Manage depts'}]},
-        {label:'Attendance Export',single:[{id:'rm_export_att',label:'Export attendance'}]},
-        {label:'Benefits',single:[{id:'rm_access_benefit',label:'Access'},{id:'rm_manage_benefit',label:'Manage'}]},
-        {label:'Payroll',single:[{id:'rm_access_payroll',label:'Simulator'}]},
-      ]
-    },
+    {key:'tools-access',label:'🔧 Tools',color:'#3b82f6',gateId:'rm_tools',
+     rows:[
+       {label:'New Pricelist', view:'rm_view_new_pl', edit:'rm_edit_new_pl'},
+       {label:'Used Pricelist',view:'rm_view_used_pl',edit:'rm_edit_used_pl'},
+       {label:'Price Compare', view:'rm_view_pc',     edit:'rm_edit_pc'},
+       {label:'Stock Kit',     view:'rm_view_stock',  edit:'rm_edit_stock'},
+       {label:'Service',       view:'rm_view_svc',    edit:'rm_manage_svc'},
+     ]},
+    {key:'team-access',label:'👥 Team',color:'#10b981',gateId:'rm_team',
+     rows:[
+       {label:'Assign Tasks',  singles:['rm_task_dept','rm_task_cross']},
+       {label:'Approve Tasks', singles:['rm_approve_tasks']},
+       {label:'Attendance',    singles:['rm_attendance']},
+       {label:'Leave',         singles:['rm_leave_approve']},
+       {label:'Performance',   singles:['rm_perf_own','rm_perf_dept','rm_perf_all']},
+       {label:'Sales',         singles:['rm_view_all_sales','rm_export_sales']},
+       {label:'Announcements', singles:['rm_create_ann','rm_pin_ann']},
+       {label:'Chat',          singles:['rm_create_chat']},
+       {label:'Change Log',    singles:['rm_view_log']},
+     ]},
+    {key:'team-admin',label:'⚙ Administration',color:'#a78bfa',gateId:null,
+     rows:[
+       {label:'Users',         singles:['rm_manage_users']},
+       {label:'Roles',         singles:['rm_manage_roles']},
+       {label:'Departments',   singles:['rm_manage_depts']},
+       {label:'Att. Export',   singles:['rm_export_att']},
+       {label:'Benefits',      singles:['rm_access_benefit','rm_manage_benefit']},
+       {label:'Payroll',       singles:['rm_access_payroll']},
+     ]},
   ];
-
-  function mkCk(id,label){
-    var st=rmGetState(id);
+  function ckBox(id,lbl){
     var p=PERM_DEFS.find(function(x){return x.id===id;});
-    if(!p)return '';
-    // Filter
-    var inFiltered=filtered.some(function(x){return x.id===id;});
-    if(!inFiltered)return '';
-    return '<label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:'+(st.disabled?'#2a4a6a':'#c9d1d9')+';cursor:'+(st.disabled?'not-allowed':'pointer')+';white-space:nowrap" title="'+(p.desc||'')+'">'
-      +'<input type="checkbox" id="'+id+'" '+(st.checked?'checked ':' ')+(st.disabled?'disabled ':' ')
-      +'style="width:13px;height:13px;cursor:pointer;accent-color:#3b82f6;flex-shrink:0">'
-      +(label||p.label)+'</label>';
+    if(!p||!filtered.some(function(x){return x.id===id;}))return '';
+    var st=rmGetState(id);
+    return '<label style="white-space:nowrap;font-size:11px;color:'+(st.disabled?'#2a4a6a':'#c9d1d9')+'">'
+      +'<input type="checkbox" id="'+id+'" '+(st.checked?'checked ':'')+(st.disabled?'disabled ':'')
+      +'style="margin-right:4px;accent-color:#3b82f6">'
+      +(lbl||p.label)+'</label>';
   }
-
   var html='';
   sections.forEach(function(sec){
-    // Check if any perm in this section is in filtered set
-    var secPerms=[];
+    var gateChecked=sec.gateId?rmGetState(sec.gateId).checked:true;
+    // Check any row visible in current filter
+    var anyVisible=false;
+    if(sec.gateId&&filtered.some(function(p){return p.id===sec.gateId;}))anyVisible=true;
     sec.rows.forEach(function(r){
-      if(r.view)secPerms.push(r.view.id,r.edit.id);
-      if(r.single)r.single.forEach(function(s){secPerms.push(s.id);});
+      if(r.view){if(filtered.some(function(p){return p.id===r.view||p.id===r.edit;}))anyVisible=true;}
+      if(r.singles){r.singles.forEach(function(id){if(filtered.some(function(p){return p.id===id;}))anyVisible=true;});}
     });
-    if(sec.gateId)secPerms.push(sec.gateId);
-    var anyVisible=secPerms.some(function(id){return filtered.some(function(p){return p.id===id;});});
     if(!anyVisible)return;
-
-    var gateSt=sec.gateId?rmGetState(sec.gateId):{checked:true,disabled:false};
-    var gateChecked=!sec.gateId||gateSt.checked;
-
-    html+='<div style="border:1px solid #1e2d45;border-radius:10px;overflow:hidden;margin-bottom:10px">';
-    // Section header with gate checkbox
-    html+='<div style="background:#0d1626;padding:8px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e2d45">';
+    var hasViewEdit=sec.rows.some(function(r){return r.view;});
+    html+='<div style="border:1px solid #1e2d45;border-radius:8px;overflow:hidden;margin-bottom:8px">';
+    // Header row
+    html+='<div style="background:#0d1626;padding:7px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e2d45">';
     if(sec.gateId){
       var gst=rmGetState(sec.gateId);
-      html+='<input type="checkbox" id="'+sec.gateId+'" '+(gst.checked?'checked ':' ')+(gst.disabled?'disabled ':' ')
-        +'onchange="onRmGateChange(\''+sec.key+'\')" style="width:15px;height:15px;cursor:pointer;accent-color:'+sec.color+';flex-shrink:0">';
+      html+='<input type="checkbox" id="'+sec.gateId+'" '+(gst.checked?'checked ':'')+(gst.disabled?'disabled ':'')
+        +'onchange="onRmGateChange(\''+sec.key+'\')" style="width:14px;height:14px;accent-color:'+sec.color+'">';
     }
     html+='<span style="font-size:12px;font-weight:700;color:'+sec.color+'">'+sec.label+'</span>';
-    if(sec.gateId){
-      html+='<span style="font-size:10px;color:#2a4a6a;margin-left:auto">'+
-        (gateChecked?'Enabled — expand below':'Disabled — no access')+'</span>';
-    }
     html+='</div>';
-
-    // Rows
-    var hasViewEdit=sec.rows.some(function(r){return r.view;});
-    html+='<div id="rmSec_'+sec.key+'"'+(sec.gateId&&!gateChecked?' style="display:none"':'')+' >';
-    html+='<table style="width:100%;border-collapse:collapse">';
+    // Content table
+    html+='<table id="rmSec_'+sec.key+'" style="width:100%;border-collapse:collapse;'+(sec.gateId&&!gateChecked?'display:none':'')+'"><tbody>';
     if(hasViewEdit){
-      html+='<tr style="border-bottom:1px solid #0a0f1a">'
-        +'<td style="width:120px;padding:3px 12px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase"></td>'
-        +'<td style="width:80px;padding:3px 8px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase">View</td>'
+      html+='<tr style="background:#080d16">'
+        +'<td style="padding:3px 12px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;width:120px"></td>'
+        +'<td style="padding:3px 8px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;width:90px">View</td>'
         +'<td style="padding:3px 8px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase">Edit / Manage</td>'
         +'</tr>';
     }
     sec.rows.forEach(function(r){
       if(r.view){
-        var viewIn=filtered.some(function(p){return p.id===r.view.id;});
-        var editIn=filtered.some(function(p){return p.id===r.edit.id;});
-        if(!viewIn&&!editIn)return;
-        html+='<tr style="border-top:1px solid #0a0f1a">'
-          +'<td style="padding:6px 12px;font-size:11px;color:#8b949e;width:120px">'+r.label+'</td>'
-          +'<td style="padding:6px 8px;width:80px">'+(viewIn?mkCk(r.view.id,'View'):'')+'</td>'
-          +'<td style="padding:6px 8px">'+(editIn?mkCk(r.edit.id,'Edit'):'')+'</td>'
+        var vIn=filtered.some(function(p){return p.id===r.view;});
+        var eIn=filtered.some(function(p){return p.id===r.edit;});
+        if(!vIn&&!eIn)return;
+        html+='<tr style="border-top:1px solid #0d1626">'
+          +'<td style="padding:6px 12px;font-size:11px;color:#8b949e">'+r.label+'</td>'
+          +'<td style="padding:6px 8px">'+(vIn?ckBox(r.view,'View'):'')+'</td>'
+          +'<td style="padding:6px 8px">'+(eIn?ckBox(r.edit,'Edit'):'')+'</td>'
           +'</tr>';
-      } else if(r.single){
-        var anyIn=r.single.some(function(s){return filtered.some(function(p){return p.id===s.id;});});
+      } else if(r.singles){
+        var anyIn=r.singles.some(function(id){return filtered.some(function(p){return p.id===id;});});
         if(!anyIn)return;
-        var cks=r.single.map(function(s){
-          return filtered.some(function(p){return p.id===s.id;})?mkCk(s.id,s.label):'';
-        }).join('&nbsp;&nbsp;');
-        html+='<tr style="border-top:1px solid #0a0f1a">'
-          +'<td style="padding:6px 12px;font-size:11px;color:#8b949e;width:120px">'+r.label+'</td>'
+        var cks=r.singles.map(function(id){
+          if(!filtered.some(function(p){return p.id===id;}))return '';
+          var p2=PERM_DEFS.find(function(x){return x.id===id;});
+          return ckBox(id,p2?p2.label:'');
+        }).join('&nbsp;&nbsp;&nbsp;');
+        html+='<tr style="border-top:1px solid #0d1626">'
+          +'<td style="padding:6px 12px;font-size:11px;color:#8b949e">'+r.label+'</td>'
           +'<td colspan="2" style="padding:6px 8px">'+cks+'</td>'
           +'</tr>';
       }
     });
-    html+='</table></div></div>';
+    html+='</tbody></table></div>';
   });
-
   if(!html)html='<div style="padding:1rem;font-size:12px;color:#4a6fa5;text-align:center">No permissions in this filter</div>';
   var wrap=document.getElementById('rm_perm_rows');
   if(wrap)wrap.innerHTML=html;
-  // Apply visibility based on gate state
   sections.forEach(function(sec){
     if(sec.gateId)applyRmGateVisibility(sec.key,rmGetState(sec.gateId).checked);
   });
@@ -5107,13 +5083,8 @@ function onRmGateChange(secKey){
 }
 
 function applyRmGateVisibility(secKey,gateChecked){
-  var secDiv=document.getElementById('rmSec_'+secKey);
-  if(secDiv)secDiv.style.display=gateChecked?'block':'none';
-  var hdr=secDiv?secDiv.previousElementSibling:null;
-  if(hdr){
-    var span=hdr.querySelector('span[style*="margin-left:auto"]');
-    if(span)span.textContent=gateChecked?'Enabled — expand below':'Disabled — no access';
-  }
+  var el=document.getElementById('rmSec_'+secKey);
+  if(el)el.style.display=gateChecked?'table':'none';
 }
 
 var rmTipTimeout=null;
