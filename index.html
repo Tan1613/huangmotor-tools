@@ -5052,34 +5052,38 @@ function renderRmPerms(){
     }
     html+='</div>';
 
-    // Rows
-    html+='<div style="padding:8px 12px;display:grid;grid-template-columns:100px 1fr 1fr;gap:0" id="rmSec_'+sec.key+'"'
-      +(sec.gateId&&!gateChecked?' style="display:none"':'')+' >';
-    // Column headers if any row has view/edit
+    // Rows — flex layout, one row per permission line
     var hasViewEdit=sec.rows.some(function(r){return r.view;});
+    html+='<div id="rmSec_'+sec.key+'"'+(sec.gateId&&!gateChecked?' style="display:none"':'')+' >';
+    // Column header
     if(hasViewEdit){
-      html+='<div style="font-size:9px;color:#2a4a6a;padding:3px 0;font-weight:600;text-transform:uppercase"></div>';
-      html+='<div style="font-size:9px;color:#2a4a6a;padding:3px 0;font-weight:600;text-transform:uppercase">View</div>';
-      html+='<div style="font-size:9px;color:#2a4a6a;padding:3px 0;font-weight:600;text-transform:uppercase">Edit / Manage</div>';
+      html+='<div style="display:flex;align-items:center;padding:4px 12px;gap:0;border-bottom:1px solid #0a0f1a">'
+        +'<div style="width:110px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em"></div>'
+        +'<div style="width:90px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em">View</div>'
+        +'<div style="flex:1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Edit / Manage</div>'
+        +'</div>';
     }
     sec.rows.forEach(function(r){
       if(r.view){
-        // View + Edit pair on same row
         var viewIn=filtered.some(function(p){return p.id===r.view.id;});
         var editIn=filtered.some(function(p){return p.id===r.edit.id;});
         if(!viewIn&&!editIn)return;
-        html+='<div style="font-size:11px;color:#8b949e;padding:6px 0;border-top:1px solid #0a0f1a;display:flex;align-items:center">'+r.label+'</div>';
-        html+='<div style="padding:6px 4px;border-top:1px solid #0a0f1a;display:flex;align-items:center">'+(viewIn?mkCk(r.view.id,'View'):'')+'</div>';
-        html+='<div style="padding:6px 4px;border-top:1px solid #0a0f1a;display:flex;align-items:center">'+(editIn?mkCk(r.edit.id,'Edit'):'')+'</div>';
+        html+='<div style="display:flex;align-items:center;padding:5px 12px;border-top:1px solid #0a0f1a;gap:0">'
+          +'<div style="width:110px;font-size:11px;color:#8b949e;flex-shrink:0">'+r.label+'</div>'
+          +'<div style="width:90px;flex-shrink:0">'+(viewIn?mkCk(r.view.id,'View'):'')+'</div>'
+          +'<div style="flex:1">'+(editIn?mkCk(r.edit.id,'Edit'):'')+'</div>'
+          +'</div>';
       } else if(r.single){
         var anyIn=r.single.some(function(s){return filtered.some(function(p){return p.id===s.id;});});
         if(!anyIn)return;
-        html+='<div style="font-size:11px;color:#8b949e;padding:6px 0;border-top:1px solid #0a0f1a;display:flex;align-items:center">'+r.label+'</div>';
-        html+='<div style="padding:6px 4px;border-top:1px solid #0a0f1a;display:flex;align-items:center;gap:10px;flex-wrap:wrap;grid-column:2/-1">'
+        html+='<div style="display:flex;align-items:center;flex-wrap:wrap;padding:5px 12px;border-top:1px solid #0a0f1a;gap:8px">'
+          +'<div style="width:110px;font-size:11px;color:#8b949e;flex-shrink:0">'+r.label+'</div>'
+          +'<div style="display:flex;flex-wrap:wrap;gap:10px">'
           +r.single.map(function(s){
             var inF=filtered.some(function(p){return p.id===s.id;});
             return inF?mkCk(s.id,s.label):'';
-          }).join('')+'</div>';
+          }).join('')
+          +'</div></div>';
       }
     });
     html+='</div></div>';
@@ -5105,7 +5109,7 @@ function onRmGateChange(secKey){
 
 function applyRmGateVisibility(secKey,gateChecked){
   var secDiv=document.getElementById('rmSec_'+secKey);
-  if(secDiv)secDiv.style.display=gateChecked?'grid':'none';
+  if(secDiv)secDiv.style.display=gateChecked?'block':'none';
   var hdr=secDiv?secDiv.previousElementSibling:null;
   if(hdr){
     var span=hdr.querySelector('span[style*="margin-left:auto"]');
