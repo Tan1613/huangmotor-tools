@@ -811,71 +811,85 @@ body.theme-white .home-welcome{color:#555}
       <button class="pl-cancel-btn" style="padding:2px 8px;font-size:10px" onclick="closePLForm()">✕</button>
     </div>
     <div class="pl-form-grid">
+      <!-- Identity -->
       <div class="span2">
         <label>Brand</label>
         <input type="text" id="plf_brand" class="dark-inp" placeholder="e.g. Honda">
         <label>Model</label>
         <input type="text" id="plf_model" class="dark-inp" placeholder="e.g. Wave Alpha 110">
       </div>
+      <!-- Pricing -->
+      <div style="grid-column:1/-1;font-size:9px;font-weight:700;color:#2a4a6a;text-transform:uppercase;letter-spacing:.06em;margin-top:6px">Pricing</div>
       <div>
         <label>Cash Price (RM)</label>
-        <input type="number" id="plf_cash" class="dark-inp" placeholder="0">
+        <input type="number" id="plf_cash" class="dark-inp" placeholder="0" oninput="plFormCalc()">
       </div>
       <div>
-        <label>Insurance 1st Price (RM)</label>
-        <input type="number" id="plf_ins1" class="dark-inp" placeholder="0">
+        <label>HP / TSP (RM) <span style="font-size:9px;color:#444">Total Selling Price</span></label>
+        <input type="number" id="plf_hp" class="dark-inp" placeholder="0" oninput="plFormCalc()">
       </div>
       <div>
-        <label>Insurance 1st+ (RM)</label>
+        <label>Kedai DP (RM)</label>
+        <input type="number" id="plf_dpk" class="dark-inp" placeholder="0" oninput="plFormCalc()">
+      </div>
+      <div>
+        <label style="color:#3fb950">Cash OTR <span style="font-size:9px;color:#444">auto</span></label>
+        <div id="plf_cashotr_disp" style="padding:6px 8px;background:#0a0f1a;border:1px solid #1e2d45;border-radius:6px;font-size:12px;color:#3fb950;min-height:28px">—</div>
+      </div>
+      <!-- Interest rates -->
+      <div style="grid-column:1/-1;height:1px;background:#21262d;margin:4px 0"></div>
+      <div style="grid-column:1/-1;font-size:9px;font-weight:700;color:#2a4a6a;text-transform:uppercase;letter-spacing:.06em">Interest Rates</div>
+      <div>
+        <label>Kedai PA % <span style="font-size:9px;color:#444">annual</span></label>
+        <input type="number" id="plf_pa" class="dark-inp" placeholder="e.g. 3.5" step="0.1" oninput="plFormCalc()">
+      </div>
+      <div>
+        <label>AEON PA % <span style="font-size:9px;color:#444">annual</span></label>
+        <input type="number" id="plf_aeon_pa" class="dark-inp" placeholder="e.g. 3.5" step="0.1" oninput="plFormCalc()">
+      </div>
+      <!-- Insurance -->
+      <div style="grid-column:1/-1;height:1px;background:#21262d;margin:4px 0"></div>
+      <div style="grid-column:1/-1;font-size:9px;font-weight:700;color:#2a4a6a;text-transform:uppercase;letter-spacing:.06em">Insurance</div>
+      <div>
+        <label>Ins 1st Party (RM)</label>
+        <input type="number" id="plf_ins1" class="dark-inp" placeholder="0" oninput="plFormCalc()">
+      </div>
+      <div>
+        <label>Ins 1st Party+ (RM)</label>
         <input type="number" id="plf_ins1p" class="dark-inp" placeholder="0">
       </div>
       <div>
-        <label>Insurance SUM (RM)</label>
+        <label>Ins Sum Assured (RM)</label>
         <input type="number" id="plf_inssum" class="dark-inp" placeholder="0">
       </div>
       <div>
-        <label>Insurance 3rd Party (RM)</label>
+        <label>Ins 3rd Party (RM)</label>
         <input type="number" id="plf_ins3" class="dark-inp" placeholder="0">
       </div>
+      <!-- Road tax + fees -->
+      <div style="grid-column:1/-1;height:1px;background:#21262d;margin:4px 0"></div>
+      <div style="grid-column:1/-1;font-size:9px;font-weight:700;color:#2a4a6a;text-transform:uppercase;letter-spacing:.06em">Other Fees</div>
       <div>
         <label>Road Tax (RM)</label>
-        <input type="number" id="plf_rtax" class="dark-inp" placeholder="0">
+        <input type="number" id="plf_rtax" class="dark-inp" placeholder="0" oninput="plFormCalc()">
       </div>
       <div>
         <label>Handling Fee (RM)</label>
-        <input type="number" id="plf_hand" class="dark-inp" placeholder="0">
+        <input type="number" id="plf_hand" class="dark-inp" placeholder="0" oninput="plFormCalc()">
       </div>
-      <div>
+      <div class="span2">
         <label>Other Charges (RM)</label>
-        <input type="number" id="plf_other" class="dark-inp" placeholder="0">
+        <input type="number" id="plf_other" class="dark-inp" placeholder="0" oninput="plFormCalc()">
       </div>
-      <div>
-        <label>Hire Purchase Price (RM)</label>
-        <input type="number" id="plf_hp" class="dark-inp" placeholder="0">
-      </div>
-      <div style="grid-column:1/-1;height:1px;background:#21262d;margin:4px 0"></div>
-      <div>
-        <label>DP Kedai (RM) <span style="font-size:9px;color:#444">店面报价</span></label>
-        <input type="number" id="plf_dpk" class="dark-inp" placeholder="0">
-      </div>
-      <div>
-        <label>DP HTML (RM) <span style="font-size:9px;color:#444">→计算器</span></label>
-        <input type="number" id="plf_dph" class="dark-inp" placeholder="0">
-      </div>
-      <div>
-        <label>Kedai pa% <span style="font-size:9px;color:#444">年利率</span></label>
-        <input type="number" id="plf_pa" class="dark-inp" placeholder="e.g. 10" step="0.1">
-      </div>
-      <div>
-        <label>Kedai Loan Year <span style="font-size:9px;color:#444">1~5</span></label>
-        <select id="plf_loanyear" class="dark-inp" style="margin-bottom:0">
-          <option value="">— All years —</option>
-          <option value="1">1 Year</option>
-          <option value="2">2 Years</option>
-          <option value="3">3 Years</option>
-          <option value="4">4 Years</option>
-          <option value="5">5 Years</option>
-        </select>
+      <!-- TSP preview -->
+      <div style="grid-column:1/-1;background:#0a0f1a;border:1px solid #1e2d45;border-radius:8px;padding:8px 10px;margin-top:2px">
+        <div style="font-size:9px;color:#2a4a6a;margin-bottom:5px;font-weight:700;text-transform:uppercase">Auto-calculated Preview</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px" id="plf_preview">
+          <span style="color:#4a6fa5">TSP</span><span id="plfp_tsp" style="color:#c9d1d9;text-align:right">—</span>
+          <span style="color:#4a6fa5">Cash OTR</span><span id="plfp_otr" style="color:#3fb950;text-align:right;font-weight:600">—</span>
+          <span style="color:#4a6fa5">Kedai Loan</span><span id="plfp_kloan" style="color:#58a6ff;text-align:right">—</span>
+          <span style="color:#4a6fa5">AEON DP (from MF)</span><span id="plfp_aeon_dp" style="color:#d2a8ff;text-align:right">—</span>
+        </div>
       </div>
     </div>
     <div class="pl-form-btns">
@@ -1491,11 +1505,11 @@ function plSaveLib(){
   function s(v){return(v&&String(v).trim())||null;}
   sbUpsert('pricelist',PL.list.map(function(e){return{
     id:e.id,brand:s(e.brand),model:s(e.model),
-    cash:n(e.cash),hp:n(e.hp),
+    cash:n(e.cash),hp:n(e.hp),dpk:n(e.dpk),
+    pa:n(e.pa),aeon_pa:n(e.aeon_pa),
     ins1:n(e.ins1),ins1p:n(e.ins1p),inssum:n(e.inssum),ins3:n(e.ins3),
     rtax:n(e.rtax),hand:n(e.hand),other:n(e.other),
-    dpk:n(e.dpk),dph:n(e.dph),pa:n(e.pa),
-    loanyear:s(e.loanyear),updated_at:new Date().toISOString()
+    updated_at:new Date().toISOString()
   };}));
 }
 function plSaveSel(){try{localStorage.setItem(PL_SEL_KEY,JSON.stringify(Array.from(PL.checked)));}catch(e){}}
@@ -1691,36 +1705,76 @@ function showPLDetail(id){
 }
 function closePLDetail(){PL.sel=null;document.getElementById('plDetail').style.display='none';document.getElementById('plLoadCalcBtn').disabled=true;renderPLList();}
 
+function plMfLookup(brand,model){
+  if(!window.MF||!MF.length)return null;
+  var m=MF.find(function(x){
+    return (x.brand||'').toLowerCase()===(brand||'').toLowerCase()
+        &&(x.model||'').toLowerCase()===(model||'').toLowerCase();
+  });
+  return m?parseFloat(m.amt):null;
+}
+
+function plFormCalc(){
+  var cash=parseFloat(ge('plf_cash').value)||0;
+  var hp=parseFloat(ge('plf_hp').value)||0;
+  var dpk=parseFloat(ge('plf_dpk').value)||0;
+  var ins1=parseFloat(ge('plf_ins1').value)||0;
+  var rtax=parseFloat(ge('plf_rtax').value)||0;
+  var hand=parseFloat(ge('plf_hand').value)||0;
+  var other=parseFloat(ge('plf_other').value)||0;
+  var brand=(ge('plf_brand').value||'').trim();
+  var model=(ge('plf_model').value||'').trim();
+  var tsp=cash+hand+other+ins1+rtax;
+  var otr=cash+ins1+rtax;
+  var kloan=hp-dpk;
+  var mf=plMfLookup(brand,model);
+  var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
+  function disp(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
+  var tspEl=ge('plfp_tsp');var otrEl=ge('plfp_otr');
+  var klEl=ge('plfp_kloan');var adpEl=ge('plfp_aeon_dp');
+  if(tspEl)tspEl.textContent=disp(tsp);
+  if(otrEl)otrEl.textContent=disp(otr);
+  if(klEl)klEl.textContent=kloan>0?'RM '+Math.round(kloan).toLocaleString():'—';
+  if(adpEl)adpEl.textContent=mf!==null?'RM '+Math.round(aeonDP).toLocaleString()+' (MF: RM'+Math.round(mf).toLocaleString()+')':(brand&&model?'No MF → Full loan':'Enter brand/model first');
+  var otrDisp=ge('plf_cashotr_disp');
+  if(otrDisp)otrDisp.textContent=otr>0?'RM '+Math.round(otr).toLocaleString():'—';
+}
+
 function openPLForm(id){
   plEditId=id;
   var e=id?PL.list.find(function(x){return x.id===id;}):null;
-  document.getElementById('plFormTitle').textContent=id?'Edit Entry':'New Entry';
-  ['brand','model','cash','hp','ins1','ins1p','inssum','ins3','rtax','hand','other','dpk','dph','pa'].forEach(function(f){
-    var el=document.getElementById('plf_'+f);if(el)el.value=e&&e[f]!=null?e[f]:'';
+  ge('plFormTitle').textContent=id?'Edit Entry':'New Entry';
+  ['brand','model','cash','hp','dpk','pa','aeon_pa','ins1','ins1p','inssum','ins3','rtax','hand','other'].forEach(function(f){
+    var el=ge('plf_'+f);if(el)el.value=e&&e[f]!=null?e[f]:'';
   });
-  var lyEl=document.getElementById('plf_loanyear');if(lyEl)lyEl.value=e&&e.loanyear?e.loanyear:'';
-  document.getElementById('plForm').style.display='';
-  document.getElementById('plDetail').style.display='none';
+  ge('plForm').style.display='';
+  ge('plDetail').style.display='none';
+  plFormCalc();
 }
-function closePLForm(){document.getElementById('plForm').style.display='none';plEditId=null;}
+function closePLForm(){ge('plForm').style.display='none';plEditId=null;}
 
 function savePLEntry(){
-  var brand=(document.getElementById('plf_brand').value||'').trim();
-  var model=(document.getElementById('plf_model').value||'').trim();
+  var brand=(ge('plf_brand').value||'').trim();
+  var model=(ge('plf_model').value||'').trim();
   if(!brand||!model){alert('Brand and Model are required.');return;}
-  function gfv(f){var el=document.getElementById('plf_'+f);return el?el.value:'';}
-  var entry={id:plEditId||('pl_'+Date.now()),brand:brand,model:model,
-    cash:gfv('cash'),hp:gfv('hp'),
+  function gfv(f){var el=ge('plf_'+f);return el?el.value:'';}
+  var entry={
+    id:plEditId||('pl_'+Date.now()),
+    brand:brand,model:model,
+    cash:gfv('cash'),hp:gfv('hp'),dpk:gfv('dpk'),
+    pa:gfv('pa'),aeon_pa:gfv('aeon_pa'),
     ins1:gfv('ins1'),ins1p:gfv('ins1p'),inssum:gfv('inssum'),ins3:gfv('ins3'),
-    rtax:gfv('rtax'),hand:gfv('hand'),other:gfv('other'),
-    dpk:gfv('dpk'),dph:gfv('dph'),
-    pa:gfv('pa'),loanyear:gfv('loanyear')};
+    rtax:gfv('rtax'),hand:gfv('hand'),other:gfv('other')
+  };
   var isEdit=!!plEditId;
   if(plEditId){var idx=PL.list.findIndex(function(x){return x.id===plEditId;});if(idx>=0)PL.list[idx]=entry;else PL.list.push(entry);}
   else PL.list.push(entry);
   plSaveLib();plSyncBrandOrder();plSaveBrandOrder();
   logAction(isEdit?'edit_pricelist':'add_pricelist','pricelist',brand+' '+model,null,{brand:brand,model:model,cash:entry.cash,hp:entry.hp});
-  closePLForm();PL.sel=entry.id;renderPLList();showPLDetail(entry.id);
+  closePLForm();PL.sel=entry.id;
+  _plSelectedId=entry.id;
+  renderPLList();
+  renderNewVehicleList();
 }
 
 function clonePLEntry(id){
@@ -2720,7 +2774,7 @@ function startRealtimeSync(){
         lastSyncTime=now;
         // Only reload pricelist + MF from realtime — never overwrite generator/gifts mid-session
         var pl2=await sbGet('pricelist','select=*&order=brand.asc,model.asc');
-        if(pl2.length)PL.list=pl2.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other,dpk:r.dpk,dph:r.dph,pa:r.pa,loanyear:r.loanyear};});
+        if(pl2.length)PL.list=pl2.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,dpk:r.dpk,pa:r.pa,aeon_pa:r.aeon_pa,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other};});
         var mf2=await sbGet('max_finance','select=*&order=id.asc');
         if(mf2.length)MF=mf2.map(function(r){return{brand:r.brand,model:r.model,amt:r.amt};});
         renderMFTable();renderPLList();
@@ -2738,7 +2792,7 @@ async function loadAllFromCloud(){
   try{
     var pl=await sbGet('pricelist','select=*&order=brand.asc,model.asc');
     if(pl.length){
-      PL.list=pl.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other,dpk:r.dpk,dph:r.dph,pa:r.pa,loanyear:r.loanyear};});
+      PL.list=pl.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,dpk:r.dpk,pa:r.pa,aeon_pa:r.aeon_pa,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other};});
     } else {
       try{var plRaw=localStorage.getItem(PL_KEY);if(plRaw){var plLocal=JSON.parse(plRaw);if(plLocal.list&&plLocal.list.length){PL.list=plLocal.list;plSaveLib();}}}catch(ex){}
     }
@@ -3415,29 +3469,98 @@ function renderNewVehicleList(){
 }
 
 function renderNewPLDetail(e,canEdit){
-  var rows=[];
-  if(e.rtax)rows.push(['Road Tax','RM '+Number(e.rtax).toLocaleString(),'#c9d1d9']);
-  if(e.ins1)rows.push(['Insurance 1st','RM '+Number(e.ins1).toLocaleString(),'#c9d1d9']);
-  if(e.ins1p)rows.push(['Insurance 1st+','RM '+Number(e.ins1p).toLocaleString(),'#f0c060']);
-  if(e.inssum)rows.push(['Ins. Sum Assured','RM '+Number(e.inssum).toLocaleString(),'#c9d1d9']);
-  if(e.ins3)rows.push(['3rd Party Ins.','RM '+Number(e.ins3).toLocaleString(),'#c9d1d9']);
-  if(canEdit){
-    if(e.dpk)rows.push(['DP Kedai (min)','RM '+Number(e.dpk).toLocaleString(),'#60a5fa']);
-    if(e.dph)rows.push(['DP HP (AEON diff)','RM '+Number(e.dph).toLocaleString(),'#60a5fa']);
-    if(e.hand)rows.push(['Handling Fee','RM '+Number(e.hand).toLocaleString(),'#8b949e']);
-    if(e.other)rows.push(['Other Charges','RM '+Number(e.other).toLocaleString(),'#8b949e']);
-    if(e.pa)rows.push(['PA Rate',''+e.pa+'%','#a78bfa']);
-    if(e.loanyear)rows.push(['Max Loan',''+e.loanyear+' years','#a78bfa']);
+  var cash=parseFloat(e.cash)||0;
+  var hp=parseFloat(e.hp)||0;
+  var dpk=parseFloat(e.dpk)||0;
+  var ins1=parseFloat(e.ins1)||0;
+  var ins1p=parseFloat(e.ins1p)||0;
+  var ins3=parseFloat(e.ins3)||0;
+  var rtax=parseFloat(e.rtax)||0;
+  var hand=parseFloat(e.hand)||0;
+  var other=parseFloat(e.other)||0;
+  var pa=parseFloat(e.pa)||0;
+  var aeon_pa=parseFloat(e.aeon_pa)||0;
+  var tsp=cash+hand+other+ins1+rtax;
+  var otr=cash+ins1+rtax;
+  var kloan=hp-dpk;
+  var mf=plMfLookup(e.brand,e.model);
+  var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
+  var aeonLoan=tsp-aeonDP;
+  // Global min installment setting
+  var minInst=parseFloat(window._plMinInstalment)||0;
+  function inst(loan,rate,yr){
+    if(!loan||loan<=0||!rate||!yr)return null;
+    return Math.ceil(loan*(1+rate/100*yr)/(yr*12));
   }
-  var grid=rows.map(function(r){
-    return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #0d1626">'
-      +'<span style="font-size:11px;color:#4a6fa5">'+r[0]+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:'+r[2]+'">'+r[1]+'</span>'
-      +'</div>';
-  }).join('');
-  return '<div style="padding:0 14px 12px;background:#080d14">'
-    +(grid||'<div style="font-size:11px;color:#2a4a6a;padding:6px 0">No additional data.</div>')
-    +'</div>';
+  function rmf(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
+  function row(label,val,color){
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #0d1626">'
+      +'<span style="font-size:11px;color:#4a6fa5">'+label+'</span>'
+      +'<span style="font-size:11px;font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span></div>';
+  }
+  function instRow(label,loan,rate,color){
+    var cells='';
+    for(var yr=1;yr<=5;yr++){
+      var v=inst(loan,rate,yr);
+      if(v===null){cells+='<td style="color:#2a4a6a;font-size:10px;text-align:center">—</td>';continue;}
+      if(minInst&&v<minInst){cells+='<td style="color:#2a4a6a;font-size:10px;text-align:center">N/A</td>';continue;}
+      cells+='<td style="font-size:11px;font-weight:600;color:'+color+';text-align:center">'+Math.round(v).toLocaleString()+'</td>';
+    }
+    return '<tr><td style="font-size:10px;color:#4a6fa5;padding:4px 6px 4px 0;white-space:nowrap">'+label+'</td>'+cells+'</tr>';
+  }
+  var html='<div style="padding:0 14px 14px;background:#080d14">';
+  // Key prices
+  html+=row('Cash Price',rmf(cash),'#f0f6fc');
+  html+=row('Cash OTR',otr>0?'RM '+Math.round(otr).toLocaleString():'—','#3fb950');
+  html+=row('HP / TSP',rmf(hp),'#f0f6fc');
+  // Insurance
+  html+=row('Ins 1st Party',rmf(ins1));
+  if(ins1p)html+=row('Ins 1st Party+',rmf(ins1p),'#f0c060');
+  html+=row('Ins 3rd Party',rmf(ins3));
+  html+=row('Road Tax',rmf(rtax));
+  // Kedai section
+  html+='<div style="font-size:9px;font-weight:700;color:#1f6feb;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:2px">Kedai Loan</div>';
+  html+=row('DP (Kedai)',rmf(dpk),'#58a6ff');
+  html+=row('Loan Amount',kloan>0?'RM '+Math.round(kloan).toLocaleString():'—','#58a6ff');
+  // Kedai installment table
+  if(pa&&kloan>0){
+    html+='<div style="overflow-x:auto;margin:6px 0"><table style="width:100%;border-collapse:collapse">'
+      +'<tr><td></td>'+'<td style="font-size:9px;color:#2a4a6a;text-align:center">1yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">2yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">3yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">4yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">5yr</td></tr>'
+      +instRow('Monthly (RM)',kloan,pa,'#58a6ff')
+      +'</table></div>';
+  }
+  // AEON section
+  html+='<div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:2px">AEON</div>';
+  if(mf!==null){
+    html+=row('Max Finance',rmf(mf),'#d2a8ff');
+    html+=row('AEON DP',aeonDP===0?'RM 0 (Full Loan)':'RM '+Math.round(aeonDP).toLocaleString(),'#d2a8ff');
+    html+=row('AEON Loan',rmf(aeonLoan),'#d2a8ff');
+    if(aeon_pa&&aeonLoan>0){
+      html+='<div style="overflow-x:auto;margin:6px 0"><table style="width:100%;border-collapse:collapse">'
+        +'<tr><td></td>'+'<td style="font-size:9px;color:#2a4a6a;text-align:center">1yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">2yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">3yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">4yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">5yr</td></tr>'
+        +instRow('Monthly (RM)',aeonLoan,aeon_pa,'#d2a8ff')
+        +'</table></div>';
+    }
+  } else {
+    html+='<div style="font-size:11px;color:#4a6fa5;padding:4px 0">No MF limit — full loan available (DP: RM 0)</div>';
+    if(aeon_pa&&tsp>0){
+      html+='<div style="overflow-x:auto;margin:6px 0"><table style="width:100%;border-collapse:collapse">'
+        +'<tr><td></td>'+'<td style="font-size:9px;color:#2a4a6a;text-align:center">1yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">2yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">3yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">4yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">5yr</td></tr>'
+        +instRow('Monthly (RM)',tsp,aeon_pa,'#d2a8ff')
+        +'</table></div>';
+    }
+  }
+  // Editor-only fields
+  if(canEdit){
+    html+='<div style="font-size:9px;font-weight:700;color:#2a4a6a;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:2px">Editor Only</div>';
+    html+=row('Ins Sum Assured',rmf(parseFloat(e.inssum)));
+    if(hand)html+=row('Handling Fee',rmf(hand));
+    if(other)html+=row('Other Charges',rmf(other));
+    html+=row('Kedai PA',pa?pa+'% p.a.':'—');
+    html+=row('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—');
+  }
+  html+='</div>';
+  return html;
 }
 
 function plToggleBrand(brand){
