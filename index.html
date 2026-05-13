@@ -3435,6 +3435,8 @@ async function loadPricelistModule(){
     _plMinInst=cfg&&cfg[0]?parseFloat(cfg[0].value)||0:0;
   }catch(e){_plData=[];_plMFData=[];}
   _plLoaded=true;
+  // Restore checkbox selection from localStorage
+  try{var saved=JSON.parse(localStorage.getItem('pl_checked')||'[]');_plChecked=new Set(saved);}catch(e){_plChecked=new Set();}
   plSyncToolbar();
   renderNewVehicleList();
 }
@@ -3521,7 +3523,7 @@ function renderNVCard(e,expanded,editing,canEdit){
   var mf=plMfLookup(e.brand,e.model);
   var aeonDP=mf!==null?Math.max(0,tsp-mf):0,aeonLoan=tsp-aeonDP,noMF=mf===null;
   var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7],kedaiMax=5;
-  var checked=_plChecked.has(e.id);
+  var checked=_plChecked.has(String(e.id));
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
   function instCells(loan,rate,maxYr,color){
     return yrcols.map(function(yr){
@@ -3694,16 +3696,17 @@ function plTogglePrintMode(){
   plSyncToolbar();renderNewVehicleList();
 }
 function plToggleCheck(id){
-  if(_plChecked.has(id))_plChecked.delete(id);else _plChecked.add(id);
-  // Update DOM directly — avoid full re-render which loses focus
-  var cb=document.querySelector('input[onchange*="plToggleCheck(\''+id+'\'"]');
-  if(cb)cb.checked=_plChecked.has(id);
+  var sid=String(id);
+  if(_plChecked.has(sid))_plChecked.delete(sid);else _plChecked.add(sid);
+  try{localStorage.setItem('pl_checked',JSON.stringify([..._plChecked]));}catch(e){}
+  var cb=document.querySelector('input[onchange*="plToggleCheck(\''+sid+'\'"]');
+  if(cb)cb.checked=_plChecked.has(sid);
   plSyncToolbar();
 }
 function plPrintSelected(){
   var ids=Array.from(_plChecked);
   if(!ids.length)return;
-  var entries=_plData.filter(function(e){return _plChecked.has(e.id);});
+  var entries=_plData.filter(function(e){return _plChecked.has(String(e.id));});
   // Sort by brand order then model
   var brandOrder=plGetBrandOrder();
   var byBrand={};
@@ -3791,12 +3794,14 @@ function upTogglePrintMode(){
   renderUPList();
 }
 function upToggleCheck(id){
-  if(_upChecked.has(id))_upChecked.delete(id);else _upChecked.add(id);
+  var sid=String(id);
+  if(_upChecked.has(sid))_upChecked.delete(sid);else _upChecked.add(sid);
+  try{localStorage.setItem('up_checked',JSON.stringify([..._upChecked]));}catch(e){}
   var ps=ge('upPrintSelBtn');if(ps)ps.style.display=(_upPrintMode&&_upChecked.size>0)?'':'none';
   var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=_upChecked.size?_upChecked.size+' selected':'';
 }
 function upPrintSelected(){
-  var entries=_upData.filter(function(r){return _upChecked.has(r.id);});
+  var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
   if(!entries.length)return;
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
   function inst(loan,pa,yr){
@@ -4090,6 +4095,8 @@ async function loadUPData(){
   var brands=[...new Set(_upData.map(function(r){return r.brand;}).filter(Boolean))].sort();
   var sel=ge('upFilterBrand');
   if(sel)sel.innerHTML='<option value="">All brands</option>'+brands.map(function(b){return '<option>'+esc(b)+'</option>';}).join('');
+  // Restore checkbox selection
+  try{var savedUp=JSON.parse(localStorage.getItem('up_checked')||'[]');_upChecked=new Set(savedUp);}catch(e){_upChecked=new Set();}
   renderUPList();
   upSyncEditBar();
 }
@@ -4250,7 +4257,7 @@ function renderUPCard(r,expanded,canEdit){
   var yrHdr=yrcols.map(function(yr){return '<th style="text-align:center;font-size:9px;color:#2a4a6a;padding:4px 6px">'+yr+'yr</th>';}).join('');
   var html='<div style="border:1px solid #161b22;border-radius:8px;margin-bottom:6px;overflow:hidden;background:'+(expanded?'#060b12':'#0d1117')+(r.is_sold?';opacity:.6':'') +'">'
     +'<div style="display:flex;align-items:center;padding:10px 14px;gap:10px;cursor:pointer">'
-      +(_upPrintMode?'<input type="checkbox" '+(_upChecked.has(r.id)?'checked ':' ')+'onchange="upToggleCheck('+r.id+')" onclick="event.stopPropagation()" style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">':'')
+      +(_upPrintMode?'<input type="checkbox" '+(_upChecked.has(String(r.id))?'checked ':' ')+'onchange="upToggleCheck('+r.id+')" onclick="event.stopPropagation()" style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">':'')
       +'<div onclick="upSelectEntry('+r.id+')" style="flex:1;min-width:0">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
           +'<span style="font-size:13px;font-weight:700;color:#60a5fa;font-family:monospace">'+esc(r.plate_no||'—')+'</span>'
