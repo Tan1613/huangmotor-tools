@@ -3137,21 +3137,17 @@ window.addEventListener('beforeunload', function(){
   try{
     var s=JSON.parse(sess);
     if(s.module!=='tools'&&s.role!=='admin'){sessionStorage.removeItem('hm_session');showLoginPrompt();return;}
-    var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,is_active,display_name,position,phone,email,department');
+    var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,is_active,display_name,position,phone,email,department,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service');
     if(!rows.length||rows[0].is_active===false||(!rows[0].can_access_tools&&rows[0].role!=='admin')){
       sessionStorage.removeItem('hm_session');showLoginPrompt();return;
     }
     currentUser=rows[0];
     document.getElementById('loginScreen').style.display='none';
-    document.getElementById('mainApp').style.display='';
     document.getElementById('topBar').classList.add('visible');
     document.getElementById('tbUser').textContent=(currentUser.display_name||currentUser.username)+' ('+currentUser.role+')';
     document.body.classList.add('logged-in');
     if(currentUser.role==='admin')document.getElementById('tbAdmin').style.display='';
-    applyPermissions();
-    await loadAllFromCloud();
-    buildRows();buildGiftGroups();R();renderMFTable();renderPLList();
-    startRealtimeSync();
+    showHome();
   }catch(e){sessionStorage.removeItem('hm_session');showLoginPrompt();}
 })();
 
@@ -3168,7 +3164,7 @@ function showLoginPrompt(){
 
 /* ══ HOME / MODULE NAVIGATION ══ */
 function showHome(){
-  document.getElementById('homeScreen').style.display='';
+  document.getElementById('homeScreen').style.display='block';
   document.getElementById('mainApp').style.display='none';
   document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
   // Update home user name
@@ -3195,7 +3191,7 @@ function showHome(){
 }
 
 function goHome(){
-  document.getElementById('homeScreen').style.display='';
+  document.getElementById('homeScreen').style.display='block';
   document.getElementById('mainApp').style.display='none';
   document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
 }
