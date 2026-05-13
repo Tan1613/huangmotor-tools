@@ -2492,7 +2492,7 @@ async function doLogin(){
   btn.disabled=true;document.getElementById('loginSpinner').style.display='block';document.getElementById('loginErr').textContent='';
   try{
     var hash=await sha256(pass);
-    var rows=await sbGet('users','username=eq.'+encodeURIComponent(user)+'&select=username,role,password_hash,can_edit_pricelist,can_edit_generator,can_edit_mf,is_active,custom_role_id');
+    var rows=await sbGet('users','username=eq.'+encodeURIComponent(user)+'&select=username,role,password_hash,is_active,custom_role_id,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_access_tools,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service');
     if(!rows.length||rows[0].password_hash!==hash){
       document.getElementById('loginErr').textContent='Invalid username or password.';
       btn.disabled=false;document.getElementById('loginSpinner').style.display='none';return;
@@ -2988,9 +2988,16 @@ async function saveUserPerms(username){
    'can_approve_leave','can_view_perf_own','can_view_perf_dept','can_view_perf_all'].forEach(function(f){
     var el=document.querySelector('.eu_'+f);if(el)data[f]=el.checked;
   });
-  await fetch(SB_URL+'/rest/v1/users?username=eq.'+encodeURIComponent(username),{method:'PATCH',headers:sbHeaders(),body:JSON.stringify(data)});
-  await logAction('update_permissions','users',username,null,data);
-  closeAdmin();openAdmin();
+  try{
+    var res=await fetch(SB_URL+'/rest/v1/users?username=eq.'+encodeURIComponent(username),{
+      method:'PATCH',
+      headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),
+      body:JSON.stringify(data)
+    });
+    if(!res.ok){var t=await res.text();console.error('saveUserPerms failed:',t);alert('Save failed: '+t);return;}
+    try{await logAction('update_permissions','users',username,null,data);}catch(e){}
+    closeAdmin();openAdmin();
+  }catch(e){alert('Save error: '+e.message);}
 }
 async function assignCustomRole(username,roleId){
   var val=roleId?parseInt(roleId):null;
@@ -3218,7 +3225,7 @@ function initTheme(){
   }
 }
 initTheme();
-</script>
+
 function showHome(){
   document.getElementById('homeScreen').style.display='block';
   document.getElementById('mainApp').style.display='none';
