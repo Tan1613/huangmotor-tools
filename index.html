@@ -1771,6 +1771,9 @@ function savePLEntry(){
   if(plEditId){var idx=PL.list.findIndex(function(x){return x.id===plEditId;});if(idx>=0)PL.list[idx]=entry;else PL.list.push(entry);}
   else PL.list.push(entry);
   plSaveLib();plSyncBrandOrder();plSaveBrandOrder();
+  // Sync _plData used by new pricelist module
+  if(isEdit){var dx=_plData.findIndex(function(x){return x.id===entry.id;});if(dx>=0)_plData[dx]=entry;else _plData.push(entry);}
+  else _plData.push(entry);
   logAction(isEdit?'edit_pricelist':'add_pricelist','pricelist',brand+' '+model,null,{brand:brand,model:model,cash:entry.cash,hp:entry.hp});
   closePLForm();PL.sel=entry.id;
   _plSelectedId=entry.id;
@@ -3346,13 +3349,20 @@ function openModule(name){
 
 /* ══ PRICELIST MODULE ══ */
 var _plCurrentTab='new';
+var _plData=[];       // own copy, loaded directly from Supabase
+var _plMFData=[];     // own copy of max_finance
+var _plExpandedBrands={};
+var _plSelectedId=null;
+var _plMinInst=0;     // global min instalment threshold
+var _plLoaded=false;
+
 function switchPLTab(tab){
   _plCurrentTab=tab;
-  var newActive='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
-  var newInactive='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
+  var act='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
+  var inact='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
   var tn=ge('plTabNew');var tu=ge('plTabUsed');
-  if(tn)tn.style.cssText=tab==='new'?newActive:newInactive;
-  if(tu)tu.style.cssText=tab==='used'?newActive:newInactive;
+  if(tn)tn.style.cssText=tab==='new'?act:inact;
+  if(tu)tu.style.cssText=tab==='used'?act:inact;
   var np=ge('plPanelNew');var up=ge('plPanelUsed');
   if(np)np.style.display=tab==='new'?'block':'none';
   if(up)up.style.display=tab==='used'?'block':'none';
@@ -3361,12 +3371,30 @@ function switchPLTab(tab){
   if(tab==='used'&&!_upData.length)loadUPData();
   if(tab==='new')renderNewVehicleList();
 }
-function loadPricelistModule(){
+
+async function loadPricelistModule(){
   _plCurrentTab='new';
   var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display='none';
-  if(!window._genInited)initNewPLData();
-  else switchPLTab('new');
+  var np=ge('plPanelNew');var up=ge('plPanelUsed');
+  if(np)np.style.display='block';if(up)up.style.display='none';
+  var wrap=ge('newVehicleList');
+  if(wrap)wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading pricelist...</div>';
+  // Load pricelist + MF directly from Supabase
+  try{
+    var rows=await sbGet('pricelist','order=brand.asc,model.asc');
+    _plData=rows||[];
+    // Sync into PL.list so Generator still works if opened later
+    if(window.PL)PL.list=_plData;
+    var mfRows=await sbGet('max_finance','order=brand.asc');
+    _plMFData=mfRows||[];
+    // Also load min instalment from app_config
+    var cfg=await sbGet('app_config','key=eq.pl_min_instalment&select=value');
+    _plMinInst=cfg&&cfg[0]?parseFloat(cfg[0].value)||0:0;
+  }catch(e){_plData=[];_plMFData=[];}
+  _plLoaded=true;
+  renderNewVehicleList();
 }
+
 function renderPricelistModule(){
   var addBtn=ge('upAddEditBtn');
   if(addBtn)addBtn.style.display=(_plCurrentTab==='used'&&_editMode)?'':'none';
@@ -3374,102 +3402,63 @@ function renderPricelistModule(){
   else renderNewVehicleList();
 }
 
-var _plExpandedBrands={};// track which brand sections are open
-var _plSelectedId=null;
+function plMfLookup(brand,model){
+  var src=_plMFData.length?_plMFData:(window.MF||[]);
+  var m=src.find(function(x){
+    return (x.brand||'').toLowerCase().trim()===(brand||'').toLowerCase().trim()
+        &&(x.model||'').toLowerCase().trim()===(model||'').toLowerCase().trim();
+  });
+  return m!=null?parseFloat(m.amt):null;
+}
 
-function plInst(hp,dpk,pa,yr){
-  var h=parseFloat(hp),d=parseFloat(dpk)||0,r=parseFloat(pa),y=parseInt(yr);
-  if(!h||isNaN(h)||!r||isNaN(r)||!y||isNaN(y))return null;
-  var principal=h-d;if(principal<=0)return null;
-  return Math.ceil(principal*(1+r/100*y)/(y*12));
+function plCalcInst(loan,rate,yr){
+  if(!loan||loan<=0||!rate||!yr)return null;
+  return Math.ceil(loan*(1+rate/100*yr)/(yr*12));
 }
 
 function renderNewVehicleList(){
   var wrap=ge('newVehicleList');if(!wrap)return;
+  if(!_plLoaded){wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading...</div>';return;}
   var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
   var q=((ge('plNewSearch')&&ge('plNewSearch').value)||'').toLowerCase().trim();
-  var items=(window.PL&&window.PL.list)||[];
-  if(q)items=items.filter(function(e){return (e.brand+' '+e.model).toLowerCase().indexOf(q)>=0;});
+  var items=_plData.slice();
+  if(q)items=items.filter(function(e){return((e.brand||'')+' '+(e.model||'')).toLowerCase().indexOf(q)>=0;});
   if(!items.length){
-    wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">No pricelist data.'
-      +(currentUser.role==='admin'?'<br><button class="btn sm" onclick="initNewPLData()" style="margin-top:12px;padding:6px 16px">Load from Generator</button>':'')+'</div>';
+    wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">'+(q?'No results for "'+esc(q)+'"':'No pricelist entries yet.')+'</div>';
     return;
   }
-  // Sort by brand order then model
-  var brandOrder=plGetBrandOrder();
-  var byBrand={};
-  items.forEach(function(e){
-    var b=e.brand||'—';
-    if(!byBrand[b])byBrand[b]=[];
-    byBrand[b].push(e);
-  });
-  var orderedBrands=brandOrder.filter(function(b){return byBrand[b];});
-  Object.keys(byBrand).forEach(function(b){if(orderedBrands.indexOf(b)<0)orderedBrands.push(b);});
-
-  var html='<div style="padding:10px 12px">';
-  // Edit mode: add new entry button
-  if(canEdit){
-    html+='<div style="margin-bottom:10px;display:flex;justify-content:flex-end">'
-      +'<button class="btn sm" onclick="openModule(\'generator\')" style="font-size:11px;padding:5px 14px;background:#1f6feb;color:#fff;border-color:#1f6feb">+ New Entry (Generator)</button>'
-      +'</div>';
-  }
-
-  orderedBrands.forEach(function(brand){
-    var entries=byBrand[brand];
-    if(!entries||!entries.length)return;
-    var isOpen=_plExpandedBrands[brand]!==false;// default open
-    html+='<div style="margin-bottom:8px;border:1px solid #21262d;border-radius:10px;overflow:hidden">'
-      // Brand header
-      +'<div onclick="plToggleBrand(\''+brand.replace(/'/g,"\\'")+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#161b22;cursor:pointer;user-select:none">'
-        +'<span style="font-size:13px;font-weight:700;color:#f0f6fc">'+esc(brand)+'</span>'
+  // Group by brand preserving brand order
+  var seen={};var brands=[];
+  items.forEach(function(e){var b=e.brand||'—';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
+  var html='';
+  brands.forEach(function(brand){
+    var entries=seen[brand];
+    var isOpen=_plExpandedBrands[brand]!==false;
+    var bid=brand.replace(/[^a-z0-9]/gi,'_');
+    html+='<div style="border-bottom:1px solid #0d1626">'
+      +'<div onclick="plToggleBrand(\''+bid+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:#0d1117;cursor:pointer;user-select:none">'
+        +'<span style="font-size:13px;font-weight:700;color:#e6edf3">'+esc(brand)+'</span>'
         +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="font-size:10px;color:#4a6fa5">'+entries.length+' model'+(entries.length>1?'s':'')+'</span>'
-          +'<span id="plBrandArrow_'+esc(brand)+'" style="color:#4a6fa5;font-size:11px;transition:transform .2s;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>'
+          +'<span style="font-size:11px;color:#4a6fa5">'+entries.length+' model'+(entries.length>1?'s':'')+'</span>'
+          +'<span id="plArr_'+bid+'" style="color:#4a6fa5;font-size:10px;transition:transform .15s;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>'
         +'</div>'
       +'</div>'
-      // Entries
-      +'<div id="plBrandBody_'+esc(brand)+'" style="display:'+(isOpen?'block':'none')+'">';
-
+      +'<div id="plBody_'+bid+'" style="display:'+(isOpen?'block':'none')+'">';
     entries.forEach(function(e){
-      var isSelected=_plSelectedId===e.id;
-      // Build installment chips — Kedai only (uses HP)
-      var instChips='';
-      var maxYr=5;
-      [1,2,3,4,5].forEach(function(yr){
-        if(yr>maxYr)return;
-        var inst=plInst(e.hp,e.dpk,e.pa,yr);
-        if(inst&&(!_plMinInstalment||inst>=_plMinInstalment)){
-          instChips+='<span style="font-size:10px;padding:2px 7px;border-radius:12px;background:#0d1626;color:#58a6ff;border:1px solid #1e3a5f;white-space:nowrap">K '+yr+'yr RM'+Math.round(inst).toLocaleString()+'/mo</span>';
-        }
-      });
-      // Entry row
-      html+='<div onclick="plSelectEntry(\''+e.id+'\')" style="border-top:1px solid #0d1626;cursor:pointer;background:'+(isSelected?'#0d1f35':'transparent')+'">'
-        // Main row
-        +'<div style="display:flex;align-items:center;padding:10px 14px;gap:10px">'
-          +'<div style="flex:1;min-width:0">'
-            +'<div style="font-size:13px;font-weight:600;color:#f0f6fc;margin-bottom:2px">'+esc(e.model||'—')+'</div>'
-            +(instChips?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">'+instChips+'</div>':'')
-          +'</div>'
-          +'<div style="text-align:right;flex-shrink:0">'
-            +'<div style="font-size:14px;font-weight:700;color:#3fb950">RM '+Number(e.cash||0).toLocaleString()+'</div>'
-            +(e.hp&&e.hp!==e.cash?'<div style="font-size:10px;color:#4a6fa5">HP RM'+Number(e.hp).toLocaleString()+'</div>':'')
-          +'</div>'
-          +(canEdit?'<div style="flex-shrink:0;margin-left:4px">'
-            +'<button onclick="event.stopPropagation();openPLForm(\''+e.id+'\')" style="padding:4px 8px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>'
-          +'</div>':'')
-        +'</div>'
-        // Expanded detail
-        +(isSelected?renderNewPLDetail(e,canEdit):'')
-      +'</div>';
+      var isOpen2=_plSelectedId===e.id;
+      html+=renderNVCard(e,isOpen2,canEdit);
     });
-
-    html+='</div></div>';// close brand body + brand card
+    html+='</div></div>';
   });
-  html+='</div>';
+  if(canEdit){
+    html+='<div style="padding:16px;text-align:center">'
+      +'<button onclick="openPLForm(null)" style="padding:7px 20px;background:#1f6feb;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">+ New Entry</button>'
+      +'</div>';
+  }
   wrap.innerHTML=html;
 }
 
-function renderNewPLDetail(e,canEdit){
+function renderNVCard(e,expanded,canEdit){
   var cash=parseFloat(e.cash)||0;
   var hp=parseFloat(e.hp)||0;
   var dpk=parseFloat(e.dpk)||0;
@@ -3482,93 +3471,112 @@ function renderNewPLDetail(e,canEdit){
   var pa=parseFloat(e.pa)||0;
   var aeon_pa=parseFloat(e.aeon_pa)||0;
   var tsp=cash+hand+other+ins1+rtax;
-  var otr=cash+ins1+rtax;
   var kloan=hp-dpk;
   var mf=plMfLookup(e.brand,e.model);
   var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
   var aeonLoan=tsp-aeonDP;
-  // Global min installment setting
-  var minInst=parseFloat(window._plMinInstalment)||0;
-  function inst(loan,rate,yr){
-    if(!loan||loan<=0||!rate||!yr)return null;
-    return Math.ceil(loan*(1+rate/100*yr)/(yr*12));
-  }
-  function rmf(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
-  function row(label,val,color){
-    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #0d1626">'
-      +'<span style="font-size:11px;color:#4a6fa5">'+label+'</span>'
-      +'<span style="font-size:11px;font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span></div>';
-  }
-  function instRow(label,loan,rate,color){
+  var noMF=mf===null;
+  function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
+
+  // Build Kedai instalment row (1~5yr)
+  function instCells(loan,rate,color){
     var cells='';
     for(var yr=1;yr<=5;yr++){
-      var v=inst(loan,rate,yr);
-      if(v===null){cells+='<td style="color:#2a4a6a;font-size:10px;text-align:center">—</td>';continue;}
-      if(minInst&&v<minInst){cells+='<td style="color:#2a4a6a;font-size:10px;text-align:center">N/A</td>';continue;}
-      cells+='<td style="font-size:11px;font-weight:600;color:'+color+';text-align:center">'+Math.round(v).toLocaleString()+'</td>';
+      var v=plCalcInst(loan,rate,yr);
+      if(!v||(_plMinInst&&v<_plMinInst)){
+        cells+='<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:5px 4px">—</td>';
+      } else {
+        cells+='<td style="text-align:center;font-size:11px;font-weight:700;color:'+color+';padding:5px 4px">'+Math.round(v).toLocaleString()+'</td>';
+      }
     }
-    return '<tr><td style="font-size:10px;color:#4a6fa5;padding:4px 6px 4px 0;white-space:nowrap">'+label+'</td>'+cells+'</tr>';
+    return cells;
   }
-  var html='<div style="padding:0 14px 14px;background:#080d14">';
-  // Key prices
-  html+=row('Cash Price',rmf(cash),'#f0f6fc');
-  html+=row('Cash OTR',otr>0?'RM '+Math.round(otr).toLocaleString():'—','#3fb950');
-  html+=row('HP (Hire Purchase)',rmf(hp),'#f0f6fc');
-  html+=row('TSP (AEON Base)',tsp>0?'RM '+Math.round(tsp).toLocaleString():'—','#c9d1d9');
-  // Insurance
-  html+=row('Ins 1st Party',rmf(ins1));
-  if(ins1p)html+=row('Ins 1st Party+',rmf(ins1p),'#f0c060');
-  html+=row('Ins 3rd Party',rmf(ins3));
-  html+=row('Road Tax',rmf(rtax));
-  // Kedai section
-  html+='<div style="font-size:9px;font-weight:700;color:#1f6feb;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:2px">Kedai Loan</div>';
-  html+=row('DP (Kedai)',rmf(dpk),'#58a6ff');
-  html+=row('Loan Amount',kloan>0?'RM '+Math.round(kloan).toLocaleString():'—','#58a6ff');
-  // Kedai installment table
-  if(pa&&kloan>0){
-    html+='<div style="overflow-x:auto;margin:6px 0"><table style="width:100%;border-collapse:collapse">'
-      +'<tr><td></td>'+'<td style="font-size:9px;color:#2a4a6a;text-align:center">1yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">2yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">3yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">4yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">5yr</td></tr>'
-      +instRow('Monthly (RM)',kloan,pa,'#58a6ff')
-      +'</table></div>';
+
+  // Collapsed card — show key info in a grid
+  var cardBg=expanded?'#080d16':'#0d1117';
+  var html='<div style="border-top:1px solid #0d1626;background:'+cardBg+'">'
+    // Clickable header row
+    +'<div onclick="plSelectEntry(\''+e.id+'\')" style="display:flex;align-items:center;padding:12px 16px;cursor:pointer;gap:12px">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:600;color:#e6edf3">'+esc(e.model||'—')+'</div>'
+        // Key info row
+        +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;align-items:center">'
+          +(cash?'<span style="font-size:11px;color:#3fb950;font-weight:600">Cash RM'+Math.round(cash).toLocaleString()+'</span>':'')
+          +(dpk?'<span style="font-size:11px;color:#8b949e">KDP RM'+Math.round(dpk).toLocaleString()+'</span>':'')
+          +(ins1?'<span style="font-size:11px;color:#8b949e">Ins RM'+Math.round(ins1).toLocaleString()+'</span>':'')
+          +(rtax?'<span style="font-size:11px;color:#8b949e">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
+        +'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+        +(canEdit?'<button onclick="event.stopPropagation();openPLForm(\''+e.id+'\')" style="padding:3px 10px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>':'')
+        +'<span style="color:#4a6fa5;font-size:11px">'+( expanded?'▲':'▼')+'</span>'
+      +'</div>'
+    +'</div>';
+
+  if(expanded){
+    html+='<div style="padding:0 16px 14px">'
+      // Instalment tables
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
+        +'<thead><tr>'
+          +'<th style="text-align:left;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;padding:4px 0;padding-right:8px">Loan / yr</th>'
+          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">1yr</th>'
+          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">2yr</th>'
+          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">3yr</th>'
+          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">4yr</th>'
+          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">5yr</th>'
+        +'</tr></thead>'
+        +'<tbody>'
+        // Kedai row
+        +(kloan>0&&pa?'<tr style="border-top:1px solid #0d1626">'
+          +'<td style="font-size:10px;color:#58a6ff;padding:5px 8px 5px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
+          +instCells(kloan,pa,'#58a6ff')
+          +'</tr>':'')
+        // AEON row
+        +(aeonLoan>0&&aeon_pa?'<tr style="border-top:1px solid #0d1626">'
+          +'<td style="font-size:10px;color:#d2a8ff;padding:5px 8px 5px 0;white-space:nowrap">AEON'
+            +(noMF?'<br><span style="font-size:9px;color:#2a4a6a">Full loan</span>'
+                  :'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span>')
+          +'</td>'
+          +instCells(aeonLoan,aeon_pa,'#d2a8ff')
+          +'</tr>':'')
+        +'</tbody>'
+      +'</table>'
+      // Detail info grid
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:11px;border-top:1px solid #0d1626;padding-top:8px">'
+        +plDRow('Ins 1st',rm(ins1),'#c9d1d9')
+        +plDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
+        +plDRow('Ins 3rd',rm(ins3),'#c9d1d9')
+        +plDRow('Road Tax',rm(rtax),'#c9d1d9')
+        +plDRow('HP / Hire Purchase',rm(hp),'#c9d1d9')
+        +plDRow('Cash OTR',tsp?rm(cash+ins1+rtax):'—','#3fb950')
+        +(canEdit?plDRow('TSP (AEON base)',tsp?rm(tsp):'—','#8b949e'):'')
+        +(canEdit?plDRow('Ins SUM',rm(parseFloat(e.inssum))):'')
+        +(canEdit&&hand?plDRow('Handling',rm(hand)):'')
+        +(canEdit&&other?plDRow('Other',rm(other)):'')
+        +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
+        +(canEdit?plDRow('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—','#8b949e'):'')
+      +'</div>'
+    +'</div>';
   }
-  // AEON section
-  html+='<div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:2px">AEON</div>';
-  if(mf!==null){
-    html+=row('Max Finance',rmf(mf),'#d2a8ff');
-    html+=row('AEON DP',aeonDP===0?'RM 0 (Full Loan)':'RM '+Math.round(aeonDP).toLocaleString(),'#d2a8ff');
-    html+=row('AEON Loan',rmf(aeonLoan),'#d2a8ff');
-    if(aeon_pa&&aeonLoan>0){
-      html+='<div style="overflow-x:auto;margin:6px 0"><table style="width:100%;border-collapse:collapse">'
-        +'<tr><td></td>'+'<td style="font-size:9px;color:#2a4a6a;text-align:center">1yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">2yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">3yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">4yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">5yr</td></tr>'
-        +instRow('Monthly (RM)',aeonLoan,aeon_pa,'#d2a8ff')
-        +'</table></div>';
-    }
-  } else {
-    html+='<div style="font-size:11px;color:#4a6fa5;padding:4px 0">No MF limit — full loan available (DP: RM 0)</div>';
-    if(aeon_pa&&tsp>0){
-      html+='<div style="overflow-x:auto;margin:6px 0"><table style="width:100%;border-collapse:collapse">'
-        +'<tr><td></td>'+'<td style="font-size:9px;color:#2a4a6a;text-align:center">1yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">2yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">3yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">4yr</td><td style="font-size:9px;color:#2a4a6a;text-align:center">5yr</td></tr>'
-        +instRow('Monthly (RM)',tsp,aeon_pa,'#d2a8ff')
-        +'</table></div>';
-    }
-  }
-  // Editor-only fields
-  if(canEdit){
-    html+='<div style="font-size:9px;font-weight:700;color:#2a4a6a;text-transform:uppercase;letter-spacing:.06em;margin-top:8px;margin-bottom:2px">Editor Only</div>';
-    html+=row('Ins Sum Assured',rmf(parseFloat(e.inssum)));
-    if(hand)html+=row('Handling Fee',rmf(hand));
-    if(other)html+=row('Other Charges',rmf(other));
-    html+=row('Kedai PA',pa?pa+'% p.a.':'—');
-    html+=row('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—');
-  }
+
   html+='</div>';
   return html;
 }
 
-function plToggleBrand(brand){
+function plDRow(label,val,color){
+  return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a0f1a">'
+    +'<span style="color:#4a6fa5">'+label+'</span>'
+    +'<span style="font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span>'
+    +'</div>';
+}
+
+function plToggleBrand(bid){
+  // Reverse lookup actual brand name from bid
+  var item=_plData.find(function(e){return (e.brand||'—').replace(/[^a-z0-9]/gi,'_')===bid;});
+  var brand=item?(item.brand||'—'):'—';
   _plExpandedBrands[brand]=_plExpandedBrands[brand]===false?true:false;
-  var body=ge('plBrandBody_'+brand);
-  var arrow=ge('plBrandArrow_'+brand);
+  var body=ge('plBody_'+bid);
+  var arrow=ge('plArr_'+bid);
   var open=_plExpandedBrands[brand]!==false;
   if(body)body.style.display=open?'block':'none';
   if(arrow)arrow.style.transform=open?'rotate(90deg)':'rotate(0deg)';
@@ -3580,12 +3588,11 @@ function plSelectEntry(id){
 }
 
 function initNewPLData(){
+  // Kept for Generator compatibility — no-op if pricelist already loaded
   if(!window._genInited){
     window._genInited=true;
     applyPermissions();
-    loadAllFromCloud().then(function(){buildRows();buildGiftGroups();R();renderMFTable();renderPLList();switchPLTab('new');startRealtimeSync();});
-  } else {
-    switchPLTab('new');
+    loadAllFromCloud().then(function(){buildRows();buildGiftGroups();R();renderMFTable();renderPLList();startRealtimeSync();});
   }
 }
 
