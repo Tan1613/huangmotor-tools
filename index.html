@@ -3808,19 +3808,21 @@ function renderPlLog(){
   wrap.innerHTML=html+'</div>';
 }
 async function plRevertEntry(logId){
-  var row=_plLogData.find(function(x){return x.id===logId;});
-  if(!row||!row.before)return;
+  var row=_plLogData.find(function(x){return String(x.id)===String(logId);});
+  if(!row){console.warn('plRevertEntry: log row not found',logId);return;}
+  if(!row.before){alert('No previous version to revert to.');return;}
   var before=typeof row.before==='string'?JSON.parse(row.before):row.before;
   if(!confirm('Revert "'+before.brand+' '+before.model+'" to previous version?'))return;
-  // Restore before state
   var currentEntry=_plData.find(function(x){return x.id===row.entry_id;});
   await plLog(row.entry_id,'edit',currentEntry||null,before);
-  // Patch DB
+  // Patch DB with before values
+  var patchData=Object.assign({},before);
+  delete patchData.id;delete patchData.is_deleted;delete patchData.created_at;delete patchData.updated_at;
+  await sbPatch('pricelist',{id:row.entry_id},patchData);
   var idx=_plData.findIndex(function(x){return x.id===row.entry_id;});
   if(idx>=0)_plData[idx]=Object.assign({},_plData[idx],before);
   if(window.PL)PL.list=_plData;
   plSaveLib();
-  // Refresh log
   var rows=await sbGet('pricelist_log','order=created_at.desc&limit=100');
   _plLogData=rows||[];
   renderNewVehicleList();
