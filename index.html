@@ -3430,10 +3430,10 @@ function renderNewVehicleList(){
     var isOpen=_plExpandedBrands[brand]===true;
     var bid=brand.replace(/[^a-z0-9]/gi,'_');
     html+='<div style="border-bottom:1px solid #0d1626">'
-      +'<div onclick="plToggleBrand(\''+bid+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:#0d1117;cursor:pointer;user-select:none">'
-        +'<span style="font-size:13px;font-weight:700;color:#e6edf3">'+esc(brand)+'</span>'
+      +'<div onclick="plToggleBrand(\''+bid+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:#111827;border-left:3px solid #3b82f6;cursor:pointer;user-select:none">'
+        +'<span style="font-size:14px;font-weight:800;color:#93c5fd;letter-spacing:.01em">'+esc(brand)+'</span>'
         +'<div style="display:flex;align-items:center;gap:8px">'
-          +'<span style="font-size:11px;color:#4a6fa5">'+entries.length+' model'+(entries.length>1?'s':'')+'</span>'
+          +'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 7px;border-radius:8px">'+entries.length+' model'+(entries.length>1?'s':'')+'</span>'
           +'<span id="plArr_'+bid+'" style="color:#4a6fa5;font-size:10px;transition:transform .15s;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>'
         +'</div>'
       +'</div>'
@@ -3477,17 +3477,17 @@ function renderNVCard(e,expanded,editing,canEdit){
     }).join('');
   }
   var yrHdr=yrcols.map(function(yr){return '<th style="text-align:center;font-size:9px;color:#2a4a6a;padding:4px 6px">'+yr+'yr</th>';}).join('');
-  var html='<div style="border-top:1px solid #0d1626;background:'+(expanded||editing?'#080d16':'#0d1117')+'">'
+  var html='<div style="border-top:1px solid #161b22;background:'+(expanded||editing?'#060b12':'#0d1117')+'">'
     +'<div style="display:flex;align-items:center;padding:10px 14px;gap:8px">'
       // Checkbox — only in print mode
       +(_plPrintMode?'<input type="checkbox" '+(checked?'checked ':' ')+'onchange="plToggleCheck(\''+e.id+'\')" onclick="event.stopPropagation()" style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">':'')
       +'<div onclick="plSelectEntry(\''+e.id+'\')" style="flex:1;min-width:0;cursor:pointer">'
-        +'<div style="font-size:13px;font-weight:600;color:#e6edf3">'+esc(e.model||'—')+'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:#c9d1d9">'+esc(e.model||'—')+'</div>'
         +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">'
-          +(cash?'<span style="font-size:11px;color:#3fb950;font-weight:600">Cash RM'+Math.round(cash).toLocaleString()+'</span>':'')
-          +(dpk?'<span style="font-size:11px;color:#8b949e">KDP RM'+Math.round(dpk).toLocaleString()+'</span>':'')
-          +(ins1?'<span style="font-size:11px;color:#8b949e">Ins RM'+Math.round(ins1).toLocaleString()+'</span>':'')
-          +(rtax?'<span style="font-size:11px;color:#8b949e">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
+          +(cash?'<span style="font-size:12px;color:#4ade80;font-weight:700">RM '+Math.round(cash).toLocaleString()+'</span>':'')
+          +(dpk?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">KDP RM'+Math.round(dpk).toLocaleString()+'</span>':'')
+          +(ins1?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">Ins RM'+Math.round(ins1).toLocaleString()+'</span>':'')
+          +(rtax?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
         +'</div>'
       +'</div>'
       +(canEdit&&!_plPrintMode?
@@ -3501,14 +3501,15 @@ function renderNVCard(e,expanded,editing,canEdit){
   if(editing){
     html+=renderNVEditForm(e);
   } else if(expanded){
-    html+='<div style="padding:0 16px 14px">'
+    html+='<div style="padding:0 16px 14px;background:#060b12;border-top:1px solid #161b22">'
       +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
         +'<thead><tr><th style="text-align:left;font-size:9px;color:#2a4a6a;padding:4px 8px 4px 0;min-width:70px"></th>'+yrHdr+'</tr></thead>'
         +'<tbody>'
-        +(kloan>0&&pa?'<tr style="border-top:1px solid #0d1626"><td style="font-size:10px;color:#58a6ff;padding:6px 8px 6px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'+instCells(kloan,pa,kedaiMax,'#58a6ff')+'</tr>':'')
-        +(tsp>0?'<tr style="border-top:1px solid #0d1626"><td style="font-size:10px;color:#d2a8ff;padding:6px 8px 6px 0;white-space:nowrap">AEON<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'+(aeon_pa?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff'):'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')+'</tr>':'')
+        +(kloan>0&&pa?'<tr style="border-top:1px solid #161b22;background:#080d18"><td style="font-size:10px;color:#60a5fa;padding:6px 8px 6px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'+instCells(kloan,pa,kedaiMax,'#58a6ff')+'</tr>':'')
+        +(tsp>0?'<tr style="border-top:1px solid #161b22;background:#0d0818"><td style="font-size:10px;color:#c084fc;padding:6px 8px 6px 0;white-space:nowrap">AEON<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'+(aeon_pa?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff'):'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')+'</tr>':'')
         +'</tbody></table>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:11px;border-top:1px solid #0d1626;padding-top:8px">'
+      +'<div style="font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px">Insurance & Fees</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:11px">'
         +plDRow('Ins 1st',rm(ins1),'#c9d1d9')+plDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
         +plDRow('Ins 3rd',rm(ins3),'#c9d1d9')+plDRow('Road Tax',rm(rtax),'#c9d1d9')
         +plDRow('HP',rm(hp),'#c9d1d9')+plDRow('Cash OTR',rm(cash+ins1+rtax),'#3fb950')
