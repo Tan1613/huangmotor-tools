@@ -3738,24 +3738,71 @@ function renderPlLog(){
   var wrap=ge('newVehicleList');if(!wrap)return;
   var isAdmin=currentUser.role==='admin';
   var actionColor={'create':'#3fb950','edit':'#58a6ff','delete':'#e24b4a','restore':'#f0883e'};
+  // Field labels for display
+  var FL={brand:'Brand',model:'Model',cash:'Cash Price',hp:'HP',dpk:'Kedai DP',
+    pa:'Kedai PA%',aeon_pa:'AEON PA%',loanyear:'Max Loan Year',
+    ins1:'Ins 1st',ins1p:'Ins 1st+',inssum:'Ins SUM',ins3:'Ins 3rd',
+    rtax:'Road Tax',hand:'Handling',other:'Other Charges'};
   if(!_plLogData.length){wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">No log entries yet</div>';return;}
   var html='<div style="padding:12px">';
   _plLogData.forEach(function(row){
     var color=actionColor[row.action]||'#8b949e';
     var dt=new Date(row.created_at);
-    var dtStr=dt.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});
-    var after=row.after?JSON.parse(typeof row.after==='string'?row.after:JSON.stringify(row.after)):{};
-    var label=(after.brand||'')+(after.brand&&after.model?' ':'')+( after.model||row.entry_id);
-    html+='<div style="display:flex;align-items:flex-start;padding:8px 10px;border:1px solid #1e2d45;border-radius:7px;margin-bottom:5px;gap:10px;background:#0d1117">'
-      +'<div style="flex:1;min-width:0">'
-        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-          +'<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:#0a0f1a;color:'+color+';border:1px solid '+color+';font-weight:700;text-transform:uppercase">'+esc(row.action)+'</span>'
-          +'<span style="font-size:12px;color:#e6edf3;font-weight:500">'+esc(label)+'</span>'
-        +'</div>'
-        +'<div style="font-size:10px;color:#4a6fa5;margin-top:3px">'+esc(dtStr)+' · '+esc(row.operator||'unknown')+'</div>'
+    var dtStr=dt.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'})
+      +' '+dt.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});
+    var before=row.before?(typeof row.before==='string'?JSON.parse(row.before):row.before):null;
+    var after=row.after?(typeof row.after==='string'?JSON.parse(row.after):row.after):null;
+    var src=after||before||{};
+    var label=esc((src.brand||'')+' '+(src.model||'').trim()||row.entry_id);
+
+    // Build diff lines for edit action
+    var diffHtml='';
+    if(row.action==='edit'&&before&&after){
+      var diffs=[];
+      Object.keys(FL).forEach(function(k){
+        var bv=before[k]!=null?String(before[k]):'—';
+        var av=after[k]!=null?String(after[k]):'—';
+        if(bv!==av){
+          // Highlight price fields in green/red
+          var isPrice=['cash','hp','dpk','ins1','ins1p','inssum','ins3','rtax','hand','other'].indexOf(k)>=0;
+          var bDisp=isPrice&&bv!=='—'?'RM '+Number(bv).toLocaleString():bv;
+          var aDisp=isPrice&&av!=='—'?'RM '+Number(av).toLocaleString():av;
+          diffs.push('<span style="color:#4a6fa5">'+FL[k]+'</span>'
+            +' <span style="color:#e24b4a;text-decoration:line-through;font-size:10px">'+esc(bDisp)+'</span>'
+            +' <span style="color:#2a4a6a">→</span>'
+            +' <span style="color:#3fb950;font-size:11px;font-weight:600">'+esc(aDisp)+'</span>');
+        }
+      });
+      if(diffs.length){
+        diffHtml='<div style="margin-top:5px;display:flex;flex-direction:column;gap:2px;padding:6px 8px;background:#080d14;border-radius:5px;border-left:2px solid #1e3a5f">'
+          +diffs.map(function(d){return '<div style="font-size:11px">'+d+'</div>';}).join('')
+          +'</div>';
+      }
+    } else if(row.action==='create'&&after){
+      var lines=[];
+      ['cash','hp','dpk','pa','aeon_pa','ins1','rtax'].forEach(function(k){
+        if(after[k]){
+          var v=Number(after[k]);
+          lines.push('<span style="color:#4a6fa5">'+FL[k]+'</span> <span style="color:#3fb950">'+(['pa','aeon_pa','loanyear'].indexOf(k)>=0?after[k]+(k==='loanyear'?'yr':'%'):'RM '+v.toLocaleString())+'</span>');
+        }
+      });
+      if(lines.length)diffHtml='<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 12px;padding:5px 8px;background:#080d14;border-radius:5px;border-left:2px solid #1a3a1a">'
+        +lines.map(function(l){return '<span style="font-size:11px">'+l+'</span>';}).join('')+'</div>';
+    } else if(row.action==='delete'&&before){
+      diffHtml='<div style="margin-top:5px;font-size:10px;color:#4a3a2a;padding:4px 8px;background:#0d0806;border-radius:5px;border-left:2px solid #6a1818">'
+        +'Moved to trash — Cash: RM'+(before.cash?Number(before.cash).toLocaleString():'?')+' · HP: RM'+(before.hp?Number(before.hp).toLocaleString():'?')
+        +'</div>';
+    }
+
+    html+='<div style="padding:8px 10px;border:1px solid #1e2d45;border-radius:7px;margin-bottom:6px;background:#0d1117">'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+        +'<span style="font-size:10px;padding:1px 8px;border-radius:10px;background:#0a0f1a;color:'+color+';border:1px solid '+color+';font-weight:700;text-transform:uppercase">'+esc(row.action)+'</span>'
+        +'<span style="font-size:12px;color:#e6edf3;font-weight:600">'+label+'</span>'
+        +'<span style="font-size:10px;color:#4a6fa5;margin-left:auto">'+esc(dtStr)+' · '+esc(row.operator||'?')+'</span>'
+        +(isAdmin&&row.action==='edit'&&before?
+          '<button onclick="plRevertEntry(\''+row.id+'\')" style="padding:2px 9px;background:none;border:1px solid #1e3a5f;border-radius:5px;color:#58a6ff;font-size:10px;cursor:pointer;flex-shrink:0">Revert</button>':'')
       +'</div>'
-      +(isAdmin&&row.action==='edit'&&row.before?
-        '<button onclick="plRevertEntry(\''+row.id+'\')" style="padding:3px 10px;background:none;border:1px solid #1e3a5f;border-radius:5px;color:#58a6ff;font-size:10px;cursor:pointer;flex-shrink:0">Revert</button>':'')
+      +diffHtml
     +'</div>';
   });
   wrap.innerHTML=html+'</div>';
