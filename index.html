@@ -1201,8 +1201,15 @@ body.theme-white .home-welcome{color:#555}
       <button id="plTabUsed" onclick="switchPLTab('used')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer">🔄 Used Vehicles</button>
     </div>
     <div id="plPanelNew" style="display:none;height:calc(100% - 37px);overflow:auto">
-      <div style="padding:10px 12px 0;position:sticky;top:0;background:#0d1117;z-index:2;border-bottom:1px solid #0d1626">
-        <input id="plNewSearch" oninput="renderNewVehicleList()" placeholder="🔍  Search model..." style="width:100%;padding:7px 12px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none;box-sizing:border-box;margin-bottom:8px">
+      <div id="plNewToolbar" style="padding:10px 12px 8px;position:sticky;top:0;background:#0d1117;z-index:2;border-bottom:1px solid #0d1626">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="plNewSearch" oninput="renderNewVehicleList()" placeholder="🔍  Search model..." style="flex:1;padding:7px 12px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none;box-sizing:border-box">
+          <button id="plPrintBtn" onclick="plOpenPrint()" style="padding:6px 12px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🖨 Print</button>
+        </div>
+        <div id="plNewEditBar" style="display:none;margin-top:8px;display:none">
+          <button onclick="openPLForm(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ New Entry</button>
+          <span id="plChkLabel" style="font-size:10px;color:#4a6fa5;margin-left:8px"></span>
+        </div>
       </div>
       <div id="newVehicleList" style="font-size:12px;color:#4a6fa5">Loading...</div>
     </div>
@@ -3307,11 +3314,13 @@ function openModule(name){
 
 /* ══ PRICELIST MODULE ══ */
 var _plCurrentTab='new';
-var _plData=[];       // own copy, loaded directly from Supabase
-var _plMFData=[];     // own copy of max_finance
+var _plData=[];
+var _plMFData=[];
 var _plExpandedBrands={};
 var _plSelectedId=null;
-var _plMinInst=0;     // global min instalment threshold
+var _plEditingId=null;
+var _plChecked=new Set();
+var _plMinInst=0;
 var _plLoaded=false;
 
 function switchPLTab(tab){
@@ -3327,7 +3336,7 @@ function switchPLTab(tab){
   var addBtn=ge('upAddEditBtn');
   if(addBtn)addBtn.style.display=(tab==='used'&&_editMode)?'':'none';
   if(tab==='used'&&!_upData.length)loadUPData();
-  if(tab==='new')renderNewVehicleList();
+  if(tab==='new'){plSyncEditBar();renderNewVehicleList();}
 }
 
 async function loadPricelistModule(){
@@ -3336,26 +3345,34 @@ async function loadPricelistModule(){
   var np=ge('plPanelNew');var up=ge('plPanelUsed');
   if(np)np.style.display='block';if(up)up.style.display='none';
   var wrap=ge('newVehicleList');
-  if(wrap)wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading pricelist...</div>';
-  // Load pricelist + MF directly from Supabase
+  if(wrap)wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading...</div>';
   try{
     var rows=await sbGet('pricelist','order=brand.asc,model.asc');
     _plData=rows||[];
-    // Sync into PL.list so Generator still works if opened later
     if(window.PL)PL.list=_plData;
     var mfRows=await sbGet('max_finance','order=brand.asc');
     _plMFData=mfRows||[];
-    // Also load min instalment from app_config
     var cfg=await sbGet('app_config','key=eq.pl_min_instalment&select=value');
     _plMinInst=cfg&&cfg[0]?parseFloat(cfg[0].value)||0:0;
   }catch(e){_plData=[];_plMFData=[];}
   _plLoaded=true;
+  plSyncEditBar();
   renderNewVehicleList();
+}
+
+function plSyncEditBar(){
+  var eb=ge('plNewEditBar');
+  if(!eb)return;
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  eb.style.display=canEdit?'flex':'none';
+  var lbl=ge('plChkLabel');
+  if(lbl){var n=_plChecked.size;lbl.textContent=n?n+' selected for print':'';}
 }
 
 function renderPricelistModule(){
   var addBtn=ge('upAddEditBtn');
   if(addBtn)addBtn.style.display=(_plCurrentTab==='used'&&_editMode)?'':'none';
+  plSyncEditBar();
   if(_plCurrentTab==='used')renderUPList();
   else renderNewVehicleList();
 }
@@ -3385,7 +3402,6 @@ function renderNewVehicleList(){
     wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">'+(q?'No results for "'+esc(q)+'"':'No pricelist entries yet.')+'</div>';
     return;
   }
-  // Group by brand preserving brand order
   var seen={};var brands=[];
   items.forEach(function(e){var b=e.brand||'—';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
   var html='';
@@ -3403,20 +3419,17 @@ function renderNewVehicleList(){
       +'</div>'
       +'<div id="plBody_'+bid+'" style="display:'+(isOpen?'block':'none')+'">';
     entries.forEach(function(e){
-      var isOpen2=_plSelectedId===e.id;
-      html+=renderNVCard(e,isOpen2,canEdit);
+      var isExpanded=_plSelectedId===e.id;
+      var isEditing=_plEditingId===e.id;
+      html+=renderNVCard(e,isExpanded,isEditing,canEdit);
     });
     html+='</div></div>';
   });
-  if(canEdit){
-    html+='<div style="padding:16px;text-align:center">'
-      +'<button onclick="openPLForm(null)" style="padding:7px 20px;background:#1f6feb;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">+ New Entry</button>'
-      +'</div>';
-  }
   wrap.innerHTML=html;
+  plSyncEditBar();
 }
 
-function renderNVCard(e,expanded,canEdit){
+function renderNVCard(e,expanded,editing,canEdit){
   var cash=parseFloat(e.cash)||0;
   var hp=parseFloat(e.hp)||0;
   var dpk=parseFloat(e.dpk)||0;
@@ -3428,95 +3441,83 @@ function renderNVCard(e,expanded,canEdit){
   var other=parseFloat(e.other)||0;
   var pa=parseFloat(e.pa)||0;
   var aeon_pa=parseFloat(e.aeon_pa)||0;
+  var loanyear=parseInt(e.loanyear)||7;
   var tsp=cash+hand+other+ins1+rtax;
   var kloan=hp-dpk;
   var mf=plMfLookup(e.brand,e.model);
   var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
   var aeonLoan=tsp-aeonDP;
   var noMF=mf===null;
-  function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
-
-  // Build Kedai instalment row (1~5yr)
-  var loanyear=parseInt(e.loanyear)||7;
-  // AEON cols follow loanyear; Kedai always max 5yr — shared header
   var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7];
   var kedaiMax=5;
+  var checked=_plChecked.has(e.id);
 
-  function instCell(loan,rate,yr,maxYr){
-    if(yr>(maxYr||99))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
-    var v=plCalcInst(loan,rate,yr);
-    if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
-    return '<td style="text-align:center;font-size:12px;font-weight:700;color:#c9d1d9;padding:6px 6px">'+Math.round(v).toLocaleString()+'</td>';
-  }
+  function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
   function instCells(loan,rate,maxYr,color){
     return yrcols.map(function(yr){
-      if(yr>(maxYr||99))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
+      if(yr>maxYr)return '<td style="text-align:center;color:#2a4a6a;padding:6px 6px">—</td>';
       var v=plCalcInst(loan,rate,yr);
-      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:6px 6px">—</td>';
+      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;padding:6px 6px">—</td>';
       return '<td style="text-align:center;font-size:12px;font-weight:700;color:'+color+';padding:6px 6px">'+Math.round(v).toLocaleString()+'</td>';
     }).join('');
   }
+  var yrHdr=yrcols.map(function(yr){return '<th style="text-align:center;font-size:9px;color:#2a4a6a;padding:4px 6px">'+yr+'yr</th>';}).join('');
 
-  // Collapsed card — show key info in a grid
-  var cardBg=expanded?'#080d16':'#0d1117';
+  var cardBg=(expanded||editing)?'#080d16':'#0d1117';
   var html='<div style="border-top:1px solid #0d1626;background:'+cardBg+'">'
-    // Clickable header row
-    +'<div onclick="plSelectEntry(\''+e.id+'\')" style="display:flex;align-items:center;padding:12px 16px;cursor:pointer;gap:12px">'
-      +'<div style="flex:1;min-width:0">'
+    // Header row — checkbox + model name + edit buttons + expand arrow
+    +'<div style="display:flex;align-items:center;padding:10px 14px;gap:8px">'
+      // Checkbox always visible for print selection
+      +'<input type="checkbox" '+(checked?'checked ':' ')
+        +'onchange="plToggleCheck(\''+e.id+'\')" onclick="event.stopPropagation()" '
+        +'style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">'
+      // Model info — click to expand
+      +'<div onclick="plSelectEntry(\''+e.id+'\')" style="flex:1;min-width:0;cursor:pointer">'
         +'<div style="font-size:13px;font-weight:600;color:#e6edf3">'+esc(e.model||'—')+'</div>'
-        // Key info row
-        +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;align-items:center">'
+        +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">'
           +(cash?'<span style="font-size:11px;color:#3fb950;font-weight:600">Cash RM'+Math.round(cash).toLocaleString()+'</span>':'')
           +(dpk?'<span style="font-size:11px;color:#8b949e">KDP RM'+Math.round(dpk).toLocaleString()+'</span>':'')
           +(ins1?'<span style="font-size:11px;color:#8b949e">Ins RM'+Math.round(ins1).toLocaleString()+'</span>':'')
           +(rtax?'<span style="font-size:11px;color:#8b949e">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
         +'</div>'
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
-        +(canEdit?'<button onclick="event.stopPropagation();openPLForm(\''+e.id+'\')" style="padding:3px 10px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>':'')
-        +'<span style="color:#4a6fa5;font-size:11px">'+( expanded?'▲':'▼')+'</span>'
-      +'</div>'
+      // Edit mode buttons
+      +(canEdit?
+        '<div style="display:flex;gap:5px;flex-shrink:0">'
+          +'<button onclick="event.stopPropagation();plStartEdit(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>'
+          +'<button onclick="event.stopPropagation();plCloneEntry(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Clone</button>'
+          +'<button onclick="event.stopPropagation();plDeleteEntry(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">Del</button>'
+        +'</div>':'')
+      +'<span onclick="plSelectEntry(\''+e.id+'\')" style="color:#4a6fa5;font-size:11px;cursor:pointer;flex-shrink:0">'+(expanded||editing?'▲':'▼')+'</span>'
     +'</div>';
 
-  if(expanded){
-    var yrHdr=yrcols.map(function(yr){
-      return '<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px 6px">'+yr+'yr</th>';
-    }).join('');
+  if(editing){
+    // Inline edit form
+    html+=renderNVEditForm(e);
+  } else if(expanded){
+    // Detail view
     html+='<div style="padding:0 16px 14px">'
       +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
-        +'<thead><tr>'
-          +'<th style="text-align:left;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;padding:4px 8px 4px 0;min-width:70px"></th>'
-          +yrHdr
-        +'</tr></thead>'
+        +'<thead><tr><th style="text-align:left;font-size:9px;color:#2a4a6a;padding:4px 8px 4px 0;min-width:70px"></th>'+yrHdr+'</tr></thead>'
         +'<tbody>'
-        // Kedai row — max 5yr
         +(kloan>0&&pa?'<tr style="border-top:1px solid #0d1626">'
-          +'<td style="font-size:10px;color:#58a6ff;padding:6px 8px 6px 0;white-space:nowrap">Kedai'
-            +'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
-          +instCells(kloan,pa,kedaiMax,'#58a6ff')
-          +'</tr>':'')
-        // AEON row — max loanyear
+          +'<td style="font-size:10px;color:#58a6ff;padding:6px 8px 6px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
+          +instCells(kloan,pa,kedaiMax,'#58a6ff')+'</tr>':'')
         +(tsp>0?'<tr style="border-top:1px solid #0d1626">'
-          +'<td style="font-size:10px;color:#d2a8ff;padding:6px 8px 6px 0;white-space:nowrap">AEON'
-            +'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'
-          +(aeon_pa
-            ?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff')
-            :'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')
+          +'<td style="font-size:10px;color:#d2a8ff;padding:6px 8px 6px 0;white-space:nowrap">AEON<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'
+          +(aeon_pa?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff'):'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')
           +'</tr>':'')
-        +'</tbody>'
-      +'</table>'
-      // Detail info grid
+        +'</tbody></table>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:11px;border-top:1px solid #0d1626;padding-top:8px">'
         +plDRow('Ins 1st',rm(ins1),'#c9d1d9')
         +plDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
         +plDRow('Ins 3rd',rm(ins3),'#c9d1d9')
         +plDRow('Road Tax',rm(rtax),'#c9d1d9')
-        +plDRow('HP / Hire Purchase',rm(hp),'#c9d1d9')
-        +plDRow('Cash OTR',tsp?rm(cash+ins1+rtax):'—','#3fb950')
-        +plDRow('AEON DP','RM '+Math.round(aeonDP).toLocaleString()+(noMF?' (no MF limit)':''),'#d2a8ff')
+        +plDRow('HP',rm(hp),'#c9d1d9')
+        +plDRow('Cash OTR',rm(cash+ins1+rtax),'#3fb950')
+        +plDRow('AEON DP','RM '+Math.round(aeonDP).toLocaleString()+(noMF?' (no MF)':''),'#d2a8ff')
+        +(canEdit?plDRow('TSP',tsp?rm(tsp):'—','#8b949e'):'')
         +(canEdit?plDRow('Ins SUM',rm(parseFloat(e.inssum))):'')
-        +(canEdit&&hand?plDRow('Handling',rm(hand)):'')
-        +(canEdit&&other?plDRow('Other',rm(other)):'')
         +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('Max Loan',loanyear+'yr','#8b949e'):'')
@@ -3528,15 +3529,146 @@ function renderNVCard(e,expanded,canEdit){
   return html;
 }
 
-function plDRow(label,val,color){
-  return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a0f1a">'
-    +'<span style="color:#4a6fa5">'+label+'</span>'
-    +'<span style="font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span>'
-    +'</div>';
+function renderNVEditForm(e){
+  function fld(id,label,val,type){
+    type=type||'number';
+    return '<div>'
+      +'<label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">'+label+'</label>'
+      +'<input id="plef_'+id+'" type="'+type+'" value="'+(val!=null?val:'')+'" '
+        +'style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box" oninput="plEfCalc(\''+e.id+'\')">'
+      +'</div>';
+  }
+  var s='<div style="padding:0 16px 14px;background:#0a0f1a">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">'
+      +'<div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">'
+        +fld('brand','Brand',e.brand,'text')
+        +fld('model','Model',e.model,'text')
+      +'</div>'
+      // Pricing
+      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Pricing</div>'
+      +fld('cash','Cash Price (RM)',e.cash)
+      +fld('hp','HP / TSP Input (RM)',e.hp)
+      +fld('dpk','Kedai DP (RM)',e.dpk)
+      +'<div>'
+        +'<label style="font-size:9px;color:#3fb950;display:block;margin-bottom:2px">Cash OTR <span style="color:#2a4a6a">(auto)</span></label>'
+        +'<div id="plef_otr_'+e.id+'" style="padding:5px 8px;background:#0a0f1a;border:1px solid #0d1626;border-radius:5px;font-size:11px;color:#3fb950">—</div>'
+      +'</div>'
+      // Rates
+      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Interest Rates</div>'
+      +fld('pa','Kedai PA %',e.pa)
+      +fld('aeon_pa','AEON PA %',e.aeon_pa)
+      +'<div>'
+        +'<label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Loan Year</label>'
+        +'<select id="plef_loanyear" style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">'
+          +'<option value="5"'+(parseInt(e.loanyear)===5?' selected':'')+'>5yr (Moped)</option>'
+          +'<option value="7"'+(!e.loanyear||parseInt(e.loanyear)===7?' selected':'')+'>7yr (Big Bike)</option>'
+          +'<option value="1"'+(parseInt(e.loanyear)===1?' selected':'')+'>1yr</option>'
+          +'<option value="2"'+(parseInt(e.loanyear)===2?' selected':'')+'>2yr</option>'
+          +'<option value="3"'+(parseInt(e.loanyear)===3?' selected':'')+'>3yr</option>'
+          +'<option value="4"'+(parseInt(e.loanyear)===4?' selected':'')+'>4yr</option>'
+          +'<option value="6"'+(parseInt(e.loanyear)===6?' selected':'')+'>6yr</option>'
+        +'</select>'
+      +'</div>'
+      +'<div><!-- spacer --></div>'
+      // Insurance
+      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Insurance</div>'
+      +fld('ins1','Ins 1st (RM)',e.ins1)
+      +fld('ins1p','Ins 1st+ (RM)',e.ins1p)
+      +fld('inssum','Ins SUM (RM)',e.inssum)
+      +fld('ins3','Ins 3rd (RM)',e.ins3)
+      // Fees
+      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Fees</div>'
+      +fld('rtax','Road Tax (RM)',e.rtax)
+      +fld('hand','Handling Fee (RM)',e.hand)
+      +fld('other','Other Charges (RM)',e.other)
+    +'</div>'
+    // Save/Clone/Delete bottom right
+    +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">'
+      +'<button onclick="plDeleteEntry(\''+e.id+'\')" style="padding:5px 12px;background:none;border:1px solid #6a1818;border-radius:6px;color:#e24b4a;font-size:11px;cursor:pointer">Delete</button>'
+      +'<button onclick="plCloneEntry(\''+e.id+'\')" style="padding:5px 12px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Clone</button>'
+      +'<button onclick="plCancelEdit()" style="padding:5px 12px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Cancel</button>'
+      +'<button onclick="plSaveEdit(\''+e.id+'\')" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">Save</button>'
+    +'</div>'
+  +'</div>';
+  // Trigger calc after render
+  setTimeout(function(){plEfCalc(e.id);},0);
+  return s;
+}
+
+function plEfCalc(id){
+  var cash=parseFloat(ge('plef_cash')&&ge('plef_cash').value)||0;
+  var ins1=parseFloat(ge('plef_ins1')&&ge('plef_ins1').value)||0;
+  var rtax=parseFloat(ge('plef_rtax')&&ge('plef_rtax').value)||0;
+  var otr=cash+ins1+rtax;
+  var el=ge('plef_otr_'+id);
+  if(el)el.textContent=otr>0?'RM '+Math.round(otr).toLocaleString():'—';
+}
+
+function plStartEdit(id){
+  _plEditingId=id;
+  _plSelectedId=id;
+  renderNewVehicleList();
+}
+function plCancelEdit(){
+  _plEditingId=null;
+  renderNewVehicleList();
+}
+
+function plSaveEdit(id){
+  function gv2(f){var el=ge('plef_'+f);return el?el.value:'';}
+  var brand=(gv2('brand')||'').trim();
+  var model=(gv2('model')||'').trim();
+  if(!brand||!model){alert('Brand and Model required.');return;}
+  var entry={
+    id:id,brand:brand,model:model,
+    cash:gv2('cash'),hp:gv2('hp'),dpk:gv2('dpk'),
+    pa:gv2('pa'),aeon_pa:gv2('aeon_pa'),loanyear:gv2('loanyear')||'7',
+    ins1:gv2('ins1'),ins1p:gv2('ins1p'),inssum:gv2('inssum'),ins3:gv2('ins3'),
+    rtax:gv2('rtax'),hand:gv2('hand'),other:gv2('other')
+  };
+  var idx=_plData.findIndex(function(x){return x.id===id;});
+  if(idx>=0)_plData[idx]=entry;else _plData.push(entry);
+  if(window.PL)PL.list=_plData;
+  plSaveLib();
+  logAction('edit_pricelist','pricelist',brand+' '+model,null,entry);
+  _plEditingId=null;
+  _plSelectedId=id;
+  renderNewVehicleList();
+}
+
+function plCloneEntry(id){
+  var src=_plData.find(function(x){return x.id===id;});
+  if(!src)return;
+  var clone=Object.assign({},src,{id:'pl_'+Date.now(),model:(src.model||'')+'（Copy）'});
+  _plData.push(clone);
+  if(window.PL)PL.list=_plData;
+  plSaveLib();
+  _plEditingId=clone.id;
+  _plSelectedId=clone.id;
+  _plExpandedBrands[clone.brand]=true;
+  renderNewVehicleList();
+}
+
+function plDeleteEntry(id){
+  var e=_plData.find(function(x){return x.id===id;});
+  if(!e||!confirm('Delete '+e.brand+' '+e.model+'?'))return;
+  _plData=_plData.filter(function(x){return x.id!==id;});
+  if(window.PL)PL.list=_plData;
+  _plChecked.delete(id);
+  plSaveLib();
+  if(currentUser)sbDelete('pricelist',{id:id});
+  logAction('delete_pricelist','pricelist',e.brand+' '+e.model,e,null);
+  if(_plEditingId===id)_plEditingId=null;
+  if(_plSelectedId===id)_plSelectedId=null;
+  renderNewVehicleList();
+}
+
+function plToggleCheck(id){
+  if(_plChecked.has(id))_plChecked.delete(id);else _plChecked.add(id);
+  plSyncEditBar();
 }
 
 function plToggleBrand(bid){
-  // Reverse lookup actual brand name from bid
   var item=_plData.find(function(e){return (e.brand||'—').replace(/[^a-z0-9]/gi,'_')===bid;});
   var brand=item?(item.brand||'—'):'—';
   _plExpandedBrands[brand]=_plExpandedBrands[brand]===false?true:false;
@@ -3548,12 +3680,69 @@ function plToggleBrand(bid){
 }
 
 function plSelectEntry(id){
+  if(_plEditingId)return;// don't collapse while editing
   _plSelectedId=_plSelectedId===id?null:id;
   renderNewVehicleList();
 }
 
+function plDRow(label,val,color){
+  return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a0f1a">'
+    +'<span style="color:#4a6fa5">'+label+'</span>'
+    +'<span style="font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span></div>';
+}
+
+function plOpenPrint(){
+  var ids=Array.from(_plChecked);
+  if(!ids.length){
+    // Select all if none checked
+    _plData.forEach(function(e){_plChecked.add(e.id);});
+    plSyncEditBar();
+    renderNewVehicleList();
+    alert('All entries selected. Click Print again to print.');
+    return;
+  }
+  var entries=_plData.filter(function(e){return _plChecked.has(e.id);});
+  // Generate a simple print window
+  var rows=entries.map(function(e){
+    var cash=parseFloat(e.cash)||0;var ins1=parseFloat(e.ins1)||0;var rtax=parseFloat(e.rtax)||0;
+    return '<tr><td>'+esc(e.brand)+'</td><td>'+esc(e.model)+'</td>'
+      +'<td style="text-align:right">RM '+Math.round(cash+ins1+rtax).toLocaleString()+'</td>'
+      +'<td style="text-align:right">RM '+Math.round(parseFloat(e.dpk)||0).toLocaleString()+'</td>'
+      +'<td style="text-align:right">RM '+Math.round(ins1).toLocaleString()+'</td>'
+      +'<td style="text-align:right">RM '+Math.round(rtax).toLocaleString()+'</td>'
+      +'</tr>';
+  }).join('');
+  var win=window.open('','_blank','width=900,height=700');
+  win.document.write('<html><head><title>Pricelist</title>'
+    +'<style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px}th{background:#f0f0f0;font-weight:700}tr:nth-child(even){background:#f9f9f9}@media print{button{display:none}}</style>'
+    +'</head><body>'
+    +'<h2 style="margin-bottom:4px">HuangMotor Pricelist</h2>'
+    +'<p style="font-size:10px;color:#666;margin-bottom:12px">'+new Date().toLocaleDateString()+'</p>'
+    +'<table><thead><tr><th>Brand</th><th>Model</th><th>Cash OTR</th><th>KDP</th><th>Ins 1st</th><th>Road Tax</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +'<button onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Print</button>'
+    +'</body></html>');
+  win.document.close();
+}
+
+// openPLForm — used by + New Entry button
+function openPLForm(id){
+  if(id){
+    plStartEdit(id);
+  } else {
+    // New entry — create blank entry and open edit form
+    var newId='pl_'+Date.now();
+    var blank={id:newId,brand:'',model:'',cash:'',hp:'',dpk:'',pa:'',aeon_pa:'',loanyear:'7',ins1:'',ins1p:'',inssum:'',ins3:'',rtax:'',hand:'',other:''};
+    _plData.unshift(blank);
+    if(window.PL)PL.list=_plData;
+    _plEditingId=newId;
+    _plSelectedId=newId;
+    // Expand first brand or create blank brand
+    renderNewVehicleList();
+  }
+}
+
 function initNewPLData(){
-  // Kept for Generator compatibility — no-op if pricelist already loaded
   if(!window._genInited){
     window._genInited=true;
     applyPermissions();
