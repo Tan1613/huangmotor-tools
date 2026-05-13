@@ -2517,6 +2517,16 @@ async function sbGet(table,params){
   var r=await fetch(url,{headers:sbHeaders()});
   return r.ok?await r.json():[];
 }
+async function sbPost(table,data){
+  var r=await fetch(SB_URL+'/rest/v1/'+table,{
+    method:'POST',
+    headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),
+    body:JSON.stringify(data)
+  });
+  if(!r.ok){var t=await r.text();console.error('sbPost',table,r.status,t);}
+  return r.ok;
+}
+
 async function sbUpsert(table,data){
   var r=await fetch(SB_URL+'/rest/v1/'+table,{
     method:'POST',
@@ -3624,7 +3634,7 @@ function openPLForm(id){
 /* ── Print mode ── */
 function plTogglePrintMode(){
   _plPrintMode=!_plPrintMode;
-  if(!_plPrintMode)_plChecked.clear();
+  // keep _plChecked — user's selection persists across print mode toggles
   plSyncToolbar();renderNewVehicleList();
 }
 function plToggleCheck(id){
@@ -3772,14 +3782,15 @@ async function plRevertEntry(logId){
 
 async function plLog(entryId,action,before,after){
   try{
-    await sbPost('pricelist_log',{
-      entry_id:entryId,
+    var ok=await sbPost('pricelist_log',{
+      entry_id:String(entryId),
       action:action,
       operator:currentUser?currentUser.username:'unknown',
-      before:before||null,
-      after:after||null
+      before:before?JSON.parse(JSON.stringify(before)):null,
+      after:after?JSON.parse(JSON.stringify(after)):null
     });
-  }catch(e){}
+    if(!ok)console.warn('plLog failed',action,entryId);
+  }catch(e){console.error('plLog error',e);}
 }
 
 /* ── Helpers ── */
