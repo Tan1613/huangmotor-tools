@@ -768,28 +768,9 @@ body.theme-white .home-welcome{color:#555}
 
   <div class="pl-search-row">
     <input type="text" id="plSearch" class="dark-inp" placeholder="Search brand / model…" oninput="renderPLList()">
-    <button class="pl-new-btn" onclick="openPLForm(null)">+ New</button>
-  </div>
-  <div class="pl-toolbar">
-    <button class="pl-sel-all-btn" onclick="plSelectAll()">☑ All</button>
-    <button class="pl-sel-all-btn" onclick="plDeselectAll()">☐ None</button>
-    <span class="pl-chk-count" id="plChkCount"></span>
   </div>
   <div class="pl-count" id="plCount">0 entries</div>
   <div class="pl-list" id="plList"></div>
-
-  <!-- Detail view -->
-  <div class="pl-detail" id="plDetail" style="display:none">
-    <div class="pl-detail-hdr">
-      <span id="plDetailTitle">—</span>
-      <div style="display:flex;gap:4px">
-        <button class="pl-edit-btn" id="plCloneBtn" onclick="clonePLEntry(PL.sel)" title="Clone this entry">⧉ Clone</button>
-        <button class="pl-edit-btn" id="plEditBtn" onclick="openPLForm(PL.sel)">✎ Edit</button>
-        <button class="pl-close-btn" onclick="closePLDetail()">✕</button>
-      </div>
-    </div>
-    <div class="pl-detail-grid" id="plDetailGrid"></div>
-  </div>
 
   <!-- Brand Order Panel -->
   <div class="pl-brand-panel" id="plBrandPanel">
@@ -798,11 +779,21 @@ body.theme-white .home-welcome{color:#555}
       <span class="bp-arrow">▼</span>
     </div>
     <div class="pl-brand-panel-body">
-      <div class="pl-brand-hint">Drag to reorder. New brands append automatically. Affects list &amp; PDF.</div>
+      <div class="pl-brand-hint">Drag to reorder. Affects PDF output.</div>
       <div class="pl-brand-list" id="plBrandList"></div>
       <button class="pl-brand-reset" onclick="resetBrandOrder()">↺ Reset to A–Z</button>
     </div>
   </div>
+
+  <!-- PDF export -->
+  <button id="plPdfBtn" class="pl-pdf-btn" onclick="generatePLPdf()">⬇ Export PDF Pricelist</button>
+
+  <!-- Load to Calculator -->
+  <button id="plLoadCalcBtn" onclick="loadPLToCalc()" disabled
+    style="width:100%;padding:8px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px">
+    ⬇ Load to Calculator
+  </button>
+  <p id="plLoadHint" style="font-size:9px;color:#21262d;text-align:center;margin-top:3px">Click entry to select · Edit via Pricelist module</p>
 
   <!-- Add / Edit form -->
   <div class="pl-form" id="plForm" style="display:none">
@@ -911,17 +902,6 @@ body.theme-white .home-welcome{color:#555}
     </div>
   </div>
 
-  <!-- Load to Calculator -->
-  <button id="plLoadCalcBtn" onclick="loadPLToCalc()" disabled
-    style="width:100%;padding:8px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px">
-    ⬇ Load to Calculator
-  </button>
-  <p id="plLoadHint" style="font-size:9px;color:#21262d;text-align:center;margin-top:3px">Click entry to view · Double-click to edit</p>
-
-  <!-- PDF Pricelist -->
-  <button class="pl-pdf-btn" id="plPdfBtn" onclick="openPLPdf()" disabled>📄 Print Pricelist PDF</button>
-  <p style="font-size:9px;color:#21262d;text-align:center;margin-top:3px" id="plPdfHint">Tick entries above to enable</p>
-</div>
 
 <!-- Pricelist PDF Sheet -->
 <div id="plPdfSheet">
@@ -1602,19 +1582,7 @@ function renderBrandOrderList(){
   });
 }
 
-function plUpdateChkUI(){
-  var n=PL.checked.size;
-  document.getElementById('plChkCount').textContent=n?n+' selected':'';
-  var btn=document.getElementById('plPdfBtn');
-  var isViewer=currentUser&&currentUser.role==='viewer';
-  if(isViewer){
-    btn.style.display='none';
-  } else {
-    btn.style.display='';
-    btn.disabled=n===0;
-  }
-  document.getElementById('plPdfHint').textContent=n?n+' entr'+(n===1?'y':'ies')+' selected for PDF':'Tick entries above to enable';
-}
+function plUpdateChkUI(){/* no-op — checkboxes removed from Generator */}
 
 function plSelectAll(){
   var q=(document.getElementById('plSearch').value||'').toLowerCase().trim();
@@ -1628,7 +1596,6 @@ function renderPLList(){
   plSyncBrandOrder();
   var q=(document.getElementById('plSearch').value||'').toLowerCase().trim();
   var items=PL.list.filter(function(e){return !q||(e.brand+' '+e.model).toLowerCase().indexOf(q)>=0;});
-  // Sort by custom brand order, then model alpha within each brand
   var brandIdx=function(b){var i=PL_BRAND.order.indexOf(b);return i<0?999:i;};
   items.sort(function(a,b){
     var bi=brandIdx(a.brand||'')-brandIdx(b.brand||'');
@@ -1636,46 +1603,25 @@ function renderPLList(){
     return (a.model||'').localeCompare(b.model||'');
   });
   var wrap=document.getElementById('plList');
-  document.getElementById('plCount').textContent=PL.list.length+' entr'+(PL.list.length===1?'y':'ies');
-  plUpdateChkUI();
-  if(!items.length){wrap.innerHTML='<div class="pl-empty">'+(PL.list.length?'No results':'No entries yet. Click + New.')+'</div>';return;}
+  var countEl=document.getElementById('plCount');
+  if(countEl)countEl.textContent=PL.list.length+' entr'+(PL.list.length===1?'y':'ies');
+  if(!items.length){wrap.innerHTML='<div class="pl-empty">'+(PL.list.length?'No results':'No entries yet.')+'</div>';return;}
   wrap.innerHTML='';
   items.forEach(function(e){
     var div=document.createElement('div');
     div.className='pl-item'+(PL.sel===e.id?' sel':'');
-    div.style.display='flex';div.style.alignItems='flex-start';div.style.gap='7px';
-    // checkbox
-    var ck=document.createElement('input');ck.type='checkbox';ck.className='pl-item-ck';
-    ck.checked=PL.checked.has(e.id);ck.style.marginTop='3px';
-    ck.onclick=function(ev){ev.stopPropagation();if(ck.checked)PL.checked.add(e.id);else PL.checked.delete(e.id);plSaveSel();plUpdateChkUI();};
-    // content
-    var content=document.createElement('div');content.style.flex='1';content.style.minWidth='0';
     var chips='';
-    if(e.inssum)chips+='<span class="pl-chip">Ins RM'+Number(e.inssum).toLocaleString()+'</span>';
     if(e.rtax)chips+='<span class="pl-chip">RTax RM'+Number(e.rtax).toLocaleString()+'</span>';
     if(e.dpk)chips+='<span class="pl-chip grn">DPk RM'+Number(e.dpk).toLocaleString()+'</span>';
-    if(e.dph)chips+='<span class="pl-chip grn">DPh RM'+Number(e.dph).toLocaleString()+'</span>';
-    content.innerHTML='<div class="pl-item-top"><span class="pl-item-name">'+esc(e.brand)+' '+esc(e.model)+'</span><span class="pl-item-cash">RM '+Number(e.cash||0).toLocaleString()+'</span></div>'+(chips?'<div class="pl-item-chips">'+chips+'</div>':'');
-    // delete btn
-    var del=document.createElement('button');del.className='pl-item-del';del.style.cssText='display:block;position:static;margin-left:auto;flex-shrink:0;';del.textContent='✕';del.title='Delete';
-    var canEditPL=!currentUser||(currentUser.role==='admin'||currentUser.can_edit_pricelist!==false);
-    if(!canEditPL)del.style.display='none';
-    del.onclick=function(ev){ev.stopPropagation();if(!confirm('Delete '+e.brand+' '+e.model+'?'))return;
-      var delId=e.id;var delName=e.brand+' '+e.model;
-      PL.list=PL.list.filter(function(x){return x.id!==delId;});
-      PL.checked.delete(delId);
-      if(PL.sel===delId){PL.sel=null;document.getElementById('plDetail').style.display='none';document.getElementById('plLoadCalcBtn').disabled=true;}
-      plSaveLib();plSaveSel();
-      if(currentUser)sbDelete('pricelist',{id:delId});
-      logAction('delete_pricelist','pricelist',delName,{brand:e.brand,model:e.model},null);
-      renderPLList();};
-    content.querySelector('.pl-item-top').appendChild(del);
-    div.onclick=function(ev){if(ev.target===ck)return;PL.sel=e.id;renderPLList();showPLDetail(e.id);};
-    // Only allow edit on double-click for non-viewer
-    if(!currentUser||currentUser.role!=='viewer'){
-      div.ondblclick=function(){openPLForm(e.id);};
-    }
-    div.appendChild(ck);div.appendChild(content);
+    div.innerHTML='<div class="pl-item-top"><span class="pl-item-name">'+esc(e.brand)+' '+esc(e.model)+'</span>'
+      +'<span class="pl-item-cash">RM '+Number(e.cash||0).toLocaleString()+'</span></div>'
+      +(chips?'<div class="pl-item-chips">'+chips+'</div>':'');
+    div.onclick=function(){
+      PL.sel=e.id;
+      var lcBtn=document.getElementById('plLoadCalcBtn');
+      if(lcBtn)lcBtn.disabled=false;
+      renderPLList();
+    };
     wrap.appendChild(div);
   });
 }
@@ -3572,9 +3518,9 @@ function renderNVCard(e,expanded,canEdit){
         +(canEdit?plDRow('Ins SUM',rm(parseFloat(e.inssum))):'')
         +(canEdit&&hand?plDRow('Handling',rm(hand)):'')
         +(canEdit&&other?plDRow('Other',rm(other)):'')
-        +(canEdit?plDRow('Max Loan',loanyear+'yr','#8b949e'):'')
         +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—','#8b949e'):'')
+        +(canEdit?plDRow('Max Loan',loanyear+'yr','#8b949e'):'')
       +'</div>'
     +'</div>';
   }
