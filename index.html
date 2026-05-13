@@ -881,6 +881,19 @@ body.theme-white .home-welcome{color:#555}
         <label>Other Charges (RM)</label>
         <input type="number" id="plf_other" class="dark-inp" placeholder="0" oninput="plFormCalc()">
       </div>
+      <div style="grid-column:1/-1;height:1px;background:#21262d;margin:4px 0"></div>
+      <div class="span2">
+        <label>Max Loan Year <span style="font-size:9px;color:#444">moped=5 / bigbike=7</span></label>
+        <select id="plf_loanyear" class="dark-inp">
+          <option value="5">5 Years (Moped)</option>
+          <option value="7" selected>7 Years (Big Bike)</option>
+          <option value="1">1 Year</option>
+          <option value="2">2 Years</option>
+          <option value="3">3 Years</option>
+          <option value="4">4 Years</option>
+          <option value="6">6 Years</option>
+        </select>
+      </div>
       <!-- TSP preview -->
       <div style="grid-column:1/-1;background:#0a0f1a;border:1px solid #1e2d45;border-radius:8px;padding:8px 10px;margin-top:2px">
         <div style="font-size:9px;color:#2a4a6a;margin-bottom:5px;font-weight:700;text-transform:uppercase">Auto-calculated Preview</div>
@@ -1506,7 +1519,7 @@ function plSaveLib(){
   sbUpsert('pricelist',PL.list.map(function(e){return{
     id:e.id,brand:s(e.brand),model:s(e.model),
     cash:n(e.cash),hp:n(e.hp),dpk:n(e.dpk),
-    pa:n(e.pa),aeon_pa:n(e.aeon_pa),
+    pa:n(e.pa),aeon_pa:n(e.aeon_pa),loanyear:n(e.loanyear),
     ins1:n(e.ins1),ins1p:n(e.ins1p),inssum:n(e.inssum),ins3:n(e.ins3),
     rtax:n(e.rtax),hand:n(e.hand),other:n(e.other),
     updated_at:new Date().toISOString()
@@ -1745,7 +1758,7 @@ function openPLForm(id){
   plEditId=id;
   var e=id?PL.list.find(function(x){return x.id===id;}):null;
   ge('plFormTitle').textContent=id?'Edit Entry':'New Entry';
-  ['brand','model','cash','hp','dpk','pa','aeon_pa','ins1','ins1p','inssum','ins3','rtax','hand','other'].forEach(function(f){
+  ['brand','model','cash','hp','dpk','pa','aeon_pa','ins1','ins1p','inssum','ins3','rtax','hand','other','loanyear'].forEach(function(f){
     var el=ge('plf_'+f);if(el)el.value=e&&e[f]!=null?e[f]:'';
   });
   ge('plForm').style.display='';
@@ -1763,7 +1776,7 @@ function savePLEntry(){
     id:plEditId||('pl_'+Date.now()),
     brand:brand,model:model,
     cash:gfv('cash'),hp:gfv('hp'),dpk:gfv('dpk'),
-    pa:gfv('pa'),aeon_pa:gfv('aeon_pa'),
+    pa:gfv('pa'),aeon_pa:gfv('aeon_pa'),loanyear:gfv('loanyear'),
     ins1:gfv('ins1'),ins1p:gfv('ins1p'),inssum:gfv('inssum'),ins3:gfv('ins3'),
     rtax:gfv('rtax'),hand:gfv('hand'),other:gfv('other')
   };
@@ -2778,7 +2791,7 @@ function startRealtimeSync(){
         lastSyncTime=now;
         // Only reload pricelist + MF from realtime — never overwrite generator/gifts mid-session
         var pl2=await sbGet('pricelist','select=*&order=brand.asc,model.asc');
-        if(pl2.length)PL.list=pl2.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,dpk:r.dpk,pa:r.pa,aeon_pa:r.aeon_pa,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other};});
+        if(pl2.length)PL.list=pl2.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,dpk:r.dpk,pa:r.pa,aeon_pa:r.aeon_pa,loanyear:r.loanyear,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other};});
         var mf2=await sbGet('max_finance','select=*&order=id.asc');
         if(mf2.length)MF=mf2.map(function(r){return{brand:r.brand,model:r.model,amt:r.amt};});
         renderMFTable();renderPLList();
@@ -2796,7 +2809,7 @@ async function loadAllFromCloud(){
   try{
     var pl=await sbGet('pricelist','select=*&order=brand.asc,model.asc');
     if(pl.length){
-      PL.list=pl.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,dpk:r.dpk,pa:r.pa,aeon_pa:r.aeon_pa,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other};});
+      PL.list=pl.map(function(r){return{id:r.id,brand:r.brand,model:r.model,cash:r.cash,hp:r.hp,dpk:r.dpk,pa:r.pa,aeon_pa:r.aeon_pa,loanyear:r.loanyear,ins1:r.ins1,ins1p:r.ins1p,inssum:r.inssum,ins3:r.ins3,rtax:r.rtax,hand:r.hand,other:r.other};});
     } else {
       try{var plRaw=localStorage.getItem(PL_KEY);if(plRaw){var plLocal=JSON.parse(plRaw);if(plLocal.list&&plLocal.list.length){PL.list=plLocal.list;plSaveLib();}}}catch(ex){}
     }
@@ -3479,18 +3492,22 @@ function renderNVCard(e,expanded,canEdit){
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
 
   // Build Kedai instalment row (1~5yr)
+  var loanyear=parseInt(e.loanyear)||7;
+  var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+
+  // Build instalment cells for given year columns
   function instCells(loan,rate,color){
-    var cells='';
-    for(var yr=1;yr<=5;yr++){
+    return yrcols.map(function(yr){
+      if(yr>loanyear)return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:5px 4px">—</td>';
       var v=plCalcInst(loan,rate,yr);
-      if(!v||(_plMinInst&&v<_plMinInst)){
-        cells+='<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:5px 4px">—</td>';
-      } else {
-        cells+='<td style="text-align:center;font-size:11px;font-weight:700;color:'+color+';padding:5px 4px">'+Math.round(v).toLocaleString()+'</td>';
-      }
-    }
-    return cells;
+      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;font-size:11px;padding:5px 4px">—</td>';
+      return '<td style="text-align:center;font-size:11px;font-weight:700;color:'+color+';padding:5px 4px">'+Math.round(v).toLocaleString()+'</td>';
+    }).join('');
   }
+  // Year header cells
+  var yrHeaders=yrcols.map(function(yr){
+    return '<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">'+yr+'yr</th>';
+  }).join('');
 
   // Collapsed card — show key info in a grid
   var cardBg=expanded?'#080d16':'#0d1117';
@@ -3519,11 +3536,7 @@ function renderNVCard(e,expanded,canEdit){
       +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
         +'<thead><tr>'
           +'<th style="text-align:left;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;padding:4px 0;padding-right:8px">Loan / yr</th>'
-          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">1yr</th>'
-          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">2yr</th>'
-          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">3yr</th>'
-          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">4yr</th>'
-          +'<th style="text-align:center;font-size:9px;color:#2a4a6a;font-weight:600;padding:4px">5yr</th>'
+          +yrHeaders
         +'</tr></thead>'
         +'<tbody>'
         // Kedai row
@@ -3531,13 +3544,12 @@ function renderNVCard(e,expanded,canEdit){
           +'<td style="font-size:10px;color:#58a6ff;padding:5px 8px 5px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
           +instCells(kloan,pa,'#58a6ff')
           +'</tr>':'')
-        // AEON row
-        +(aeonLoan>0&&aeon_pa?'<tr style="border-top:1px solid #0d1626">'
+        // AEON row — show if TSP exists, installments only if aeon_pa set
+        +(tsp>0?'<tr style="border-top:1px solid #0d1626">'
           +'<td style="font-size:10px;color:#d2a8ff;padding:5px 8px 5px 0;white-space:nowrap">AEON'
-            +(noMF?'<br><span style="font-size:9px;color:#2a4a6a">Full loan</span>'
-                  :'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span>')
+            +'<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span>'
           +'</td>'
-          +instCells(aeonLoan,aeon_pa,'#d2a8ff')
+          +(aeon_pa?instCells(aeonLoan,aeon_pa,'#d2a8ff'):'<td colspan="4" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')
           +'</tr>':'')
         +'</tbody>'
       +'</table>'
@@ -3549,10 +3561,11 @@ function renderNVCard(e,expanded,canEdit){
         +plDRow('Road Tax',rm(rtax),'#c9d1d9')
         +plDRow('HP / Hire Purchase',rm(hp),'#c9d1d9')
         +plDRow('Cash OTR',tsp?rm(cash+ins1+rtax):'—','#3fb950')
-        +(canEdit?plDRow('TSP (AEON base)',tsp?rm(tsp):'—','#8b949e'):'')
+        +plDRow('AEON DP','RM '+Math.round(aeonDP).toLocaleString()+(noMF?' (no MF limit)':''),'#d2a8ff')
         +(canEdit?plDRow('Ins SUM',rm(parseFloat(e.inssum))):'')
         +(canEdit&&hand?plDRow('Handling',rm(hand)):'')
         +(canEdit&&other?plDRow('Other',rm(other)):'')
+        +(canEdit?plDRow('Max Loan',loanyear+'yr','#8b949e'):'')
         +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—','#8b949e'):'')
       +'</div>'
