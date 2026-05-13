@@ -1238,9 +1238,12 @@ body.theme-white .home-welcome{color:#555}
             <option value="plate_desc">Plate Z→A</option>
           </select>
         </div>
-        <div id="upEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px">
+        <div id="upEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px;flex-wrap:wrap">
           <button onclick="openUPModal(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ Add Vehicle</button>
-          <span id="upCountLabel" style="font-size:10px;color:#4a6fa5;margin-left:4px"></span>
+          <button id="upPrintModeBtn" onclick="upTogglePrintMode()" style="padding:5px 11px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🖨 Print Mode</button>
+          <button id="upPrintSelBtn" onclick="upPrintSelected()" style="display:none;padding:5px 14px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Print Selected</button>
+          <span id="upPrintLabel" style="font-size:10px;color:#4a6fa5"></span>
+          <span id="upCountLabel" style="font-size:10px;color:#4a6fa5;margin-left:auto"></span>
         </div>
       </div>
       <div id="upList" style="padding:8px 12px"></div>
@@ -3701,22 +3704,157 @@ function plPrintSelected(){
   var ids=Array.from(_plChecked);
   if(!ids.length)return;
   var entries=_plData.filter(function(e){return _plChecked.has(e.id);});
-  var rows=entries.map(function(e){
-    var cash=parseFloat(e.cash)||0,ins1=parseFloat(e.ins1)||0,rtax=parseFloat(e.rtax)||0;
-    return '<tr><td>'+esc(e.brand)+'</td><td>'+esc(e.model)+'</td>'
-      +'<td style="text-align:right">RM '+Math.round(cash+ins1+rtax).toLocaleString()+'</td>'
-      +'<td style="text-align:right">RM '+Math.round(parseFloat(e.dpk)||0).toLocaleString()+'</td>'
-      +'<td style="text-align:right">RM '+Math.round(ins1).toLocaleString()+'</td>'
-      +'<td style="text-align:right">RM '+Math.round(rtax).toLocaleString()+'</td></tr>';
-  }).join('');
-  var win=window.open('','_blank','width=900,height=700');
-  win.document.write('<html><head><title>Pricelist</title>'
-    +'<style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px}th{background:#f0f0f0;font-weight:700}tr:nth-child(even){background:#f9f9f9}@media print{button{display:none}}</style>'
-    +'</head><body><h2>HuangMotor Pricelist</h2><p style="font-size:10px;color:#666">'+new Date().toLocaleDateString()+'</p>'
-    +'<table><thead><tr><th>Brand</th><th>Model</th><th>Cash OTR</th><th>KDP</th><th>Ins 1st</th><th>Road Tax</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    +'<button onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Print</button>'
-    +'</body></html>');
-  win.document.close();
+  // Sort by brand order then model
+  var brandOrder=plGetBrandOrder();
+  var byBrand={};
+  entries.forEach(function(e){var b=e.brand||'—';if(!byBrand[b])byBrand[b]=[];byBrand[b].push(e);});
+  var orderedBrands=brandOrder.filter(function(b){return byBrand[b];});
+  Object.keys(byBrand).forEach(function(b){if(orderedBrands.indexOf(b)<0)orderedBrands.push(b);});
+
+  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
+  function inst(hp,dpk,pa,yr){
+    var h=parseFloat(hp),d=parseFloat(dpk)||0,r=parseFloat(pa),y=parseInt(yr);
+    if(!h||!r||!y)return null;
+    var p=h-d;if(p<=0)return null;
+    return Math.ceil(p*(1+r/100*y)/(y*12));
+  }
+
+  var rows='';var idx=0;
+  orderedBrands.forEach(function(brand){
+    (byBrand[brand]||[]).forEach(function(e){
+      var loanyear=parseInt(e.loanyear)||7;
+      var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+      var shade=idx%2===0;
+      var r1=shade?'row-a':'row-b';var r2=shade?'row-a2':'row-b2';
+      var yrCells='';
+      yrcols.forEach(function(yr){
+        var v=inst(e.hp,e.dpk,e.pa,yr);
+        yrCells+=v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+      });
+      rows+='<tr class="'+r1+'">'
+        +'<td class="left" rowspan="2">'+esc(brand)+'</td>'
+        +'<td class="model" rowspan="2">'+esc(e.model||'—')+'</td>'
+        +'<td class="cash">'+rm(e.cash)+'</td>'
+        +'<td class="dp">'+rm(e.dpk)+'</td>'
+        +yrCells+'</tr>'
+        +'<tr class="'+r2+'">'
+        +'<td class="hp">'+rm(e.hp)+'</td>'
+        +'<td class="loan">'+(e.hp&&e.dpk?'RM '+Math.round(parseFloat(e.hp)-parseFloat(e.dpk)).toLocaleString():'—')+'</td>'
+        +'<td class="sub">'+rm(e.rtax)+'</td>'
+        +'<td class="sub">'+rm(e.ins1)+'</td>'
+        +'<td class="sub">'+(e.ins1p?rm(e.ins1p):'—')+'</td>'
+        +'<td class="sub">'+rm(e.ins3)+'</td>'
+        +'</tr>';
+      idx++;
+    });
+  });
+
+  // Use shared PDF sheet + print function
+  var dateStr=pdfDateStr();
+  var colgroup='<colgroup><col style="width:10%"><col style="width:16%"><col style="width:9%"><col style="width:9%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:7%"></colgroup>';
+  var thead='<thead><tr>'
+    +'<th class="left" rowspan="2">Brand</th><th class="left" rowspan="2">Model</th>'
+    +'<th>Cash</th><th>KDP</th>'
+    +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+    +'</tr><tr>'
+    +'<th class="r2">HP</th><th class="r2">Loan</th>'
+    +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th><th class="r2">Ins 3rd</th>'
+    +'</tr></thead>';
+  var inner='<div class="pl-pdf-hdr">'
+    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
+    +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
+    +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
+    +'<div class="pl-pdf-footer-note">For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+  ge('plPdfInner').innerHTML=inner;
+  ge('plPdfSheet').style.display='block';
+  document.body.style.overflow='hidden';
+  ge('pdfFontSizeLabel').textContent=pdfFontSize+'px';
+  setTimeout(applyPdfFontSize,50);
+}
+
+function pdfDateStr(){
+  var n=new Date();
+  return n.getDate().toString().padStart(2,'0')+'/'+(n.getMonth()+1).toString().padStart(2,'0')+'/'+n.getFullYear()
+    +' '+n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+
+/* ── Used Vehicle Print ── */
+var _upChecked=new Set();
+var _upPrintMode=false;
+
+function upTogglePrintMode(){
+  _upPrintMode=!_upPrintMode;
+  var btn=ge('upPrintModeBtn');
+  if(btn){btn.style.background=_upPrintMode?'#1a3a1a':'none';btn.style.color=_upPrintMode?'#3fb950':'#8b949e';btn.style.borderColor=_upPrintMode?'#238636':'#30363d';btn.textContent='🖨 Print Mode'+(_upPrintMode?' ON':'');}
+  var ps=ge('upPrintSelBtn');if(ps)ps.style.display=(_upPrintMode&&_upChecked.size>0)?'':'none';
+  var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=_upPrintMode&&_upChecked.size?_upChecked.size+' selected':'';
+  renderUPList();
+}
+function upToggleCheck(id){
+  if(_upChecked.has(id))_upChecked.delete(id);else _upChecked.add(id);
+  var ps=ge('upPrintSelBtn');if(ps)ps.style.display=(_upPrintMode&&_upChecked.size>0)?'':'none';
+  var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=_upChecked.size?_upChecked.size+' selected':'';
+}
+function upPrintSelected(){
+  var entries=_upData.filter(function(r){return _upChecked.has(r.id);});
+  if(!entries.length)return;
+  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
+  function inst(loan,pa,yr){
+    if(!loan||loan<=0||!pa||!yr)return null;
+    return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
+  }
+  var rows='';var idx=0;
+  entries.forEach(function(r){
+    var hp=parseFloat(r.loan_price)||0;
+    var dp=parseFloat(r.down_payment)||0;
+    var loan=hp-dp;
+    var pa=parseFloat(r.pa)||_upDefaultPa;
+    var loanyear=parseInt(r.loanyear)||5;
+    var shade=idx%2===0;var r1=shade?'row-a':'row-b';var r2=shade?'row-a2':'row-b2';
+    var condLabel=r.condition?r.condition.charAt(0).toUpperCase()+r.condition.slice(1):'—';
+    var yrCells='';
+    [2,3,4,5].forEach(function(yr){
+      if(yr>loanyear){yrCells+='<td class="na">—</td>';return;}
+      var v=inst(loan,pa,yr);
+      yrCells+=v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+    });
+    rows+='<tr class="'+r1+'">'
+      +'<td class="left plate" rowspan="2">'+esc(r.plate_no||'—')+'</td>'
+      +'<td class="model" rowspan="2">'+esc((r.brand||'')+(r.model?' '+r.model:''))+'<br><span style="font-size:7px;color:#888">'+esc(r.year?String(r.year):'')+'  '+condLabel+'</span></td>'
+      +'<td class="cash">'+rm(r.cash_price)+'</td>'
+      +'<td class="dp">'+rm(r.down_payment)+'</td>'
+      +yrCells+'</tr>'
+      +'<tr class="'+r2+'">'
+      +'<td class="hp">'+rm(r.loan_price)+'</td>'
+      +'<td class="loan">'+(loan>0?'RM '+Math.round(loan).toLocaleString():'—')+'</td>'
+      +'<td class="sub">'+rm(r.road_tax_1yr)+'</td>'
+      +'<td class="sub">'+rm(r.insurance_1st)+'</td>'
+      +'<td class="sub">'+(r.ins1p?rm(r.ins1p):'—')+'</td>'
+      +'<td class="sub">'+rm(r.insurance_3rd)+'</td>'
+      +'</tr>'
+      +(r.notes?'<tr><td colspan="10" style="font-size:7px;color:#888;padding:2px 5px;border-top:none">'+esc(r.notes)+'</td></tr>':'');
+    idx++;
+  });
+  var dateStr=pdfDateStr();
+  var colgroup='<colgroup><col style="width:12%"><col style="width:18%"><col style="width:9%"><col style="width:9%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>';
+  var thead='<thead><tr>'
+    +'<th class="left" rowspan="2">Plate</th><th class="left" rowspan="2">Brand / Model</th>'
+    +'<th>Cash</th><th>DP</th>'
+    +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+    +'</tr><tr>'
+    +'<th class="r2">HP</th><th class="r2">Loan</th>'
+    +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th><th class="r2">Ins 3rd</th>'
+    +'</tr></thead>';
+  var inner='<div class="pl-pdf-hdr">'
+    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
+    +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
+    +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
+    +'<div class="pl-pdf-footer-note">For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+  ge('plPdfInner').innerHTML=inner;
+  ge('plPdfSheet').style.display='block';
+  document.body.style.overflow='hidden';
+  ge('pdfFontSizeLabel').textContent=pdfFontSize+'px';
+  setTimeout(applyPdfFontSize,50);
 }
 
 /* ── Trash ── */
@@ -4111,8 +4249,9 @@ function renderUPCard(r,expanded,canEdit){
   }
   var yrHdr=yrcols.map(function(yr){return '<th style="text-align:center;font-size:9px;color:#2a4a6a;padding:4px 6px">'+yr+'yr</th>';}).join('');
   var html='<div style="border:1px solid #161b22;border-radius:8px;margin-bottom:6px;overflow:hidden;background:'+(expanded?'#060b12':'#0d1117')+(r.is_sold?';opacity:.6':'') +'">'
-    +'<div onclick="upSelectEntry('+r.id+')" style="display:flex;align-items:center;padding:10px 14px;gap:10px;cursor:pointer">'
-      +'<div style="flex:1;min-width:0">'
+    +'<div style="display:flex;align-items:center;padding:10px 14px;gap:10px;cursor:pointer">'
+      +(_upPrintMode?'<input type="checkbox" '+(_upChecked.has(r.id)?'checked ':' ')+'onchange="upToggleCheck('+r.id+')" onclick="event.stopPropagation()" style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">':'')
+      +'<div onclick="upSelectEntry('+r.id+')" style="flex:1;min-width:0">'
         +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
           +'<span style="font-size:13px;font-weight:700;color:#60a5fa;font-family:monospace">'+esc(r.plate_no||'—')+'</span>'
           +(r.is_sold?'<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:#2a1a0a;color:#f0883e;border:1px solid #8b4513">Sold</span>':'')
@@ -4127,7 +4266,7 @@ function renderUPCard(r,expanded,canEdit){
           +(rtax?'<span style="font-size:10px;color:#4a6fa5;background:#0d1626;padding:1px 6px;border-radius:4px">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
         +'</div>'
       +'</div>'
-      +(canEdit?'<div style="display:flex;gap:5px;flex-shrink:0">'
+      +(canEdit&&!_upPrintMode?'<div style="display:flex;gap:5px;flex-shrink:0">'
         +'<button onclick="event.stopPropagation();openUPModal('+r.id+')" style="padding:3px 9px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>'
         +'<button onclick="event.stopPropagation();deleteUP('+r.id+')" style="padding:3px 9px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">🗑</button>'
         +'</div>':'')
