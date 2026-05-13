@@ -1204,11 +1204,14 @@ body.theme-white .home-welcome{color:#555}
       <div id="plNewToolbar" style="padding:10px 12px 8px;position:sticky;top:0;background:#0d1117;z-index:2;border-bottom:1px solid #0d1626">
         <div style="display:flex;gap:8px;align-items:center">
           <input id="plNewSearch" oninput="renderNewVehicleList()" placeholder="🔍  Search model..." style="flex:1;padding:7px 12px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none;box-sizing:border-box">
-          <button id="plPrintBtn" onclick="plOpenPrint()" style="padding:6px 12px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🖨 Print</button>
+          <button id="plPrintModeBtn" onclick="plTogglePrintMode()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🖨 Print Mode</button>
+          <button id="plTrashBtn" onclick="plToggleTrash()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🗑</button>
+          <button id="plLogBtn" onclick="plToggleLog()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">📋 Log</button>
         </div>
-        <div id="plNewEditBar" style="display:none;margin-top:8px;display:none">
+        <div id="plNewEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px">
           <button onclick="openPLForm(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ New Entry</button>
-          <span id="plChkLabel" style="font-size:10px;color:#4a6fa5;margin-left:8px"></span>
+          <button id="plPrintSelBtn" onclick="plPrintSelected()" style="display:none;padding:5px 14px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Print Selected</button>
+          <span id="plChkLabel" style="font-size:10px;color:#4a6fa5"></span>
         </div>
       </div>
       <div id="newVehicleList" style="font-size:12px;color:#4a6fa5">Loading...</div>
@@ -2527,6 +2530,12 @@ async function sbDelete(table,match){
   var r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{method:'DELETE',headers:sbHeaders()});
   return r.ok;
 }
+async function sbPatch(table,match,data){
+  var params=Object.entries(match).map(function(kv){return kv[0]+'=eq.'+encodeURIComponent(kv[1]);}).join('&');
+  var headers=Object.assign({},sbHeaders(),{'Prefer':'return=minimal'});
+  var r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{method:'PATCH',headers:headers,body:JSON.stringify(data)});
+  return r.ok;
+}
 
 /* ── Simple SHA-256 for password hashing ── */
 async function sha256(msg){
@@ -3322,33 +3331,37 @@ var _plEditingId=null;
 var _plChecked=new Set();
 var _plMinInst=0;
 var _plLoaded=false;
+var _plPrintMode=false;
+var _plTrashMode=false;
+var _plLogOpen=false;
+var _plLogData=[];
 
+/* ── Load ── */
 function switchPLTab(tab){
   _plCurrentTab=tab;
   var act='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
   var inact='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
-  var tn=ge('plTabNew');var tu=ge('plTabUsed');
-  if(tn)tn.style.cssText=tab==='new'?act:inact;
-  if(tu)tu.style.cssText=tab==='used'?act:inact;
+  if(ge('plTabNew'))ge('plTabNew').style.cssText=tab==='new'?act:inact;
+  if(ge('plTabUsed'))ge('plTabUsed').style.cssText=tab==='used'?act:inact;
   var np=ge('plPanelNew');var up=ge('plPanelUsed');
   if(np)np.style.display=tab==='new'?'block':'none';
   if(up)up.style.display=tab==='used'?'block':'none';
-  var addBtn=ge('upAddEditBtn');
-  if(addBtn)addBtn.style.display=(tab==='used'&&_editMode)?'':'none';
+  var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display=(tab==='used'&&_editMode)?'':'none';
   if(tab==='used'&&!_upData.length)loadUPData();
-  if(tab==='new'){plSyncEditBar();renderNewVehicleList();}
+  if(tab==='new'){plSyncToolbar();renderNewVehicleList();}
 }
 
 async function loadPricelistModule(){
   _plCurrentTab='new';
+  _plPrintMode=false;_plTrashMode=false;_plLogOpen=false;
   var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display='none';
-  var np=ge('plPanelNew');var up=ge('plPanelUsed');
-  if(np)np.style.display='block';if(up)up.style.display='none';
+  if(ge('plPanelNew'))ge('plPanelNew').style.display='block';
+  if(ge('plPanelUsed'))ge('plPanelUsed').style.display='none';
   var wrap=ge('newVehicleList');
   if(wrap)wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading...</div>';
   try{
     var rows=await sbGet('pricelist','order=brand.asc,model.asc');
-    _plData=rows||[];
+    _plData=(rows||[]).filter(function(r){return !r.is_deleted;});
     if(window.PL)PL.list=_plData;
     var mfRows=await sbGet('max_finance','order=brand.asc');
     _plMFData=mfRows||[];
@@ -3356,45 +3369,42 @@ async function loadPricelistModule(){
     _plMinInst=cfg&&cfg[0]?parseFloat(cfg[0].value)||0:0;
   }catch(e){_plData=[];_plMFData=[];}
   _plLoaded=true;
-  plSyncEditBar();
+  plSyncToolbar();
   renderNewVehicleList();
 }
 
-function plSyncEditBar(){
-  var eb=ge('plNewEditBar');
-  if(!eb)return;
-  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
-  eb.style.display=canEdit?'flex':'none';
-  var lbl=ge('plChkLabel');
-  if(lbl){var n=_plChecked.size;lbl.textContent=n?n+' selected for print':'';}
-}
-
 function renderPricelistModule(){
-  var addBtn=ge('upAddEditBtn');
-  if(addBtn)addBtn.style.display=(_plCurrentTab==='used'&&_editMode)?'':'none';
-  plSyncEditBar();
+  var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display=(_plCurrentTab==='used'&&_editMode)?'':'none';
+  plSyncToolbar();
   if(_plCurrentTab==='used')renderUPList();
   else renderNewVehicleList();
 }
 
-function plMfLookup(brand,model){
-  var src=_plMFData.length?_plMFData:(window.MF||[]);
-  var m=src.find(function(x){
-    return (x.brand||'').toLowerCase().trim()===(brand||'').toLowerCase().trim()
-        &&(x.model||'').toLowerCase().trim()===(model||'').toLowerCase().trim();
-  });
-  return m!=null?parseFloat(m.amt):null;
+/* ── Toolbar sync ── */
+function plSyncToolbar(){
+  var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  var eb=ge('plNewEditBar');if(eb)eb.style.display=canEdit?'flex':'none';
+  var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
+  var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'':'none';
+  var lb=ge('plLogBtn');if(lb)lb.style.display=canEdit?'':'none';
+  // Print mode button state
+  if(pb){pb.textContent='🖨 Print Mode'+(''!==''?'':_plPrintMode?' ON':'');pb.style.background=_plPrintMode?'#1a3a1a':'none';pb.style.color=_plPrintMode?'#3fb950':'#8b949e';pb.style.borderColor=_plPrintMode?'#238636':'#30363d';}
+  // Print selected button
+  var ps=ge('plPrintSelBtn');if(ps)ps.style.display=(_plPrintMode&&_plChecked.size>0)?'':'none';
+  var lbl=ge('plChkLabel');if(lbl)lbl.textContent=_plPrintMode&&_plChecked.size?_plChecked.size+' selected':'';
 }
 
-function plCalcInst(loan,rate,yr){
-  if(!loan||loan<=0||!rate||!yr)return null;
-  return Math.ceil(loan*(1+rate/100*yr)/(yr*12));
-}
-
+/* ── Render list ── */
 function renderNewVehicleList(){
   var wrap=ge('newVehicleList');if(!wrap)return;
   if(!_plLoaded){wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading...</div>';return;}
   var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+
+  // Trash view
+  if(_plTrashMode){renderPlTrash(canEdit);return;}
+  // Log view
+  if(_plLogOpen){renderPlLog();return;}
+
   var q=((ge('plNewSearch')&&ge('plNewSearch').value)||'').toLowerCase().trim();
   var items=_plData.slice();
   if(q)items=items.filter(function(e){return((e.brand||'')+' '+(e.model||'')).toLowerCase().indexOf(q)>=0;});
@@ -3419,59 +3429,40 @@ function renderNewVehicleList(){
       +'</div>'
       +'<div id="plBody_'+bid+'" style="display:'+(isOpen?'block':'none')+'">';
     entries.forEach(function(e){
-      var isExpanded=_plSelectedId===e.id;
-      var isEditing=_plEditingId===e.id;
-      html+=renderNVCard(e,isExpanded,isEditing,canEdit);
+      html+=renderNVCard(e,_plSelectedId===e.id,_plEditingId===e.id,canEdit);
     });
     html+='</div></div>';
   });
   wrap.innerHTML=html;
-  plSyncEditBar();
+  plSyncToolbar();
 }
 
+/* ── Card ── */
 function renderNVCard(e,expanded,editing,canEdit){
-  var cash=parseFloat(e.cash)||0;
-  var hp=parseFloat(e.hp)||0;
-  var dpk=parseFloat(e.dpk)||0;
-  var ins1=parseFloat(e.ins1)||0;
-  var ins1p=parseFloat(e.ins1p)||0;
-  var ins3=parseFloat(e.ins3)||0;
-  var rtax=parseFloat(e.rtax)||0;
-  var hand=parseFloat(e.hand)||0;
-  var other=parseFloat(e.other)||0;
-  var pa=parseFloat(e.pa)||0;
-  var aeon_pa=parseFloat(e.aeon_pa)||0;
+  var cash=parseFloat(e.cash)||0,hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
+  var ins1=parseFloat(e.ins1)||0,ins1p=parseFloat(e.ins1p)||0,ins3=parseFloat(e.ins3)||0;
+  var rtax=parseFloat(e.rtax)||0,hand=parseFloat(e.hand)||0,other=parseFloat(e.other)||0;
+  var pa=parseFloat(e.pa)||0,aeon_pa=parseFloat(e.aeon_pa)||0;
   var loanyear=parseInt(e.loanyear)||7;
-  var tsp=cash+hand+other+ins1+rtax;
-  var kloan=hp-dpk;
+  var tsp=cash+hand+other+ins1+rtax,kloan=hp-dpk;
   var mf=plMfLookup(e.brand,e.model);
-  var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
-  var aeonLoan=tsp-aeonDP;
-  var noMF=mf===null;
-  var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7];
-  var kedaiMax=5;
+  var aeonDP=mf!==null?Math.max(0,tsp-mf):0,aeonLoan=tsp-aeonDP,noMF=mf===null;
+  var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7],kedaiMax=5;
   var checked=_plChecked.has(e.id);
-
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
   function instCells(loan,rate,maxYr,color){
     return yrcols.map(function(yr){
-      if(yr>maxYr)return '<td style="text-align:center;color:#2a4a6a;padding:6px 6px">—</td>';
+      if(yr>maxYr)return '<td style="text-align:center;color:#2a4a6a;padding:6px">—</td>';
       var v=plCalcInst(loan,rate,yr);
-      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;padding:6px 6px">—</td>';
-      return '<td style="text-align:center;font-size:12px;font-weight:700;color:'+color+';padding:6px 6px">'+Math.round(v).toLocaleString()+'</td>';
+      if(!v||(_plMinInst&&v<_plMinInst))return '<td style="text-align:center;color:#2a4a6a;padding:6px">—</td>';
+      return '<td style="text-align:center;font-size:12px;font-weight:700;color:'+color+';padding:6px">'+Math.round(v).toLocaleString()+'</td>';
     }).join('');
   }
   var yrHdr=yrcols.map(function(yr){return '<th style="text-align:center;font-size:9px;color:#2a4a6a;padding:4px 6px">'+yr+'yr</th>';}).join('');
-
-  var cardBg=(expanded||editing)?'#080d16':'#0d1117';
-  var html='<div style="border-top:1px solid #0d1626;background:'+cardBg+'">'
-    // Header row — checkbox + model name + edit buttons + expand arrow
+  var html='<div style="border-top:1px solid #0d1626;background:'+(expanded||editing?'#080d16':'#0d1117')+'">'
     +'<div style="display:flex;align-items:center;padding:10px 14px;gap:8px">'
-      // Checkbox always visible for print selection
-      +'<input type="checkbox" '+(checked?'checked ':' ')
-        +'onchange="plToggleCheck(\''+e.id+'\')" onclick="event.stopPropagation()" '
-        +'style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">'
-      // Model info — click to expand
+      // Checkbox — only in print mode
+      +(_plPrintMode?'<input type="checkbox" '+(checked?'checked ':' ')+'onchange="plToggleCheck(\''+e.id+'\')" onclick="event.stopPropagation()" style="width:14px;height:14px;accent-color:#3b82f6;flex-shrink:0;cursor:pointer">':'')
       +'<div onclick="plSelectEntry(\''+e.id+'\')" style="flex:1;min-width:0;cursor:pointer">'
         +'<div style="font-size:13px;font-weight:600;color:#e6edf3">'+esc(e.model||'—')+'</div>'
         +'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">'
@@ -3481,42 +3472,30 @@ function renderNVCard(e,expanded,editing,canEdit){
           +(rtax?'<span style="font-size:11px;color:#8b949e">RTax RM'+Math.round(rtax).toLocaleString()+'</span>':'')
         +'</div>'
       +'</div>'
-      // Edit mode buttons
-      +(canEdit?
+      +(canEdit&&!_plPrintMode?
         '<div style="display:flex;gap:5px;flex-shrink:0">'
           +'<button onclick="event.stopPropagation();plStartEdit(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>'
           +'<button onclick="event.stopPropagation();plCloneEntry(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Clone</button>'
-          +'<button onclick="event.stopPropagation();plDeleteEntry(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">Del</button>'
+          +'<button onclick="event.stopPropagation();plSoftDelete(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">🗑</button>'
         +'</div>':'')
       +'<span onclick="plSelectEntry(\''+e.id+'\')" style="color:#4a6fa5;font-size:11px;cursor:pointer;flex-shrink:0">'+(expanded||editing?'▲':'▼')+'</span>'
     +'</div>';
-
   if(editing){
-    // Inline edit form
     html+=renderNVEditForm(e);
   } else if(expanded){
-    // Detail view
     html+='<div style="padding:0 16px 14px">'
       +'<table style="width:100%;border-collapse:collapse;margin-bottom:10px">'
         +'<thead><tr><th style="text-align:left;font-size:9px;color:#2a4a6a;padding:4px 8px 4px 0;min-width:70px"></th>'+yrHdr+'</tr></thead>'
         +'<tbody>'
-        +(kloan>0&&pa?'<tr style="border-top:1px solid #0d1626">'
-          +'<td style="font-size:10px;color:#58a6ff;padding:6px 8px 6px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'
-          +instCells(kloan,pa,kedaiMax,'#58a6ff')+'</tr>':'')
-        +(tsp>0?'<tr style="border-top:1px solid #0d1626">'
-          +'<td style="font-size:10px;color:#d2a8ff;padding:6px 8px 6px 0;white-space:nowrap">AEON<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'
-          +(aeon_pa?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff'):'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')
-          +'</tr>':'')
+        +(kloan>0&&pa?'<tr style="border-top:1px solid #0d1626"><td style="font-size:10px;color:#58a6ff;padding:6px 8px 6px 0;white-space:nowrap">Kedai<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(dpk).toLocaleString()+'</span></td>'+instCells(kloan,pa,kedaiMax,'#58a6ff')+'</tr>':'')
+        +(tsp>0?'<tr style="border-top:1px solid #0d1626"><td style="font-size:10px;color:#d2a8ff;padding:6px 8px 6px 0;white-space:nowrap">AEON<br><span style="font-size:9px;color:#2a4a6a">DP RM'+Math.round(aeonDP).toLocaleString()+'</span></td>'+(aeon_pa?instCells(aeonLoan,aeon_pa,loanyear,'#d2a8ff'):'<td colspan="'+yrcols.length+'" style="font-size:10px;color:#2a4a6a;text-align:center;padding:5px">No AEON rate set</td>')+'</tr>':'')
         +'</tbody></table>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 16px;font-size:11px;border-top:1px solid #0d1626;padding-top:8px">'
-        +plDRow('Ins 1st',rm(ins1),'#c9d1d9')
-        +plDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
-        +plDRow('Ins 3rd',rm(ins3),'#c9d1d9')
-        +plDRow('Road Tax',rm(rtax),'#c9d1d9')
-        +plDRow('HP',rm(hp),'#c9d1d9')
-        +plDRow('Cash OTR',rm(cash+ins1+rtax),'#3fb950')
+        +plDRow('Ins 1st',rm(ins1),'#c9d1d9')+plDRow('Ins 1st+',ins1p?rm(ins1p):'—','#f0c060')
+        +plDRow('Ins 3rd',rm(ins3),'#c9d1d9')+plDRow('Road Tax',rm(rtax),'#c9d1d9')
+        +plDRow('HP',rm(hp),'#c9d1d9')+plDRow('Cash OTR',rm(cash+ins1+rtax),'#3fb950')
         +plDRow('AEON DP','RM '+Math.round(aeonDP).toLocaleString()+(noMF?' (no MF)':''),'#d2a8ff')
-        +(canEdit?plDRow('TSP',tsp?rm(tsp):'—','#8b949e'):'')
+        +(canEdit?plDRow('TSP',rm(tsp),'#8b949e'):'')
         +(canEdit?plDRow('Ins SUM',rm(parseFloat(e.inssum))):'')
         +(canEdit?plDRow('Kedai PA',pa?pa+'% p.a.':'—','#8b949e'):'')
         +(canEdit?plDRow('AEON PA',aeon_pa?aeon_pa+'% p.a.':'—','#8b949e'):'')
@@ -3524,73 +3503,41 @@ function renderNVCard(e,expanded,editing,canEdit){
       +'</div>'
     +'</div>';
   }
-
-  html+='</div>';
-  return html;
+  return html+'</div>';
 }
 
+/* ── Inline edit form ── */
 function renderNVEditForm(e){
   function fld(id,label,val,type){
-    type=type||'number';
-    return '<div>'
-      +'<label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">'+label+'</label>'
-      +'<input id="plef_'+id+'" type="'+type+'" value="'+(val!=null?val:'')+'" '
-        +'style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box" oninput="plEfCalc(\''+e.id+'\')">'
-      +'</div>';
+    return '<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">'+label+'</label>'
+      +'<input id="plef_'+id+'" type="'+(type||'number')+'" value="'+(val!=null?val:'')+'" '
+      +'style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box" oninput="plEfCalc(\''+e.id+'\')"></div>';
   }
+  var lySel='<select id="plef_loanyear" style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">'
+    +[5,7,1,2,3,4,6].map(function(yr){return '<option value="'+yr+'"'+(parseInt(e.loanyear||7)===yr?' selected':'')+'>'+yr+'yr'+(yr===5?' (Moped)':yr===7?' (Big Bike)':'')+'</option>';}).join('')+'</select>';
   var s='<div style="padding:0 16px 14px;background:#0a0f1a">'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">'
-      +'<div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">'
-        +fld('brand','Brand',e.brand,'text')
-        +fld('model','Model',e.model,'text')
-      +'</div>'
-      // Pricing
-      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Pricing</div>'
-      +fld('cash','Cash Price (RM)',e.cash)
-      +fld('hp','HP / TSP Input (RM)',e.hp)
-      +fld('dpk','Kedai DP (RM)',e.dpk)
-      +'<div>'
-        +'<label style="font-size:9px;color:#3fb950;display:block;margin-bottom:2px">Cash OTR <span style="color:#2a4a6a">(auto)</span></label>'
-        +'<div id="plef_otr_'+e.id+'" style="padding:5px 8px;background:#0a0f1a;border:1px solid #0d1626;border-radius:5px;font-size:11px;color:#3fb950">—</div>'
-      +'</div>'
-      // Rates
-      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Interest Rates</div>'
-      +fld('pa','Kedai PA %',e.pa)
-      +fld('aeon_pa','AEON PA %',e.aeon_pa)
-      +'<div>'
-        +'<label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Loan Year</label>'
-        +'<select id="plef_loanyear" style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">'
-          +'<option value="5"'+(parseInt(e.loanyear)===5?' selected':'')+'>5yr (Moped)</option>'
-          +'<option value="7"'+(!e.loanyear||parseInt(e.loanyear)===7?' selected':'')+'>7yr (Big Bike)</option>'
-          +'<option value="1"'+(parseInt(e.loanyear)===1?' selected':'')+'>1yr</option>'
-          +'<option value="2"'+(parseInt(e.loanyear)===2?' selected':'')+'>2yr</option>'
-          +'<option value="3"'+(parseInt(e.loanyear)===3?' selected':'')+'>3yr</option>'
-          +'<option value="4"'+(parseInt(e.loanyear)===4?' selected':'')+'>4yr</option>'
-          +'<option value="6"'+(parseInt(e.loanyear)===6?' selected':'')+'>6yr</option>'
-        +'</select>'
-      +'</div>'
-      +'<div><!-- spacer --></div>'
-      // Insurance
-      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Insurance</div>'
-      +fld('ins1','Ins 1st (RM)',e.ins1)
-      +fld('ins1p','Ins 1st+ (RM)',e.ins1p)
-      +fld('inssum','Ins SUM (RM)',e.inssum)
-      +fld('ins3','Ins 3rd (RM)',e.ins3)
-      // Fees
-      +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Fees</div>'
-      +fld('rtax','Road Tax (RM)',e.rtax)
-      +fld('hand','Handling Fee (RM)',e.hand)
-      +fld('other','Other Charges (RM)',e.other)
+    +'<div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">'+fld('brand','Brand',e.brand,'text')+fld('model','Model',e.model,'text')+'</div>'
+    +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Pricing</div>'
+    +fld('cash','Cash Price (RM)',e.cash)+fld('hp','HP (RM)',e.hp)
+    +fld('dpk','Kedai DP (RM)',e.dpk)
+    +'<div><label style="font-size:9px;color:#3fb950;display:block;margin-bottom:2px">Cash OTR <span style="color:#2a4a6a">(auto)</span></label><div id="plef_otr_'+e.id+'" style="padding:5px 8px;background:#0a0f1a;border:1px solid #0d1626;border-radius:5px;font-size:11px;color:#3fb950">—</div></div>'
+    +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Interest Rates & Loan</div>'
+    +fld('pa','Kedai PA %',e.pa)+fld('aeon_pa','AEON PA %',e.aeon_pa)
+    +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Loan Year</label>'+lySel+'</div><div></div>'
+    +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Insurance</div>'
+    +fld('ins1','Ins 1st (RM)',e.ins1)+fld('ins1p','Ins 1st+ (RM)',e.ins1p)
+    +fld('inssum','Ins SUM (RM)',e.inssum)+fld('ins3','Ins 3rd (RM)',e.ins3)
+    +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Fees</div>'
+    +fld('rtax','Road Tax (RM)',e.rtax)+fld('hand','Handling (RM)',e.hand)
+    +'<div class="span2">'+fld('other','Other (RM)',e.other)+'</div>'
     +'</div>'
-    // Save/Clone/Delete bottom right
     +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">'
-      +'<button onclick="plDeleteEntry(\''+e.id+'\')" style="padding:5px 12px;background:none;border:1px solid #6a1818;border-radius:6px;color:#e24b4a;font-size:11px;cursor:pointer">Delete</button>'
+      +'<button onclick="plSoftDelete(\''+e.id+'\')" style="padding:5px 12px;background:none;border:1px solid #6a1818;border-radius:6px;color:#e24b4a;font-size:11px;cursor:pointer">🗑 Delete</button>'
       +'<button onclick="plCloneEntry(\''+e.id+'\')" style="padding:5px 12px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Clone</button>'
       +'<button onclick="plCancelEdit()" style="padding:5px 12px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Cancel</button>'
       +'<button onclick="plSaveEdit(\''+e.id+'\')" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">Save</button>'
-    +'</div>'
-  +'</div>';
-  // Trigger calc after render
+    +'</div></div>';
   setTimeout(function(){plEfCalc(e.id);},0);
   return s;
 }
@@ -3599,40 +3546,31 @@ function plEfCalc(id){
   var cash=parseFloat(ge('plef_cash')&&ge('plef_cash').value)||0;
   var ins1=parseFloat(ge('plef_ins1')&&ge('plef_ins1').value)||0;
   var rtax=parseFloat(ge('plef_rtax')&&ge('plef_rtax').value)||0;
-  var otr=cash+ins1+rtax;
   var el=ge('plef_otr_'+id);
-  if(el)el.textContent=otr>0?'RM '+Math.round(otr).toLocaleString():'—';
+  if(el)el.textContent=(cash+ins1+rtax)>0?'RM '+Math.round(cash+ins1+rtax).toLocaleString():'—';
 }
 
-function plStartEdit(id){
-  _plEditingId=id;
-  _plSelectedId=id;
-  renderNewVehicleList();
-}
-function plCancelEdit(){
-  _plEditingId=null;
-  renderNewVehicleList();
-}
+/* ── Edit actions ── */
+function plStartEdit(id){_plEditingId=id;_plSelectedId=id;renderNewVehicleList();}
+function plCancelEdit(){_plEditingId=null;renderNewVehicleList();}
 
-function plSaveEdit(id){
+async function plSaveEdit(id){
   function gv2(f){var el=ge('plef_'+f);return el?el.value:'';}
-  var brand=(gv2('brand')||'').trim();
-  var model=(gv2('model')||'').trim();
+  var brand=(gv2('brand')||'').trim(),model=(gv2('model')||'').trim();
   if(!brand||!model){alert('Brand and Model required.');return;}
-  var entry={
-    id:id,brand:brand,model:model,
+  var before=_plData.find(function(x){return x.id===id;})||null;
+  var entry={id:id,brand:brand,model:model,
     cash:gv2('cash'),hp:gv2('hp'),dpk:gv2('dpk'),
     pa:gv2('pa'),aeon_pa:gv2('aeon_pa'),loanyear:gv2('loanyear')||'7',
     ins1:gv2('ins1'),ins1p:gv2('ins1p'),inssum:gv2('inssum'),ins3:gv2('ins3'),
-    rtax:gv2('rtax'),hand:gv2('hand'),other:gv2('other')
-  };
+    rtax:gv2('rtax'),hand:gv2('hand'),other:gv2('other')};
   var idx=_plData.findIndex(function(x){return x.id===id;});
+  var isNew=idx<0;
   if(idx>=0)_plData[idx]=entry;else _plData.push(entry);
   if(window.PL)PL.list=_plData;
   plSaveLib();
-  logAction('edit_pricelist','pricelist',brand+' '+model,null,entry);
-  _plEditingId=null;
-  _plSelectedId=id;
+  await plLog(id,isNew?'create':'edit',isNew?null:before,entry);
+  _plEditingId=null;_plSelectedId=id;
   renderNewVehicleList();
 }
 
@@ -3643,109 +3581,230 @@ function plCloneEntry(id){
   _plData.push(clone);
   if(window.PL)PL.list=_plData;
   plSaveLib();
-  _plEditingId=clone.id;
-  _plSelectedId=clone.id;
+  plLog(clone.id,'create',null,clone);
+  _plEditingId=clone.id;_plSelectedId=clone.id;
   _plExpandedBrands[clone.brand]=true;
   renderNewVehicleList();
 }
 
-function plDeleteEntry(id){
+async function plSoftDelete(id){
   var e=_plData.find(function(x){return x.id===id;});
-  if(!e||!confirm('Delete '+e.brand+' '+e.model+'?'))return;
+  if(!e||!confirm('Move "'+e.brand+' '+e.model+'" to trash?'))return;
+  await sbPatch('pricelist',{id:id},{is_deleted:true});
+  await plLog(id,'delete',e,null);
   _plData=_plData.filter(function(x){return x.id!==id;});
   if(window.PL)PL.list=_plData;
   _plChecked.delete(id);
-  plSaveLib();
-  if(currentUser)sbDelete('pricelist',{id:id});
-  logAction('delete_pricelist','pricelist',e.brand+' '+e.model,e,null);
   if(_plEditingId===id)_plEditingId=null;
   if(_plSelectedId===id)_plSelectedId=null;
   renderNewVehicleList();
 }
 
+function openPLForm(id){
+  if(id)plStartEdit(id);
+  else{
+    var newId='pl_'+Date.now();
+    var blank={id:newId,brand:'',model:'',cash:'',hp:'',dpk:'',pa:'',aeon_pa:'',loanyear:'7',ins1:'',ins1p:'',inssum:'',ins3:'',rtax:'',hand:'',other:''};
+    _plData.unshift(blank);
+    if(window.PL)PL.list=_plData;
+    _plEditingId=newId;_plSelectedId=newId;
+    renderNewVehicleList();
+  }
+}
+
+/* ── Print mode ── */
+function plTogglePrintMode(){
+  _plPrintMode=!_plPrintMode;
+  if(!_plPrintMode)_plChecked.clear();
+  plSyncToolbar();renderNewVehicleList();
+}
 function plToggleCheck(id){
   if(_plChecked.has(id))_plChecked.delete(id);else _plChecked.add(id);
-  plSyncEditBar();
+  plSyncToolbar();
 }
-
-function plToggleBrand(bid){
-  var item=_plData.find(function(e){return (e.brand||'—').replace(/[^a-z0-9]/gi,'_')===bid;});
-  var brand=item?(item.brand||'—'):'—';
-  _plExpandedBrands[brand]=_plExpandedBrands[brand]===false?true:false;
-  var body=ge('plBody_'+bid);
-  var arrow=ge('plArr_'+bid);
-  var open=_plExpandedBrands[brand]!==false;
-  if(body)body.style.display=open?'block':'none';
-  if(arrow)arrow.style.transform=open?'rotate(90deg)':'rotate(0deg)';
-}
-
-function plSelectEntry(id){
-  if(_plEditingId)return;// don't collapse while editing
-  _plSelectedId=_plSelectedId===id?null:id;
-  renderNewVehicleList();
-}
-
-function plDRow(label,val,color){
-  return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a0f1a">'
-    +'<span style="color:#4a6fa5">'+label+'</span>'
-    +'<span style="font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span></div>';
-}
-
-function plOpenPrint(){
+function plPrintSelected(){
   var ids=Array.from(_plChecked);
-  if(!ids.length){
-    // Select all if none checked
-    _plData.forEach(function(e){_plChecked.add(e.id);});
-    plSyncEditBar();
-    renderNewVehicleList();
-    alert('All entries selected. Click Print again to print.');
-    return;
-  }
+  if(!ids.length)return;
   var entries=_plData.filter(function(e){return _plChecked.has(e.id);});
-  // Generate a simple print window
   var rows=entries.map(function(e){
-    var cash=parseFloat(e.cash)||0;var ins1=parseFloat(e.ins1)||0;var rtax=parseFloat(e.rtax)||0;
+    var cash=parseFloat(e.cash)||0,ins1=parseFloat(e.ins1)||0,rtax=parseFloat(e.rtax)||0;
     return '<tr><td>'+esc(e.brand)+'</td><td>'+esc(e.model)+'</td>'
       +'<td style="text-align:right">RM '+Math.round(cash+ins1+rtax).toLocaleString()+'</td>'
       +'<td style="text-align:right">RM '+Math.round(parseFloat(e.dpk)||0).toLocaleString()+'</td>'
       +'<td style="text-align:right">RM '+Math.round(ins1).toLocaleString()+'</td>'
-      +'<td style="text-align:right">RM '+Math.round(rtax).toLocaleString()+'</td>'
-      +'</tr>';
+      +'<td style="text-align:right">RM '+Math.round(rtax).toLocaleString()+'</td></tr>';
   }).join('');
   var win=window.open('','_blank','width=900,height=700');
   win.document.write('<html><head><title>Pricelist</title>'
     +'<style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px}th{background:#f0f0f0;font-weight:700}tr:nth-child(even){background:#f9f9f9}@media print{button{display:none}}</style>'
-    +'</head><body>'
-    +'<h2 style="margin-bottom:4px">HuangMotor Pricelist</h2>'
-    +'<p style="font-size:10px;color:#666;margin-bottom:12px">'+new Date().toLocaleDateString()+'</p>'
-    +'<table><thead><tr><th>Brand</th><th>Model</th><th>Cash OTR</th><th>KDP</th><th>Ins 1st</th><th>Road Tax</th></tr></thead>'
-    +'<tbody>'+rows+'</tbody></table>'
+    +'</head><body><h2>HuangMotor Pricelist</h2><p style="font-size:10px;color:#666">'+new Date().toLocaleDateString()+'</p>'
+    +'<table><thead><tr><th>Brand</th><th>Model</th><th>Cash OTR</th><th>KDP</th><th>Ins 1st</th><th>Road Tax</th></tr></thead><tbody>'+rows+'</tbody></table>'
     +'<button onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Print</button>'
     +'</body></html>');
   win.document.close();
 }
 
-// openPLForm — used by + New Entry button
-function openPLForm(id){
-  if(id){
-    plStartEdit(id);
+/* ── Trash ── */
+async function plToggleTrash(){
+  _plTrashMode=!_plTrashMode;
+  _plLogOpen=false;
+  if(_plTrashMode){
+    var btn=ge('plTrashBtn');if(btn){btn.style.background='#2a1a0a';btn.style.color='#f0883e';btn.style.borderColor='#8b4513';}
+    var rows=await sbGet('pricelist','is_deleted=eq.true&order=brand.asc,model.asc');
+    window._plTrashData=rows||[];
   } else {
-    // New entry — create blank entry and open edit form
-    var newId='pl_'+Date.now();
-    var blank={id:newId,brand:'',model:'',cash:'',hp:'',dpk:'',pa:'',aeon_pa:'',loanyear:'7',ins1:'',ins1p:'',inssum:'',ins3:'',rtax:'',hand:'',other:''};
-    _plData.unshift(blank);
-    if(window.PL)PL.list=_plData;
-    _plEditingId=newId;
-    _plSelectedId=newId;
-    // Expand first brand or create blank brand
-    renderNewVehicleList();
+    var btn=ge('plTrashBtn');if(btn){btn.style.background='none';btn.style.color='#8b949e';btn.style.borderColor='#30363d';}
   }
+  renderNewVehicleList();
+}
+function renderPlTrash(canEdit){
+  var wrap=ge('newVehicleList');if(!wrap)return;
+  var items=window._plTrashData||[];
+  if(!items.length){wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">Trash is empty</div>';return;}
+  var html='<div style="padding:12px">'
+    +'<div style="font-size:11px;color:#f0883e;margin-bottom:10px;display:flex;align-items:center;gap:8px">🗑 '+items.length+' deleted item'+(items.length>1?'s':'')
+    +(canEdit?'<button onclick="plEmptyTrash()" style="margin-left:auto;padding:3px 10px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">Empty Trash</button>':'')
+    +'</div>';
+  items.forEach(function(e){
+    html+='<div style="display:flex;align-items:center;padding:10px 12px;border:1px solid #2a1a0a;border-radius:7px;margin-bottom:6px;background:#0d0a06;gap:10px">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;font-weight:600;color:#8b6a4a">'+esc(e.brand)+' '+esc(e.model)+'</div>'
+        +'<div style="font-size:10px;color:#4a3a2a;margin-top:2px">Cash RM'+Math.round(parseFloat(e.cash)||0).toLocaleString()+'</div>'
+      +'</div>'
+      +(canEdit?'<button onclick="plRestoreEntry(\''+e.id+'\')" style="padding:4px 10px;background:none;border:1px solid #1a3a1a;border-radius:5px;color:#3fb950;font-size:10px;cursor:pointer">Restore</button>':'')
+      +(canEdit?'<button onclick="plPermDelete(\''+e.id+'\')" style="padding:4px 10px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">Delete Forever</button>':'')
+    +'</div>';
+  });
+  wrap.innerHTML=html+'</div>';
+}
+async function plRestoreEntry(id){
+  await sbPatch('pricelist',{id:id},{is_deleted:false});
+  var e=(window._plTrashData||[]).find(function(x){return x.id===id;});
+  if(e){e.is_deleted=false;_plData.push(e);if(window.PL)PL.list=_plData;}
+  await plLog(id,'restore',null,e||{id:id});
+  window._plTrashData=(window._plTrashData||[]).filter(function(x){return x.id!==id;});
+  renderNewVehicleList();
+}
+async function plPermDelete(id){
+  var e=(window._plTrashData||[]).find(function(x){return x.id===id;});
+  if(!e||!confirm('Permanently delete "'+e.brand+' '+e.model+'"? This cannot be undone.'))return;
+  await sbDelete('pricelist',{id:id});
+  window._plTrashData=(window._plTrashData||[]).filter(function(x){return x.id!==id;});
+  renderNewVehicleList();
+}
+async function plEmptyTrash(){
+  if(!confirm('Permanently delete ALL items in trash?'))return;
+  var items=window._plTrashData||[];
+  await Promise.all(items.map(function(e){return sbDelete('pricelist',{id:e.id});}));
+  window._plTrashData=[];
+  renderNewVehicleList();
 }
 
+/* ── Change log ── */
+async function plToggleLog(){
+  _plLogOpen=!_plLogOpen;
+  _plTrashMode=false;
+  var btn=ge('plLogBtn');
+  if(btn){btn.style.background=_plLogOpen?'#0d1e35':'none';btn.style.color=_plLogOpen?'#58a6ff':'#8b949e';btn.style.borderColor=_plLogOpen?'#1f6feb':'#30363d';}
+  if(_plLogOpen){
+    var rows=await sbGet('pricelist_log','order=created_at.desc&limit=100');
+    _plLogData=rows||[];
+  }
+  renderNewVehicleList();
+}
+function renderPlLog(){
+  var wrap=ge('newVehicleList');if(!wrap)return;
+  var isAdmin=currentUser.role==='admin';
+  var actionColor={'create':'#3fb950','edit':'#58a6ff','delete':'#e24b4a','restore':'#f0883e'};
+  if(!_plLogData.length){wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">No log entries yet</div>';return;}
+  var html='<div style="padding:12px">';
+  _plLogData.forEach(function(row){
+    var color=actionColor[row.action]||'#8b949e';
+    var dt=new Date(row.created_at);
+    var dtStr=dt.toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});
+    var after=row.after?JSON.parse(typeof row.after==='string'?row.after:JSON.stringify(row.after)):{};
+    var label=(after.brand||'')+(after.brand&&after.model?' ':'')+( after.model||row.entry_id);
+    html+='<div style="display:flex;align-items:flex-start;padding:8px 10px;border:1px solid #1e2d45;border-radius:7px;margin-bottom:5px;gap:10px;background:#0d1117">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+          +'<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:#0a0f1a;color:'+color+';border:1px solid '+color+';font-weight:700;text-transform:uppercase">'+esc(row.action)+'</span>'
+          +'<span style="font-size:12px;color:#e6edf3;font-weight:500">'+esc(label)+'</span>'
+        +'</div>'
+        +'<div style="font-size:10px;color:#4a6fa5;margin-top:3px">'+esc(dtStr)+' · '+esc(row.operator||'unknown')+'</div>'
+      +'</div>'
+      +(isAdmin&&row.action==='edit'&&row.before?
+        '<button onclick="plRevertEntry(\''+row.id+'\')" style="padding:3px 10px;background:none;border:1px solid #1e3a5f;border-radius:5px;color:#58a6ff;font-size:10px;cursor:pointer;flex-shrink:0">Revert</button>':'')
+    +'</div>';
+  });
+  wrap.innerHTML=html+'</div>';
+}
+async function plRevertEntry(logId){
+  var row=_plLogData.find(function(x){return x.id===logId;});
+  if(!row||!row.before)return;
+  var before=typeof row.before==='string'?JSON.parse(row.before):row.before;
+  if(!confirm('Revert "'+before.brand+' '+before.model+'" to previous version?'))return;
+  // Restore before state
+  var currentEntry=_plData.find(function(x){return x.id===row.entry_id;});
+  await plLog(row.entry_id,'edit',currentEntry||null,before);
+  // Patch DB
+  var idx=_plData.findIndex(function(x){return x.id===row.entry_id;});
+  if(idx>=0)_plData[idx]=Object.assign({},_plData[idx],before);
+  if(window.PL)PL.list=_plData;
+  plSaveLib();
+  // Refresh log
+  var rows=await sbGet('pricelist_log','order=created_at.desc&limit=100');
+  _plLogData=rows||[];
+  renderNewVehicleList();
+  toast('Reverted to previous version','success');
+}
+
+async function plLog(entryId,action,before,after){
+  try{
+    await sbPost('pricelist_log',{
+      entry_id:entryId,
+      action:action,
+      operator:currentUser?currentUser.username:'unknown',
+      before:before?JSON.stringify(before):null,
+      after:after?JSON.stringify(after):null
+    });
+  }catch(e){}
+}
+
+/* ── Helpers ── */
+function plMfLookup(brand,model){
+  var src=_plMFData.length?_plMFData:(window.MF||[]);
+  var m=src.find(function(x){
+    return (x.brand||'').toLowerCase().trim()===(brand||'').toLowerCase().trim()
+        &&(x.model||'').toLowerCase().trim()===(model||'').toLowerCase().trim();
+  });
+  return m!=null?parseFloat(m.amt):null;
+}
+function plCalcInst(loan,rate,yr){
+  if(!loan||loan<=0||!rate||!yr)return null;
+  return Math.ceil(loan*(1+rate/100*yr)/(yr*12));
+}
+function plDRow(label,val,color){
+  return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0a0f1a">'
+    +'<span style="color:#4a6fa5">'+label+'</span>'
+    +'<span style="font-weight:600;color:'+(color||'#c9d1d9')+'">'+val+'</span></div>';
+}
+function plToggleBrand(bid){
+  var item=_plData.find(function(e){return (e.brand||'—').replace(/[^a-z0-9]/gi,'_')===bid;});
+  var brand=item?(item.brand||'—'):'—';
+  _plExpandedBrands[brand]=_plExpandedBrands[brand]===false?true:false;
+  var body=ge('plBody_'+bid),arrow=ge('plArr_'+bid);
+  var open=_plExpandedBrands[brand]!==false;
+  if(body)body.style.display=open?'block':'none';
+  if(arrow)arrow.style.transform=open?'rotate(90deg)':'rotate(0deg)';
+}
+function plSelectEntry(id){
+  if(_plEditingId)return;
+  _plSelectedId=_plSelectedId===id?null:id;
+  renderNewVehicleList();
+}
 function initNewPLData(){
   if(!window._genInited){
-    window._genInited=true;
-    applyPermissions();
+    window._genInited=true;applyPermissions();
     loadAllFromCloud().then(function(){buildRows();buildGiftGroups();R();renderMFTable();renderPLList();startRealtimeSync();});
   }
 }
