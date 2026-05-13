@@ -416,7 +416,39 @@ body.logged-in{padding-top:36px}
 @media(max-width:1100px){.gw{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}}
 @media(max-width:700px){.gw{grid-template-columns:1fr}}
 
-/* ══ HOME SCREEN ══ */
+/* ══ THEME: WHITE BETA ══ */
+body.theme-white{background:#f5f5f0;color:#1a1a1a}
+body.theme-white .gw{background:#f5f5f0}
+body.theme-white #homeScreen{background:#f0efeb}
+body.theme-white .tool-card{background:#fff;border-color:#e0ddd5;color:#1a1a1a}
+body.theme-white .tool-card:hover{border-color:#3b82f6;background:#f0f7ff}
+body.theme-white .tc-name{color:#1a1a1a}
+body.theme-white .tc-desc{color:#666}
+body.theme-white .mod-topbar{background:#e8e7e2;border-bottom-color:#d0cfc9}
+body.theme-white .mod-title-bar{color:#1a1a1a}
+body.theme-white .mod-back{color:#555;border-color:#ccc}
+body.theme-white .mod-body{background:#f5f5f0}
+body.theme-white .up-table th{background:#e8e7e2;color:#555}
+body.theme-white .up-table td{color:#1a1a1a;border-bottom-color:#e0ddd5}
+body.theme-white .up-table tr:hover td{background:#e8e7e2}
+body.theme-white .up-inp{background:#fff;border-color:#ccc;color:#1a1a1a}
+body.theme-white .sk-sidebar{background:#e8e7e2;border-right-color:#d0cfc9}
+body.theme-white .sk-cat-btn{color:#555}
+body.theme-white .sk-cat-btn:hover,.sk-cat-btn.active{background:#d8d7d2;color:#1a1a1a}
+body.theme-white .sk-table th{background:#e8e7e2;color:#555}
+body.theme-white .sk-table td{color:#1a1a1a;border-bottom-color:#e0ddd5}
+body.theme-white .sv-list-panel{background:#e8e7e2;border-right-color:#d0cfc9}
+body.theme-white .sv-item{border-color:#d0cfc9}
+body.theme-white .sv-item-plate{color:#1a1a1a}
+body.theme-white .sv-item-meta{color:#666}
+body.theme-white .plp{background:#f8f7f3}
+body.theme-white .pl-item{background:#fff;border-color:#e0ddd5}
+body.theme-white .pl-item-name{color:#1a1a1a}
+body.theme-white .cp{background:#e8e7e2;color:#1a1a1a}
+body.theme-white #topBar{background:#e8e7e2;border-bottom-color:#d0cfc9}
+body.theme-white .tb-brand{color:#1a1a1a}
+body.theme-white .home-welcome{color:#555}
+
 #homeScreen{display:none;padding:32px 24px;background:#0d1117;min-height:calc(100vh - 36px)}
 .home-welcome{font-size:12px;color:#8b949e;margin-bottom:24px}
 .tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;max-width:900px}
@@ -669,6 +701,7 @@ body.logged-in{padding-top:36px}
   <span class="tb-sync" id="tbSync">✓ Synced</span>
   <button id="tbAdmin" onclick="openAdmin()" style="display:none;padding:3px 10px;border:1px solid #30363d;border-radius:5px;font-size:10px;cursor:pointer;background:none;color:#f0c040">⚙ Admin</button>
   <button class="tb-btn" onclick="window.open('https://team.huangmotor.com')" style="font-size:10px">🏢 Team</button>
+  <button class="tb-btn" onclick="toggleTheme()" id="themeBtn" title="Switch theme">🌙 Dark</button>
   <button class="tb-logout" onclick="doLogout()">Sign Out</button>
 </div>
 
@@ -2910,18 +2943,24 @@ async function loadUserTable(){
 }
 
 async function editUserPerms(username){
-  var rows=await sbGet('users','username=eq.'+encodeURIComponent(username)+'&select=username,role,can_access_tools,can_access_team,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_assign_task_dept,can_assign_task_cross,can_view_attendance,can_approve_leave,can_view_perf_own,can_view_perf_dept,can_view_perf_all');
+  var rows=await sbGet('users','username=eq.'+encodeURIComponent(username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_access_team,can_assign_task_dept,can_assign_task_cross,can_view_attendance,can_approve_leave,can_view_perf_own,can_view_perf_dept,can_view_perf_all');
   if(!rows.length)return;
   var u=rows[0];
   var isAdm=u.role==='admin';
-  var fields=[
-    ['can_access_tools','Tools Access'],['can_edit_pricelist','Edit Pricelist'],['can_edit_generator','Edit Generator'],
-    ['can_edit_mf','Edit Max Finance'],['is_viewer_mode','Viewer Mode (Tools)'],
-    ['can_access_team','Team Access'],['can_assign_task_dept','Assign Tasks (Dept)'],['can_assign_task_cross','Assign Tasks (Cross-dept)'],
-    ['can_view_attendance','View Attendance'],['can_approve_leave','Approve Leave'],
-    ['can_view_perf_own','View Own Performance'],['can_view_perf_dept','View Dept Performance'],['can_view_perf_all','View All Performance']
+  var toolsFields=[
+    ['can_access_tools','Access Tools'],
+    ['can_edit_pricelist','Edit New Pricelist (legacy)'],['can_edit_generator','Edit Generator'],['can_edit_mf','Edit Max Finance'],
+    ['is_viewer_mode','Viewer Mode'],
+    ['can_edit_new_pricelist','Edit New Pricelist'],['can_view_new_pricelist','View New Pricelist'],
+    ['can_edit_used_pricelist','Edit Used Pricelist'],['can_view_used_pricelist','View Used Pricelist'],
+    ['can_edit_stock_kit','Edit Stock Kit (w/ cost)'],['can_view_stock_kit','View Stock Kit'],
+    ['can_manage_service','Manage Service Orders'],['can_view_service','View Service Records']
   ];
-  var toolsFields=fields.slice(0,5);var teamFields=fields.slice(5);
+  var teamFields=[
+    ['can_access_team','Team Access'],['can_assign_task_dept','Assign Tasks (Dept)'],['can_assign_task_cross','Assign Tasks (Cross)'],
+    ['can_view_attendance','View Attendance'],['can_approve_leave','Approve Leave'],
+    ['can_view_perf_own','View Own Perf'],['can_view_perf_dept','View Dept Perf'],['can_view_perf_all','View All Perf']
+  ];
   var makeSection=function(title,flds,color){
     return '<div style="border:1px solid '+color+';border-radius:6px;overflow:hidden;margin-bottom:8px">'
       +'<div style="background:'+color+'22;padding:5px 8px;font-size:10px;font-weight:600;color:'+color+'">'+title+'</div>'
@@ -2937,13 +2976,14 @@ async function editUserPerms(username){
     +'<button class="pl-cancel-btn" onclick="closeAdmin();openAdmin()">Cancel</button>'
     +(isAdm?'':'<button class="pl-save-btn" onclick="saveUserPerms(\''+username+'\')">Save Permissions</button>')
     +'</div></div>';
-  // Replace users tab content temporarily
   ge('adminUsers').innerHTML=html;
 }
 
 async function saveUserPerms(username){
   var data={};
   ['can_access_tools','can_edit_pricelist','can_edit_generator','can_edit_mf','is_viewer_mode',
+   'can_edit_new_pricelist','can_view_new_pricelist','can_edit_used_pricelist','can_view_used_pricelist',
+   'can_edit_stock_kit','can_view_stock_kit','can_manage_service','can_view_service',
    'can_access_team','can_assign_task_dept','can_assign_task_cross','can_view_attendance',
    'can_approve_leave','can_view_perf_own','can_view_perf_dept','can_view_perf_all'].forEach(function(f){
     var el=document.querySelector('.eu_'+f);if(el)data[f]=el.checked;
@@ -3162,7 +3202,23 @@ function showLoginPrompt(){
   document.getElementById('loginScreen').style.display='flex';
 }
 
-/* ══ HOME / MODULE NAVIGATION ══ */
+/* ══ THEME TOGGLE ══ */
+function toggleTheme(){
+  var isWhite=document.body.classList.toggle('theme-white');
+  localStorage.setItem('hm_tools_theme',isWhite?'white':'dark');
+  var btn=document.getElementById('themeBtn');
+  if(btn)btn.textContent=isWhite?'☀ White (beta)':'🌙 Dark';
+}
+function initTheme(){
+  var saved=localStorage.getItem('hm_tools_theme');
+  if(saved==='white'){
+    document.body.classList.add('theme-white');
+    var btn=document.getElementById('themeBtn');
+    if(btn)btn.textContent='☀ White (beta)';
+  }
+}
+initTheme();
+</script>
 function showHome(){
   document.getElementById('homeScreen').style.display='block';
   document.getElementById('mainApp').style.display='none';
