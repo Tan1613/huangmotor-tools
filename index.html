@@ -2492,7 +2492,7 @@ async function doLogin(){
   btn.disabled=true;document.getElementById('loginSpinner').style.display='block';document.getElementById('loginErr').textContent='';
   try{
     var hash=await sha256(pass);
-    var rows=await sbGet('users','username=eq.'+encodeURIComponent(user)+'&select=username,role,password_hash,is_active,custom_role_id,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,can_access_tools,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare');
+    var rows=await sbGet('users','username=eq.'+encodeURIComponent(user)+'&select=username,role,password_hash,is_active,custom_role_id,can_access_tools,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare');
     if(!rows.length||rows[0].password_hash!==hash){
       document.getElementById('loginErr').textContent='Invalid username or password.';
       btn.disabled=false;document.getElementById('loginSpinner').style.display='none';return;
@@ -2580,96 +2580,40 @@ async function saveProfile(){
 }
 
 function applyPermissions(){
-  var isViewer=currentUser.role!=='admin'&&currentUser.is_viewer_mode===true;
-  var canEdit=!isViewer&&(currentUser.role==='admin'||currentUser.can_edit_pricelist!==false);
-  var canGen=!isViewer&&(currentUser.role==='admin'||currentUser.can_edit_generator!==false);
-  var canMF=!isViewer&&(currentUser.role==='admin'||currentUser.can_edit_mf!==false);
-
-  // ── VIEWER MODE ──
+  var isViewer=currentUser.role!=="admin"&&currentUser.is_viewer_mode===true;
+  var canEdit=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_new_pricelist);
+  var canGen=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_generator);
+  var canMF=!isViewer&&(currentUser.role==="admin"||currentUser.can_edit_mf);
   if(isViewer){
-    // Hide Pricelist columns except: Cash, HP, Ins1, InsSum, Ins3, RTax
-    // (handled in renderPLList/showPLDetail via isViewer check)
-    // Hide calc fields
-    ge('calcHandlingWrap').style.display='none';
-    ge('calcOtherWrap').style.display='none';
-    ge('calcTSPWrap').style.display='none';
-    ge('calcScenarioWrap').style.display='none';
-    ge('calcOTRWrap').style.display='';
-    ge('impAllBtn').style.display='none';
-    ge('mfSection').style.display='none';
-    ge('epPanel').style.display='none';
-    ge('ppPanel').style.display='none';
-    // Pricelist panel: hide New, Import, Export, Brand Order, PDF for viewer
-    document.querySelectorAll('.pl-new-btn,.plp-io,.pl-brand-panel').forEach(function(el){if(el)el.style.display='none';});
-    // Lock Motor Price and Road Tax - viewer cannot edit these
-    var cMotorEl=ge('cMotor');var cRtaxEl=ge('cRoadtax');
-    if(cMotorEl){cMotorEl.readOnly=true;cMotorEl.style.opacity='0.6';cMotorEl.style.cursor='not-allowed';}
-    if(cRtaxEl){cRtaxEl.readOnly=true;cRtaxEl.style.opacity='0.6';cRtaxEl.style.cursor='not-allowed';}
-    var pdfBtn=document.getElementById('plPdfBtn');if(pdfBtn)pdfBtn.style.display='none';
-    var pdfHint=document.getElementById('plPdfHint');if(pdfHint)pdfHint.style.display='none';
-    var saveBar=document.querySelector('.save-bar');if(saveBar)saveBar.style.display='none';
-    // Explicitly show Load to Calculator for viewer
-    var lcBtn=document.getElementById('plLoadCalcBtn');if(lcBtn)lcBtn.style.display='block';
-    var hint=document.getElementById('plLoadHint');if(hint)hint.textContent='Click entry to view · Load to fill calculator';
-    // Save bar
-    var sb=document.querySelector('.save-bar');if(sb)sb.style.display='none';
+    ge("calcHandlingWrap").style.display="none";
+    ge("calcOtherWrap").style.display="none";
+    ge("calcTSPWrap").style.display="none";
+    ge("calcScenarioWrap").style.display="none";
+    ge("calcOTRWrap").style.display="";
+    ge("impAllBtn").style.display="none";
+    ge("mfSection").style.display="none";
+    ge("epPanel").style.display="none";
+    ge("ppPanel").style.display="none";
+    document.querySelectorAll(".pl-new-btn,.plp-io,.pl-brand-panel").forEach(function(el){if(el)el.style.display="none";});
+    var pdfBtn=document.getElementById("plPdfBtn");if(pdfBtn)pdfBtn.style.display="none";
+    var sb=document.querySelector(".save-bar");if(sb)sb.style.display="none";
     return;
   }
-
-  // Reset viewer-hidden elements for non-viewer
-  ['calcHandlingWrap','calcOtherWrap','calcTSPWrap','calcScenarioWrap','mfSection','epPanel','ppPanel'].forEach(function(id){var el=ge(id);if(el)el.style.display='';});
-  ge('calcOTRWrap').style.display='none';
-  ge('impAllBtn').style.display='';
-  // Restore pricelist IO and PDF button for non-viewer
-  document.querySelectorAll('.plp-io,.pl-brand-panel').forEach(function(el){if(el)el.style.display='';});
-  var pdfBtn=document.getElementById('plPdfBtn');if(pdfBtn)pdfBtn.style.display='';
-  var pdfHint=document.getElementById('plPdfHint');if(pdfHint)pdfHint.style.display='';
-  var saveBar=document.querySelector('.save-bar');if(saveBar)saveBar.style.display='';
-  var lcBtn2=document.getElementById('plLoadCalcBtn');if(lcBtn2)lcBtn2.style.display='';
-  var hint2=document.getElementById('plLoadHint');if(hint2)hint2.textContent='Click entry to view · Double-click to edit';
-  // Motor Price and Road Tax: readonly for viewer (already handled in viewer block above)
-  var cMotorEl=ge('cMotor');var cRtaxEl=ge('cRoadtax');
-  if(cMotorEl){cMotorEl.readOnly=false;cMotorEl.style.opacity='';}
-  if(cRtaxEl){cRtaxEl.readOnly=false;cRtaxEl.style.opacity='';}
-
-  // Pricelist: hide add/edit/clone buttons if no permission
-  document.querySelectorAll('.pl-new-btn,.pl-save-btn,.pl-add-btn').forEach(function(el){el.style.display=canEdit?'':'none';});
-  var plCloneBtn=document.getElementById('plCloneBtn');
-  var plEditBtn=document.getElementById('plEditBtn');
-  if(plCloneBtn)plCloneBtn.style.display=canEdit?'':'none';
-  if(plEditBtn)plEditBtn.style.display=canEdit?'':'none';
-
-  // Generator: if no edit permission, make inputs readonly (not disabled - disabled breaks genCode/openPDF)
-  // Generate HTML and Quotation PDF are always accessible to everyone
-  if(!canGen){
-    document.querySelectorAll('.ep input,.ep textarea,.ep select').forEach(function(el){
-      el.readOnly=true;
-      el.style.opacity='0.6';
-      el.style.cursor='not-allowed';
-    });
-    document.querySelectorAll('.ep .btn:not(.btn-gen):not(.btn-pdf)').forEach(function(el){
-      el.disabled=true;
-      el.style.opacity='0.4';
-    });
-    // Hide + Add Row buttons and gift add buttons
-    document.querySelectorAll('.ep .seg-opt,.new-group-row,.gift-groups-toolbar').forEach(function(el){el.style.display='none';});
+  ["calcHandlingWrap","calcOtherWrap","calcTSPWrap","calcScenarioWrap","mfSection","epPanel","ppPanel"].forEach(function(id){var el=ge(id);if(el)el.style.display="";});
+  ge("calcOTRWrap").style.display="none";
+  ge("impAllBtn").style.display="";
+  document.querySelectorAll(".plp-io,.pl-brand-panel").forEach(function(el){if(el)el.style.display="";});
+  var pdfBtn=document.getElementById("plPdfBtn");if(pdfBtn)pdfBtn.style.display="";
+  var sb=document.querySelector(".save-bar");if(sb)sb.style.display="";
+  if(!canEdit){
+    document.querySelectorAll(".pl-new-btn,.pl-save-btn,.pl-add-btn").forEach(function(el){el.style.display="none";});
   }
-
-  // MF: show/hide add button and inputs based on canMF
-  var mfAdd=document.getElementById('mf_add_btn');
-  var mfBrand=document.getElementById('mfBrand');
-  var mfModel=document.getElementById('mfModel');
-  var mfAmt=document.getElementById('mfAmt');
+  if(!canGen){
+    document.querySelectorAll(".ep input,.ep textarea,.ep select").forEach(function(el){el.readOnly=true;el.style.opacity="0.6";});
+    document.querySelectorAll(".ep .seg-opt,.new-group-row,.gift-groups-toolbar").forEach(function(el){el.style.display="none";});
+  }
   if(!canMF){
-    if(mfAdd)mfAdd.style.display='none';
-    if(mfBrand)mfBrand.disabled=true;
-    if(mfModel)mfModel.disabled=true;
-    if(mfAmt)mfAmt.disabled=true;
-  } else {
-    if(mfAdd)mfAdd.style.display='';
-    if(mfBrand)mfBrand.disabled=false;
-    if(mfModel)mfModel.disabled=false;
-    if(mfAmt)mfAmt.disabled=false;
+    var mfAdd=document.getElementById("mf_add_btn");if(mfAdd)mfAdd.style.display="none";
   }
 }
 
@@ -3186,7 +3130,7 @@ window.addEventListener('beforeunload', function(){
   try{
     var s=JSON.parse(sess);
     if(s.module!=='tools'&&s.role!=='admin'){sessionStorage.removeItem('hm_session');showLoginPrompt();return;}
-    var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,can_edit_pricelist,can_edit_generator,can_edit_mf,is_viewer_mode,is_active,display_name,position,phone,email,department,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare');
+    var rows=await sbGet('users','username=eq.'+encodeURIComponent(s.username)+'&select=username,role,can_access_tools,is_active,display_name,position,phone,email,department,can_edit_new_pricelist,can_view_new_pricelist,can_edit_used_pricelist,can_view_used_pricelist,can_edit_stock_kit,can_view_stock_kit,can_manage_service,can_view_service,can_view_price_compare,can_edit_price_compare');
     if(!rows.length||rows[0].is_active===false||(!rows[0].can_access_tools&&rows[0].role!=='admin')){
       sessionStorage.removeItem('hm_session');showLoginPrompt();return;
     }
@@ -3234,30 +3178,28 @@ function showHome(){
   document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
   document.getElementById('homeUser').textContent=currentUser.display_name||currentUser.username;
   var isAdmin=currentUser.role==='admin';
-  var canViewPC=isAdmin||currentUser.can_view_price_compare||currentUser.can_edit_price_compare;
-  var canEditPC=isAdmin||currentUser.can_edit_price_compare;
-  var canEditNew=isAdmin||currentUser.can_edit_new_pricelist||currentUser.can_edit_pricelist;
+  var canEditNew=isAdmin||currentUser.can_edit_new_pricelist;
   var canViewNew=canEditNew||currentUser.can_view_new_pricelist;
   var canEditUsed=isAdmin||currentUser.can_edit_used_pricelist;
   var canViewUsed=canEditUsed||currentUser.can_view_used_pricelist;
+  var canViewPC=isAdmin||currentUser.can_view_price_compare||currentUser.can_edit_price_compare;
+  var canEditPC=isAdmin||currentUser.can_edit_price_compare;
   var canEditStock=isAdmin||currentUser.can_edit_stock_kit;
   var canViewStock=canEditStock||currentUser.can_view_stock_kit;
   var canManageSvc=isAdmin||currentUser.can_manage_service;
   var canViewSvc=canManageSvc||currentUser.can_view_service;
-  // Show/hide cards
   ge('tcNewPL').style.display=canViewNew?'':'none';
   ge('tcUsedPL').style.display=canViewUsed?'':'none';
   ge('tcPC').style.display=canViewPC?'':'none';
   ge('tcStock').style.display=canViewStock?'':'none';
   ge('tcService').style.display=canViewSvc?'':'none';
-  // Tags
-  var nt=ge('tcNewTag');if(nt)nt.textContent=canEditNew?'Edit':'View';
+  var nt=ge('tcNewTag');if(nt){nt.textContent=canEditNew?'Edit':'View';nt.className='tc-tag '+(canEditNew?'tc-tag-e':'tc-tag-v');}
   var ut=ge('tcUsedTag');if(ut){ut.textContent=canEditUsed?'Edit':'View';ut.className='tc-tag '+(canEditUsed?'tc-tag-e':'tc-tag-v');}
   var pct=ge('tcPCTag');if(pct){pct.textContent=canEditPC?'Edit':'View';pct.className='tc-tag '+(canEditPC?'tc-tag-e':'tc-tag-v');}
   var st=ge('tcStockTag');if(st){st.textContent=canEditStock?'Edit':'View';st.className='tc-tag '+(canEditStock?'tc-tag-e':'tc-tag-v');}
   var svt=ge('tcServiceTag');if(svt){svt.textContent=canManageSvc?'Manage':'View';svt.className='tc-tag '+(canManageSvc?'tc-tag-e':'tc-tag-v');}
-  // Store for use in modules
   currentUser._canEditPC=canEditPC;
+  currentUser._canEditNew=canEditNew;
 }
 
 function goHome(){
