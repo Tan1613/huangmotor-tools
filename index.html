@@ -5054,7 +5054,7 @@ function renderRmPerms(){
 
     // Rows
     html+='<div style="padding:8px 12px;display:grid;grid-template-columns:100px 1fr 1fr;gap:0" id="rmSec_'+sec.key+'"'
-      +(sec.gateId&&!gateChecked?' style="display:none!important"':'')+' >';
+      +(sec.gateId&&!gateChecked?' style="display:none"':'')+' >';
     // Column headers if any row has view/edit
     var hasViewEdit=sec.rows.some(function(r){return r.view;});
     if(hasViewEdit){
@@ -5095,11 +5095,8 @@ function renderRmPerms(){
 }
 
 function onRmGateChange(secKey){
-  var sections={
-    'tools-access':'rm_tools',
-    'team-access':'rm_team'
-  };
-  var gateId=sections[secKey];
+  var gateMap={'tools-access':'rm_tools','team-access':'rm_team'};
+  var gateId=gateMap[secKey];
   if(!gateId)return;
   var el=document.getElementById(gateId);
   if(el)rmPermState[gateId]={checked:el.checked,disabled:el.disabled};
@@ -5108,8 +5105,7 @@ function onRmGateChange(secKey){
 
 function applyRmGateVisibility(secKey,gateChecked){
   var secDiv=document.getElementById('rmSec_'+secKey);
-  if(secDiv)secDiv.style.display=gateChecked?'':'none';
-  // Update label
+  if(secDiv)secDiv.style.display=gateChecked?'grid':'none';
   var hdr=secDiv?secDiv.previousElementSibling:null;
   if(hdr){
     var span=hdr.querySelector('span[style*="margin-left:auto"]');
