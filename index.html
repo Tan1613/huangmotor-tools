@@ -1729,13 +1729,14 @@ function plFormCalc(){
   var kloan=hp-dpk;
   var mf=plMfLookup(brand,model);
   var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
+  var aeonLoan=tsp-aeonDP;
   function disp(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
   var tspEl=ge('plfp_tsp');var otrEl=ge('plfp_otr');
   var klEl=ge('plfp_kloan');var adpEl=ge('plfp_aeon_dp');
-  if(tspEl)tspEl.textContent=disp(tsp);
-  if(otrEl)otrEl.textContent=disp(otr);
-  if(klEl)klEl.textContent=kloan>0?'RM '+Math.round(kloan).toLocaleString():'—';
-  if(adpEl)adpEl.textContent=mf!==null?'RM '+Math.round(aeonDP).toLocaleString()+' (MF: RM'+Math.round(mf).toLocaleString()+')':(brand&&model?'No MF → Full loan':'Enter brand/model first');
+  if(tspEl)tspEl.textContent=disp(tsp)+' (cash+hand+other+ins1+rtax)';
+  if(otrEl)otrEl.textContent=disp(otr)+' (cash+ins1+rtax)';
+  if(klEl)klEl.textContent=kloan>0?'RM '+Math.round(kloan).toLocaleString()+' (HP−KDP)':'—';
+  if(adpEl)adpEl.textContent=mf!==null?'RM '+Math.round(aeonDP).toLocaleString()+' (TSP−MF RM'+Math.round(mf).toLocaleString()+')':(brand&&model?'No MF entry → Full loan (DP 0)':'Enter brand+model first');
   var otrDisp=ge('plf_cashotr_disp');
   if(otrDisp)otrDisp.textContent=otr>0?'RM '+Math.round(otr).toLocaleString():'—';
 }
@@ -3431,14 +3432,14 @@ function renderNewVehicleList(){
 
     entries.forEach(function(e){
       var isSelected=_plSelectedId===e.id;
-      var maxYr=parseInt(e.loanyear)||5;
-      // Build installment chips (1yr to maxYr, only show 3yr/5yr if available)
+      // Build installment chips — Kedai only (uses HP)
       var instChips='';
+      var maxYr=5;
       [1,2,3,4,5].forEach(function(yr){
         if(yr>maxYr)return;
         var inst=plInst(e.hp,e.dpk,e.pa,yr);
-        if(inst){
-          instChips+='<span style="font-size:10px;padding:2px 7px;border-radius:12px;background:#0d1626;color:#58a6ff;border:1px solid #1e3a5f;white-space:nowrap">'+yr+'yr RM'+Math.round(inst).toLocaleString()+'/mo</span>';
+        if(inst&&(!_plMinInstalment||inst>=_plMinInstalment)){
+          instChips+='<span style="font-size:10px;padding:2px 7px;border-radius:12px;background:#0d1626;color:#58a6ff;border:1px solid #1e3a5f;white-space:nowrap">K '+yr+'yr RM'+Math.round(inst).toLocaleString()+'/mo</span>';
         }
       });
       // Entry row
@@ -3512,7 +3513,8 @@ function renderNewPLDetail(e,canEdit){
   // Key prices
   html+=row('Cash Price',rmf(cash),'#f0f6fc');
   html+=row('Cash OTR',otr>0?'RM '+Math.round(otr).toLocaleString():'—','#3fb950');
-  html+=row('HP / TSP',rmf(hp),'#f0f6fc');
+  html+=row('HP (Hire Purchase)',rmf(hp),'#f0f6fc');
+  html+=row('TSP (AEON Base)',tsp>0?'RM '+Math.round(tsp).toLocaleString():'—','#c9d1d9');
   // Insurance
   html+=row('Ins 1st Party',rmf(ins1));
   if(ins1p)html+=row('Ins 1st Party+',rmf(ins1p),'#f0c060');
