@@ -1193,7 +1193,6 @@ body.theme-white .home-welcome{color:#555}
     <button class="mod-back" onclick="goHome()">← Home</button>
     <span class="mod-title-bar">🏍 Pricelist</span>
     <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" style="display:none;margin-left:8px">✏ Edit Mode</button>
-    <button class="up-add-btn" id="upAddBtn" onclick="openUPModal()" id="upAddEditBtn" style="margin-left:auto;display:none">+ Add Vehicle</button>
   </div>
   <div class="mod-body">
     <div style="display:flex;gap:0;border-bottom:1px solid #21262d;background:#161b22">
@@ -3378,7 +3377,7 @@ function switchPLTab(tab){
   var np=ge('plPanelNew');var up=ge('plPanelUsed');
   if(np)np.style.display=tab==='new'?'block':'none';
   if(up)up.style.display=tab==='used'?'block':'none';
-  var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display=(tab==='used'&&_editMode)?'':'none';
+  if(tab==='used')upSyncEditBar();
   if(tab==='used'&&!_upData.length)loadUPData();
   if(tab==='new'){plSyncToolbar();renderNewVehicleList();}
 }
@@ -3386,7 +3385,7 @@ function switchPLTab(tab){
 async function loadPricelistModule(){
   _plCurrentTab='new';
   _plPrintMode=false;_plTrashMode=false;_plLogOpen=false;_plExpandedBrands={};
-  var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display='none';
+  upSyncEditBar();
   if(ge('plPanelNew'))ge('plPanelNew').style.display='block';
   if(ge('plPanelUsed'))ge('plPanelUsed').style.display='none';
   var wrap=ge('newVehicleList');
@@ -3406,9 +3405,8 @@ async function loadPricelistModule(){
 }
 
 function renderPricelistModule(){
-  var addBtn=ge('upAddEditBtn');if(addBtn)addBtn.style.display=(_plCurrentTab==='used'&&_editMode)?'':'none';
   plSyncToolbar();
-  if(_plCurrentTab==='used')renderUPList();
+  if(_plCurrentTab==='used'){upSyncEditBar();renderUPList();}
   else renderNewVehicleList();
 }
 
