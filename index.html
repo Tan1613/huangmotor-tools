@@ -4807,34 +4807,40 @@ async function loadRolesPage(){
   var PGROUPS=[
     {label:'Tools',color:'#185fa5',bg:'#0d1e35',fields:[
       {f:'can_access_tools',l:'Access'},
-                            ]},
+    ]},
+    {label:'New PL',color:'#2563eb',bg:'#0d1830',fields:[
+      {f:'can_view_new_pricelist',l:'View'},{f:'can_edit_new_pricelist',l:'Edit'},
+    ]},
+    {label:'Used PL',color:'#7c3aed',bg:'#130d25',fields:[
+      {f:'can_view_used_pricelist',l:'View'},{f:'can_edit_used_pricelist',l:'Edit'},
+    ]},
+    {label:'Price Compare',color:'#b45309',bg:'#1a1000',fields:[
+      {f:'can_view_price_compare',l:'View'},{f:'can_edit_price_compare',l:'Edit'},
+    ]},
+    {label:'Stock Kit',color:'#0891b2',bg:'#0d1e24',fields:[
+      {f:'can_view_stock_kit',l:'View'},{f:'can_edit_stock_kit',l:'Edit'},
+    ]},
+    {label:'Service',color:'#059669',bg:'#0d2318',fields:[
+      {f:'can_view_service',l:'View'},{f:'can_manage_service',l:'Manage'},
+    ]},
     {label:'Team',color:'#059669',bg:'#0d2318',fields:[
       {f:'can_access_team',l:'Access'},
-      {f:'can_assign_task_dept',l:'Tasks (dept)'},
-      {f:'can_assign_task_cross',l:'Tasks (cross)'},
-      {f:'can_view_attendance',l:'Attendance'},
-      {f:'can_approve_leave',l:'Approve Leave'},
-      {f:'can_view_perf_own',l:'Perf Own'},
-      {f:'can_view_perf_dept',l:'Perf Dept'},
-      {f:'can_view_perf_all',l:'Perf All'}
+      {f:'can_assign_task_dept',l:'Tasks (dept)'},{f:'can_assign_task_cross',l:'Tasks (cross)'},
+      {f:'can_approve_tasks',l:'Approve Tasks'},
+      {f:'can_view_attendance',l:'Attendance'},{f:'can_approve_leave',l:'Approve Leave'},
+      {f:'can_view_perf_own',l:'Perf Own'},{f:'can_view_perf_dept',l:'Perf Dept'},{f:'can_view_perf_all',l:'Perf All'}
     ]},
     {label:'Sales & Content',color:'#7c3aed',bg:'#110d20',fields:[
-      {f:'can_view_all_sales',l:'View All Sales'},
-      {f:'can_export_sales',l:'Export Sales'},
-      {f:'can_create_announcement',l:'Create Announce'},
-      {f:'can_pin_announcement',l:'Pin Announce'},
-      {f:'can_create_chat_room',l:'Create Chat'},
-      {f:'can_view_change_log',l:'Change Log'}
+      {f:'can_view_all_sales',l:'View All Sales'},{f:'can_export_sales',l:'Export Sales'},
+      {f:'can_create_announcement',l:'Create Announce'},{f:'can_pin_announcement',l:'Pin Announce'},
+      {f:'can_create_chat_room',l:'Create Chat'},{f:'can_view_change_log',l:'Change Log'}
     ]},
     {label:'Admin',color:'#b45309',bg:'#1a1000',fields:[
-      {f:'can_manage_users',l:'Manage Users'},
-      {f:'can_manage_roles',l:'Manage Roles'},
-      {f:'can_manage_departments',l:'Manage Depts'},
-      {f:'can_export_attendance',l:'Export Att.'}
+      {f:'can_manage_users',l:'Manage Users'},{f:'can_manage_roles',l:'Manage Roles'},
+      {f:'can_manage_departments',l:'Manage Depts'},{f:'can_export_attendance',l:'Export Att.'}
     ]},
-    {label:'Future',color:'#6b7280',bg:'#111',fields:[
-      {f:'can_access_benefit',l:'Benefits'},
-      {f:'can_manage_benefit',l:'Manage Benefits'},
+    {label:'Benefits & Payroll',color:'#6b7280',bg:'#111',fields:[
+      {f:'can_access_benefit',l:'Benefits'},{f:'can_manage_benefit',l:'Manage Benefits'},
       {f:'can_access_payroll',l:'Payroll'}
     ]}
   ];
