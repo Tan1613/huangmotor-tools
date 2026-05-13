@@ -415,6 +415,188 @@ body.logged-in{padding-top:36px}
 .log-filter select,.log-filter input{padding:5px 8px;border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#c9d1d9;font-size:11px}
 @media(max-width:1100px){.gw{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}}
 @media(max-width:700px){.gw{grid-template-columns:1fr}}
+
+/* ══ HOME SCREEN ══ */
+#homeScreen{display:none;padding:32px 24px;background:#0d1117;min-height:calc(100vh - 36px)}
+.home-welcome{font-size:12px;color:#8b949e;margin-bottom:24px}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;max-width:900px}
+.tool-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:20px 18px;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+.tool-card:hover{border-color:#388bfd;background:#1c2d3d}
+.tool-card .tc-icon{font-size:26px;margin-bottom:10px}
+.tool-card .tc-name{font-size:13px;font-weight:700;color:#f0f6fc;margin-bottom:4px}
+.tool-card .tc-desc{font-size:11px;color:#8b949e;line-height:1.5}
+.tool-card .tc-tag{position:absolute;top:10px;right:10px;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600}
+.tc-tag-e{background:#1a3a1a;color:#3fb950}
+.tc-tag-v{background:#1a2a3a;color:#58a6ff}
+
+/* ══ MODULE WRAPPER ══ */
+.mod-page{display:none;flex-direction:column;height:calc(100vh - 36px)}
+.mod-page.active{display:flex}
+.mod-topbar{background:#161b22;border-bottom:1px solid #21262d;padding:6px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.mod-back{padding:3px 10px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:11px;cursor:pointer}
+.mod-back:hover{border-color:#58a6ff;color:#58a6ff}
+.mod-title-bar{font-size:12px;font-weight:700;color:#f0f6fc}
+.mod-body{flex:1;overflow-y:auto;background:#0d1117}
+
+/* ══ USED PRICELIST ══ */
+.up-wrap{padding:14px}
+.up-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.up-inp{padding:5px 8px;background:#1e1e1e;border:1px solid #333;border-radius:5px;color:#d8d8d8;font-size:11px}
+.up-inp:focus{outline:none;border-color:#58a6ff}
+.up-add-btn{padding:5px 12px;background:#238636;border:none;border-radius:5px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto}
+.up-add-btn:hover{background:#2ea043}
+.up-table{width:100%;border-collapse:collapse;font-size:11px}
+.up-table th{background:#161b22;color:#8b949e;padding:6px 8px;text-align:left;border-bottom:1px solid #21262d;font-weight:600;white-space:nowrap;font-size:10px;position:sticky;top:0;z-index:1}
+.up-table td{padding:6px 8px;border-bottom:1px solid #1a1f27;color:#c9d1d9;white-space:nowrap}
+.up-table tr:hover td{background:#161b22}
+.up-table .plate{color:#58a6ff;font-weight:700;font-family:monospace;font-size:12px}
+.up-table .price{color:#3fb950;font-weight:600}
+.up-table .sold .plate{color:#8b949e;text-decoration:line-through}
+.up-table .sold td{color:#555}
+.up-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600}
+.up-badge.good{background:#1a3a1a;color:#3fb950}
+.up-badge.fair{background:#3a2a0a;color:#f0883e}
+.up-badge.poor{background:#3a1a1a;color:#f85149}
+.up-badge.sold{background:#2a2a2a;color:#555}
+.up-act-btn{padding:2px 7px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e}
+.up-act-btn:hover{border-color:#58a6ff;color:#58a6ff}
+.up-act-btn.del:hover{border-color:#f85149;color:#f85149}
+
+/* UP form modal */
+.up-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem}
+.up-modal.open{display:flex}
+.up-modal-box{background:#161b22;border:1px solid #30363d;border-radius:12px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:1.2rem}
+.up-modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.up-modal-title{font-size:14px;font-weight:700;color:#f0f6fc}
+.up-modal-close{background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer}
+.up-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.up-form-grid label{font-size:10px;color:#8b949e;display:block;margin-bottom:2px}
+.up-form-grid input,.up-form-grid select,.up-form-grid textarea{width:100%;padding:6px 8px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:12px}
+.up-form-grid .span3{grid-column:1/-1}
+.up-form-grid textarea{resize:vertical;min-height:50px}
+.up-save-btn{padding:8px 20px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.up-save-btn:hover{background:#388bfd}
+.up-cancel-btn{padding:8px 14px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:12px;cursor:pointer}
+
+/* ══ PRICE COMPARE ══ */
+.pc-wrap{padding:16px;max-width:1100px}
+.pc-toolbar{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.pc-toolbar label{font-size:11px;color:#8b949e}
+.pc-toolbar select,.pc-toolbar input{padding:5px 8px;background:#1e1e1e;border:1px solid #333;border-radius:5px;color:#d8d8d8;font-size:11px}
+.pc-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:900px){.pc-cards{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.pc-cards{grid-template-columns:1fr}}
+.pc-card{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:14px}
+.pc-card.featured{border-color:#238636}
+.pc-card-tag{display:inline-block;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;margin-bottom:8px}
+.pc-card-title{font-size:12px;font-weight:700;color:#f0f6fc;margin-bottom:6px}
+.pc-card-price{font-size:22px;font-weight:700;margin-bottom:8px}
+.pc-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid #1a1f27}
+.pc-row span:first-child{color:#8b949e}
+.pc-row span:last-child{color:#c9d1d9}
+.pc-row.total{font-size:11px;font-weight:600;border-bottom:none;margin-top:4px}
+.pc-row.total span:first-child{color:#c9d1d9}
+.pc-settings{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.pc-settings label{font-size:10px;color:#8b949e;margin-right:4px}
+.pc-settings input{padding:3px 7px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;font-size:11px;width:70px}
+
+/* ══ STOCK KIT ══ */
+.sk-wrap{display:flex;height:100%}
+.sk-sidebar{width:180px;background:#161b22;border-right:1px solid #21262d;padding:10px;flex-shrink:0;overflow-y:auto}
+.sk-cat-btn{width:100%;text-align:left;padding:6px 10px;border:none;background:none;border-radius:5px;font-size:11px;color:#8b949e;cursor:pointer;margin-bottom:2px}
+.sk-cat-btn:hover{background:#1c2d3d;color:#c9d1d9}
+.sk-cat-btn.active{background:#1c2d3d;color:#58a6ff;font-weight:600}
+.sk-main{flex:1;padding:12px;overflow-y:auto}
+.sk-toolbar{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.sk-inp{padding:5px 8px;background:#1e1e1e;border:1px solid #333;border-radius:5px;color:#d8d8d8;font-size:11px}
+.sk-inp:focus{outline:none;border-color:#58a6ff}
+.sk-add-btn{padding:5px 12px;background:#238636;border:none;border-radius:5px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:auto}
+.sk-table{width:100%;border-collapse:collapse;font-size:11px}
+.sk-table th{background:#161b22;color:#8b949e;padding:6px 8px;text-align:left;border-bottom:1px solid #21262d;font-size:10px;font-weight:600;position:sticky;top:0;z-index:1}
+.sk-table td{padding:6px 8px;border-bottom:1px solid #1a1f27;color:#c9d1d9}
+.sk-table tr:hover td{background:#161b22}
+.cost-code{font-family:monospace;background:#1a1200;color:#f0883e;padding:1px 6px;border-radius:3px;font-size:11px;letter-spacing:.05em}
+.sk-low{color:#f85149;font-weight:600}
+.sk-act{padding:2px 7px;border:1px solid #30363d;border-radius:4px;font-size:10px;cursor:pointer;background:none;color:#8b949e}
+.sk-act:hover{border-color:#58a6ff;color:#58a6ff}
+.sk-act.del:hover{border-color:#f85149;color:#f85149}
+
+/* SK modal */
+.sk-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:1rem}
+.sk-modal.open{display:flex}
+.sk-modal-box{background:#161b22;border:1px solid #30363d;border-radius:12px;width:100%;max-width:480px;padding:1.2rem}
+.sk-modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sk-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sk-form-grid label{font-size:10px;color:#8b949e;display:block;margin-bottom:2px}
+.sk-form-grid input,.sk-form-grid select{width:100%;padding:6px 8px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:12px}
+.sk-form-grid .span2{grid-column:1/-1}
+
+/* ══ SERVICE ══ */
+.sv-wrap{display:flex;height:100%}
+.sv-list-panel{width:260px;background:#161b22;border-right:1px solid #21262d;display:flex;flex-direction:column;flex-shrink:0}
+.sv-list-top{padding:10px;border-bottom:1px solid #21262d;display:flex;gap:6px}
+.sv-list-top input{flex:1;padding:5px 8px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;font-size:11px}
+.sv-list-top input:focus{outline:none;border-color:#58a6ff}
+.sv-new-btn{padding:5px 8px;background:#238636;border:none;border-radius:5px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.sv-list-scroll{flex:1;overflow-y:auto;padding:8px}
+.sv-item{padding:8px 10px;border:1px solid #21262d;border-radius:7px;margin-bottom:4px;cursor:pointer;transition:border-color .15s}
+.sv-item:hover{border-color:#388bfd}
+.sv-item.sel{border-color:#1f6feb;background:#1c2d3d}
+.sv-item-plate{font-size:13px;font-weight:700;color:#f0f6fc;font-family:monospace}
+.sv-item-meta{font-size:10px;color:#8b949e;margin-top:2px}
+.sv-status{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;margin-top:3px}
+.sv-status.open{background:#1a2a3a;color:#58a6ff}
+.sv-status.in_progress{background:#3a2a0a;color:#f0883e}
+.sv-status.completed{background:#1a3a1a;color:#3fb950}
+.sv-status.cancelled{background:#2a2a2a;color:#555}
+.sv-detail-panel{flex:1;overflow-y:auto;padding:14px}
+.sv-detail-empty{display:flex;align-items:center;justify-content:center;height:100%;color:#30363d;font-size:12px}
+.sv-section{margin-bottom:14px}
+.sv-sec-hdr{font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.sv-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sv-field{background:#161b22;border-radius:6px;padding:6px 8px}
+.sv-field-lbl{font-size:9px;color:#8b949e}
+.sv-field-val{font-size:12px;color:#f0f6fc;font-weight:500;margin-top:2px}
+.sv-hist-item{background:#1a1f27;border-radius:5px;padding:6px 8px;margin-bottom:4px}
+.sv-hist-date{font-size:10px;color:#8b949e}
+.sv-hist-desc{font-size:11px;color:#c9d1d9;margin-top:1px}
+.sv-parts-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}
+.sv-parts-table th{background:#0d1117;color:#8b949e;padding:5px 7px;text-align:left;font-size:10px;border-bottom:1px solid #21262d}
+.sv-parts-table td{padding:5px 7px;border-bottom:1px solid #1a1f27;color:#c9d1d9}
+.sv-total-bar{display:flex;gap:16px;justify-content:flex-end;padding-top:8px;border-top:1px solid #21262d;font-size:11px}
+.sv-total-bar span{color:#8b949e}
+.sv-total-bar .sv-grand{font-size:14px;font-weight:700;color:#3fb950}
+.sv-add-part-btn{font-size:11px;color:#58a6ff;background:none;border:none;cursor:pointer;padding:0}
+.sv-add-part-btn:hover{text-decoration:underline}
+
+/* Service form modal */
+.sv-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.sv-modal.open{display:flex}
+.sv-modal-box{background:#161b22;border:1px solid #30363d;border-radius:12px;width:100%;max-width:640px;padding:1.2rem;margin:auto}
+.sv-modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sv-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sv-form-grid label{font-size:10px;color:#8b949e;display:block;margin-bottom:2px}
+.sv-form-grid input,.sv-form-grid select,.sv-form-grid textarea{width:100%;padding:6px 8px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:12px}
+.sv-form-grid .span2{grid-column:1/-1}
+.sv-form-grid textarea{resize:vertical;min-height:54px}
+.sv-hist-preview{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;margin-bottom:10px;font-size:11px}
+
+/* Parts picker modal */
+.parts-picker-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;align-items:center;justify-content:center;padding:1rem}
+.parts-picker-modal.open{display:flex}
+.parts-picker-box{background:#161b22;border:1px solid #30363d;border-radius:12px;width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+.parts-picker-hdr{padding:12px 14px;border-bottom:1px solid #21262d;display:flex;justify-content:space-between;align-items:center}
+.parts-picker-search{padding:8px 14px;border-bottom:1px solid #21262d}
+.parts-picker-search input{width:100%;padding:6px 8px;background:#0d1117;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;font-size:12px}
+.parts-picker-list{flex:1;overflow-y:auto;padding:8px 14px}
+.pp-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1a1f27;cursor:pointer}
+.pp-item:hover{color:#58a6ff}
+.pp-item-name{flex:1;font-size:12px;color:#c9d1d9}
+.pp-item:hover .pp-item-name{color:#58a6ff}
+.pp-item-price{font-size:11px;color:#3fb950;white-space:nowrap}
+.pp-item-install{font-size:11px;color:#58a6ff;white-space:nowrap}
+.pp-item-stock{font-size:10px;color:#8b949e;white-space:nowrap;min-width:50px;text-align:right}
+
 </style>
 </head>
 <body>
@@ -481,7 +663,8 @@ body.logged-in{padding-top:36px}
 
 <!-- TOP BAR -->
 <div id="topBar">
-  <span class="tb-brand">HuangMotor Generator</span>
+  <span class="tb-brand">HuangMotor Tools</span>
+  <button onclick="goHome()" style="padding:3px 10px;background:none;border:1px solid #30363d;border-radius:5px;font-size:10px;cursor:pointer;color:#8b949e">⌂ Home</button>
   <span class="tb-user" id="tbUser"></span>
   <span class="tb-sync" id="tbSync">✓ Synced</span>
   <button id="tbAdmin" onclick="openAdmin()" style="display:none;padding:3px 10px;border:1px solid #30363d;border-radius:5px;font-size:10px;cursor:pointer;background:none;color:#f0c040">⚙ Admin</button>
@@ -924,6 +1107,297 @@ body.logged-in{padding-top:36px}
   <div class="code-wrap" id="codeWrap"><div class="code-box" id="codeBox"></div></div>
 </div>
 </div><!-- /gw -->
+<!-- HOME SCREEN -->
+<div id="homeScreen" style="display:none;padding:32px 24px;background:#0d1117;min-height:calc(100vh - 36px)">
+  <div class="home-welcome">Welcome, <span id="homeUser" style="color:#f0f6fc;font-weight:600"></span> — select a tool</div>
+  <div class="tools-grid" id="toolsGrid">
+    <div class="tool-card" id="tcNewPL" onclick="openModule('new-pricelist')">
+      <div class="tc-icon">🏍</div>
+      <div class="tc-tag tc-tag-e" id="tcNewTag">Edit</div>
+      <div class="tc-name">New Vehicle Pricelist</div>
+      <div class="tc-desc">Motorcycle pricelist, loan calculator and quotation generator</div>
+    </div>
+    <div class="tool-card" id="tcUsedPL" onclick="openModule('used-pricelist')">
+      <div class="tc-icon">🔄</div>
+      <div class="tc-tag tc-tag-e" id="tcUsedTag">Edit</div>
+      <div class="tc-name">Used Vehicle Pricelist</div>
+      <div class="tc-desc">Second-hand motorcycle listings with pricing and insurance details</div>
+    </div>
+    <div class="tool-card" onclick="openModule('price-compare')">
+      <div class="tc-icon">💰</div>
+      <div class="tc-tag tc-tag-v">View</div>
+      <div class="tc-name">Price Compare</div>
+      <div class="tc-desc">Compare Cash OTR, Kedai Loan, Bank/AEON and EPP side by side</div>
+    </div>
+    <div class="tool-card" id="tcStock" onclick="openModule('stock-kit')">
+      <div class="tc-icon">🔧</div>
+      <div class="tc-tag tc-tag-e" id="tcStockTag">Edit</div>
+      <div class="tc-name">Stock Kit</div>
+      <div class="tc-desc">Parts inventory with cost codes, sell price and install price</div>
+    </div>
+    <div class="tool-card" id="tcService" onclick="openModule('service')">
+      <div class="tc-icon">📋</div>
+      <div class="tc-tag tc-tag-e" id="tcServiceTag">Manage</div>
+      <div class="tc-name">Service</div>
+      <div class="tc-desc">Service orders, vehicle history and parts selection for repairs</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE: USED PRICELIST -->
+<div class="mod-page" id="mod-used-pricelist">
+  <div class="mod-topbar">
+    <button class="mod-back" onclick="goHome()">← Home</button>
+    <span class="mod-title-bar">🔄 Used Vehicle Pricelist</span>
+    <button class="up-add-btn" id="upAddBtn" onclick="openUPModal()" style="margin-left:auto">+ Add Vehicle</button>
+  </div>
+  <div class="mod-body">
+    <div class="up-wrap">
+      <div class="up-toolbar">
+        <input class="up-inp" id="upSearch" placeholder="Search plate / brand / model..." oninput="renderUPList()" style="width:220px">
+        <select class="up-inp" id="upFilterBrand" onchange="renderUPList()"><option value="">All brands</option></select>
+        <select class="up-inp" id="upFilterCond" onchange="renderUPList()">
+          <option value="">All condition</option><option value="good">Good</option>
+          <option value="fair">Fair</option><option value="poor">Poor</option>
+        </select>
+        <select class="up-inp" id="upFilterSold" onchange="renderUPList()">
+          <option value="available">Available only</option>
+          <option value="all">Show all</option><option value="sold">Sold only</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="up-table">
+          <thead><tr>
+            <th>Plate</th><th>Brand</th><th>Model</th><th>Year</th>
+            <th>Cash</th><th>Loan</th><th>Down</th><th>Monthly</th>
+            <th>Road Tax</th><th>1st Party</th><th>3rd Party</th>
+            <th>Condition</th><th>Notes</th><th></th>
+          </tr></thead>
+          <tbody id="upTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UP Modal -->
+<div class="up-modal" id="upModal">
+  <div class="up-modal-box">
+    <div class="up-modal-hdr">
+      <span class="up-modal-title" id="upModalTitle">Add Vehicle</span>
+      <button class="up-modal-close" onclick="closeUPModal()">✕</button>
+    </div>
+    <input type="hidden" id="up_id">
+    <div class="up-form-grid">
+      <div><label>Plate No</label><input id="up_plate" placeholder="e.g. WA1234B" style="text-transform:uppercase"></div>
+      <div><label>Brand</label><input id="up_brand" placeholder="e.g. Yamaha"></div>
+      <div><label>Model</label><input id="up_model" placeholder="e.g. Y15ZR"></div>
+      <div><label>Year</label><input id="up_year" type="number" placeholder="2021"></div>
+      <div><label>Condition</label>
+        <select id="up_condition"><option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select>
+      </div>
+      <div><label>Cash Price (RM)</label><input id="up_cash" type="number" placeholder="0"></div>
+      <div><label>Loan Price (RM)</label><input id="up_loan" type="number" placeholder="0"></div>
+      <div><label>Down Payment (RM)</label><input id="up_down" type="number" placeholder="0"></div>
+      <div><label>Loan Amount (RM)</label><input id="up_loan_amt" type="number" placeholder="0"></div>
+      <div><label>Monthly Instalment (RM)</label><input id="up_instalment" type="number" placeholder="0"></div>
+      <div><label>Road Tax (RM)</label><input id="up_rtax" type="number" placeholder="0"></div>
+      <div><label>1st Party Insurance (RM)</label><input id="up_ins1st" type="number" placeholder="0"></div>
+      <div><label>3rd Party Insurance (RM)</label><input id="up_ins3rd" type="number" placeholder="0"></div>
+      <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 0">
+        <label style="margin:0;font-size:11px;color:#8b949e;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="up_sold"> Mark as Sold
+        </label>
+      </div>
+      <div class="span3"><label>Notes</label><textarea id="up_notes" placeholder="Optional remarks"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="up-cancel-btn" onclick="closeUPModal()">Cancel</button>
+      <button class="up-save-btn" onclick="saveUPRecord()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE: PRICE COMPARE -->
+<div class="mod-page" id="mod-price-compare">
+  <div class="mod-topbar">
+    <button class="mod-back" onclick="goHome()">← Home</button>
+    <span class="mod-title-bar">💰 Price Compare</span>
+  </div>
+  <div class="mod-body">
+    <div class="pc-wrap">
+      <div class="pc-settings">
+        <div><label>Source:</label>
+          <select id="pcSource" onchange="pcPopulateItems()">
+            <option value="new">New Pricelist</option><option value="used">Used Pricelist</option>
+          </select>
+        </div>
+        <div><label>Vehicle:</label>
+          <select id="pcVehicle" onchange="calcPC()" style="width:260px"></select>
+        </div>
+        <div style="border-left:1px solid #30363d;padding-left:16px">
+          <label>Kedai rate (% p.a.):</label><input id="pcKedaiRate" type="number" value="3.5" step="0.1" oninput="calcPC()">
+        </div>
+        <div><label>Kedai min DP (%):</label><input id="pcKedaiDP" type="number" value="10" step="1" oninput="calcPC()"></div>
+        <div><label>Bank rate (% p.a.):</label><input id="pcBankRate" type="number" value="3.5" step="0.1" oninput="calcPC()"></div>
+        <div><label>EPP divisor (%):</label><input id="pcEppDiv" type="number" value="86" step="1" min="1" max="99" oninput="calcPC()"></div>
+        <div><label>Tenure (months):</label>
+          <select id="pcTenure" onchange="calcPC()">
+            <option value="24">24</option><option value="36" selected>36</option>
+            <option value="48">48</option><option value="60">60</option>
+          </select>
+        </div>
+      </div>
+      <div class="pc-cards" id="pcCards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE: STOCK KIT -->
+<div class="mod-page" id="mod-stock-kit">
+  <div class="mod-topbar">
+    <button class="mod-back" onclick="goHome()">← Home</button>
+    <span class="mod-title-bar">🔧 Stock Kit</span>
+    <button class="sk-add-btn" id="skAddBtn" onclick="openSKModal()" style="margin-left:auto">+ Add Item</button>
+  </div>
+  <div class="mod-body" style="overflow:hidden;height:calc(100vh - 36px - 35px)">
+    <div class="sk-wrap" style="height:100%">
+      <div class="sk-sidebar">
+        <div style="font-size:10px;color:#8b949e;font-weight:600;margin-bottom:6px;text-transform:uppercase">Category</div>
+        <button class="sk-cat-btn active" onclick="setSKCat('')">All items</button>
+        <div id="skCatList"></div>
+      </div>
+      <div class="sk-main">
+        <div class="sk-toolbar">
+          <input class="sk-inp" id="skSearch" placeholder="Search item / code..." oninput="renderSKTable()" style="width:200px">
+          <select class="sk-inp" id="skSortBy" onchange="renderSKTable()">
+            <option value="name">Sort: Name</option>
+            <option value="category">Sort: Category</option>
+            <option value="stock">Sort: Stock qty</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="sk-table">
+            <thead><tr>
+              <th>Code</th><th>Item</th><th>Brand</th><th>Unit</th>
+              <th id="skCostHdr">Cost</th><th>Sell</th><th>Install</th>
+              <th>Stock</th><th>Min</th><th></th>
+            </tr></thead>
+            <tbody id="skTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SK Modal -->
+<div class="sk-modal" id="skModal">
+  <div class="sk-modal-box">
+    <div class="sk-modal-hdr">
+      <span style="font-size:14px;font-weight:700;color:#f0f6fc" id="skModalTitle">Add Item</span>
+      <button style="background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer" onclick="closeSKModal()">✕</button>
+    </div>
+    <input type="hidden" id="sk_id">
+    <div class="sk-form-grid">
+      <div><label>Category</label><input id="sk_category" placeholder="e.g. Engine" list="skCatDatalist"></div>
+      <div><label>Item Code</label><input id="sk_code" placeholder="e.g. ENG-001"></div>
+      <div class="span2"><label>Item Name</label><input id="sk_name" placeholder="e.g. Engine oil 10W40"></div>
+      <div><label>Brand</label><input id="sk_brand" placeholder="e.g. Yamalube"></div>
+      <div><label>Unit</label>
+        <select id="sk_unit"><option>pcs</option><option>set</option><option>box</option><option>bottle</option><option>pair</option><option>roll</option><option>litre</option></select>
+      </div>
+      <div id="skCostWrap"><label>Cost Code</label><input id="sk_cost_code" placeholder="e.g. BD" style="font-family:monospace;text-transform:uppercase"></div>
+      <div><label>Sell Price (RM)</label><input id="sk_sell" type="number" min="0" step="0.50" placeholder="0.00"></div>
+      <div><label>Install Price (RM)</label><input id="sk_install" type="number" min="0" step="0.50" placeholder="0.00"></div>
+      <div><label>Stock Qty</label><input id="sk_stock" type="number" min="0" placeholder="0"></div>
+      <div><label>Min Stock</label><input id="sk_min" type="number" min="0" placeholder="5"></div>
+    </div>
+    <datalist id="skCatDatalist"></datalist>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button class="up-cancel-btn" onclick="closeSKModal()">Cancel</button>
+      <button class="up-save-btn" onclick="saveSKItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODULE: SERVICE -->
+<div class="mod-page" id="mod-service">
+  <div class="mod-topbar">
+    <button class="mod-back" onclick="goHome()">← Home</button>
+    <span class="mod-title-bar">📋 Service</span>
+    <button class="sv-new-btn" id="svNewBtn" onclick="openSVModal()" style="margin-left:auto">+ New Order</button>
+  </div>
+  <div class="mod-body" style="overflow:hidden;height:calc(100vh - 36px - 35px)">
+    <div class="sv-wrap" style="height:100%">
+      <div class="sv-list-panel">
+        <div class="sv-list-top">
+          <input id="svSearch" placeholder="Plate / name..." oninput="renderSVList()">
+        </div>
+        <div style="padding:6px 8px;border-bottom:1px solid #21262d">
+          <select style="width:100%;padding:4px;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#c9d1d9;font-size:10px" id="svStatusFilter" onchange="renderSVList()">
+            <option value="">All status</option>
+            <option value="open">Open</option><option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option><option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="sv-list-scroll" id="svListItems"></div>
+      </div>
+      <div class="sv-detail-panel" id="svDetailPanel">
+        <div class="sv-detail-empty">Select a service order or create a new one</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SV New Order Modal -->
+<div class="sv-modal" id="svModal">
+  <div class="sv-modal-box">
+    <div class="sv-modal-hdr">
+      <span style="font-size:14px;font-weight:700;color:#f0f6fc" id="svModalTitle">New Service Order</span>
+      <button style="background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer" onclick="closeSVModal()">✕</button>
+    </div>
+    <div id="svHistoryPreview" style="display:none;background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:8px;margin-bottom:10px;font-size:11px"></div>
+    <div class="sv-form-grid">
+      <div><label>Plate No *</label><input id="sv_plate" placeholder="e.g. WA1234B" oninput="svLookupHistory(this.value)" style="text-transform:uppercase"></div>
+      <div><label>Mileage (km)</label><input id="sv_mileage" type="number" placeholder="0"></div>
+      <div><label>Brand</label><input id="sv_brand" placeholder="e.g. Yamaha"></div>
+      <div><label>Model</label><input id="sv_model" placeholder="e.g. Y15ZR"></div>
+      <div><label>Year</label><input id="sv_year" type="number" placeholder="2021"></div>
+      <div><label>Customer Name</label><input id="sv_cust_name" placeholder="e.g. Ahmad bin Ali"></div>
+      <div><label>Phone</label><input id="sv_cust_phone" placeholder="e.g. 012-3456789"></div>
+      <div><label>Assigned to</label><select id="sv_assigned"><option value="">— Unassigned —</option></select></div>
+      <div class="span2"><label>Service Type</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding:6px 0">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#c9d1d9"><input type="checkbox" value="maintenance"> Maintenance</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#c9d1d9"><input type="checkbox" value="repair"> Repair</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#c9d1d9"><input type="checkbox" value="tyre"> Tyre</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#c9d1d9"><input type="checkbox" value="brake"> Brake</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#c9d1d9"><input type="checkbox" value="electrical"> Electrical</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#c9d1d9"><input type="checkbox" value="other"> Other</label>
+        </div>
+      </div>
+      <div class="span2"><label>Complaints</label><textarea id="sv_complaints" placeholder="What does the customer describe?"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="up-cancel-btn" onclick="closeSVModal()">Cancel</button>
+      <button class="up-save-btn" onclick="saveSVOrder()">Create Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- Parts Picker Modal -->
+<div class="parts-picker-modal" id="partsPickerModal">
+  <div class="parts-picker-box">
+    <div class="parts-picker-hdr">
+      <span style="font-size:13px;font-weight:700;color:#f0f6fc">Select Part</span>
+      <button style="background:none;border:none;color:#8b949e;font-size:18px;cursor:pointer" onclick="closePartsPicker()">✕</button>
+    </div>
+    <div class="parts-picker-search"><input id="ppSearch" placeholder="Search part name or code..." oninput="renderPartsPicker()"></div>
+    <div class="parts-picker-list" id="ppList"></div>
+  </div>
+</div>
+
 </div><!-- /mainApp -->
 
 <!-- PDF Sheet -->
@@ -2006,24 +2480,15 @@ async function doLogin(){
 
 async function afterLogin(){
   document.getElementById('loginScreen').style.display='none';
-  document.getElementById('mainApp').style.display='';
   document.getElementById('topBar').classList.add('visible');
   document.body.classList.add('logged-in');
   if(currentUser.role==='admin')document.getElementById('tbAdmin').style.display='';
-  // Load full profile from cloud
   await loadProfile();
-  // Load custom role if assigned
   if(currentUser.custom_role_id){
-    try{
-      var cr=await sbGet('custom_roles','id=eq.'+currentUser.custom_role_id);
-      if(cr.length)currentUser.customRole=cr[0];
-    }catch(e){}
+    try{var cr=await sbGet('custom_roles','id=eq.'+currentUser.custom_role_id);if(cr.length)currentUser.customRole=cr[0];}catch(e){}
   }
   document.getElementById('tbUser').textContent=(currentUser.display_name||currentUser.username)+' ('+currentUser.role+')';
-  applyPermissions();
-  await loadAllFromCloud();
-  buildRows();buildGiftGroups();R();renderMFTable();renderPLList();
-  startRealtimeSync();
+  showHome();
 }
 
 /* ══ PROFILE ══ */
@@ -2701,7 +3166,593 @@ function showLoginPrompt(){
   document.getElementById('loginScreen').style.display='flex';
 }
 
+/* ══ HOME / MODULE NAVIGATION ══ */
+function showHome(){
+  document.getElementById('homeScreen').style.display='';
+  document.getElementById('mainApp').style.display='none';
+  document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
+  // Update home user name
+  document.getElementById('homeUser').textContent=currentUser.display_name||currentUser.username;
+  // Apply permission tags
+  var canEditNew=currentUser.role==='admin'||currentUser.can_edit_new_pricelist||currentUser.can_edit_pricelist;
+  var canViewNew=canEditNew||currentUser.can_view_new_pricelist;
+  var canEditUsed=currentUser.role==='admin'||currentUser.can_edit_used_pricelist;
+  var canViewUsed=canEditUsed||currentUser.can_view_used_pricelist;
+  var canEditStock=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  var canViewStock=canEditStock||currentUser.can_view_stock_kit;
+  var canManageSvc=currentUser.role==='admin'||currentUser.can_manage_service;
+  var canViewSvc=canManageSvc||currentUser.can_view_service;
+  // Show/hide cards
+  ge('tcNewPL').style.display=canViewNew?'':'none';
+  ge('tcUsedPL').style.display=canViewUsed?'':'none';
+  ge('tcStock').style.display=canViewStock?'':'none';
+  ge('tcService').style.display=canViewSvc?'':'none';
+  // Tags
+  var nt=ge('tcNewTag');if(nt)nt.textContent=canEditNew?'Edit':'View';
+  var ut=ge('tcUsedTag');if(ut){ut.textContent=canEditUsed?'Edit':'View';ut.className='tc-tag '+(canEditUsed?'tc-tag-e':'tc-tag-v');}
+  var st=ge('tcStockTag');if(st){st.textContent=canEditStock?'Edit':'View';st.className='tc-tag '+(canEditStock?'tc-tag-e':'tc-tag-v');}
+  var svt=ge('tcServiceTag');if(svt){svt.textContent=canManageSvc?'Manage':'View';svt.className='tc-tag '+(canManageSvc?'tc-tag-e':'tc-tag-v');}
+}
 
+function goHome(){
+  document.getElementById('homeScreen').style.display='';
+  document.getElementById('mainApp').style.display='none';
+  document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
+}
+
+function openModule(name){
+  document.getElementById('homeScreen').style.display='none';
+  document.getElementById('mainApp').style.display='none';
+  document.querySelectorAll('.mod-page').forEach(function(m){m.classList.remove('active');});
+  if(name==='new-pricelist'){
+    // Load original mainApp
+    document.getElementById('mainApp').style.display='';
+    // Lazy-init original app
+    if(!window._newPLInited){
+      window._newPLInited=true;
+      applyPermissions();
+      loadAllFromCloud().then(function(){buildRows();buildGiftGroups();R();renderMFTable();renderPLList();startRealtimeSync();});
+    }
+  } else {
+    var el=ge('mod-'+name);
+    if(el){el.classList.add('active');}
+    if(name==='used-pricelist')loadUPData();
+    else if(name==='price-compare'){pcPopulateItems();}
+    else if(name==='stock-kit')loadSKData();
+    else if(name==='service')loadSVData();
+  }
+}
+
+/* ══ USED PRICELIST ══ */
+var _upData=[];
+async function loadUPData(){
+  _upData=await sbGet('used_vehicles','order=created_at.desc');
+  renderUPList();
+  // Populate brand filter
+  var brands=[...new Set(_upData.map(function(r){return r.brand;}).filter(Boolean))].sort();
+  var sel=ge('upFilterBrand');
+  sel.innerHTML='<option value="">All brands</option>'+brands.map(function(b){return '<option>'+esc(b)+'</option>';}).join('');
+}
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+function renderUPList(){
+  var q=(ge('upSearch').value||'').toLowerCase();
+  var brand=ge('upFilterBrand').value;
+  var cond=ge('upFilterCond').value;
+  var sold=ge('upFilterSold').value;
+  var rows=_upData.filter(function(r){
+    if(brand&&r.brand!==brand)return false;
+    if(cond&&r.condition!==cond)return false;
+    if(sold==='available'&&r.is_sold)return false;
+    if(sold==='sold'&&!r.is_sold)return false;
+    if(q){var s=(r.plate_no+r.brand+r.model+r.notes).toLowerCase();if(!s.includes(q))return false;}
+    return true;
+  });
+  var canEdit=currentUser.role==='admin'||currentUser.can_edit_used_pricelist;
+  var tb=ge('upTableBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="14" style="text-align:center;color:#30363d;padding:20px">No records found</td></tr>';return;}
+  tb.innerHTML=rows.map(function(r){
+    var badge='<span class="up-badge '+r.condition+'">'+(r.condition||'—')+'</span>';
+    if(r.is_sold)badge='<span class="up-badge sold">Sold</span>';
+    var rowCls=r.is_sold?'class="sold"':'';
+    return '<tr '+rowCls+'>'
+      +'<td class="plate">'+esc(r.plate_no||'—')+'</td>'
+      +'<td>'+esc(r.brand||'—')+'</td>'
+      +'<td>'+esc(r.model||'—')+'</td>'
+      +'<td>'+esc(r.year||'—')+'</td>'
+      +'<td class="price">'+(r.cash_price?'RM '+fmt(r.cash_price):'—')+'</td>'
+      +'<td>'+(r.loan_price?'RM '+fmt(r.loan_price):'—')+'</td>'
+      +'<td>'+(r.down_payment?'RM '+fmt(r.down_payment):'—')+'</td>'
+      +'<td>'+(r.installment?'RM '+fmt(r.installment):'—')+'</td>'
+      +'<td>'+(r.road_tax_1yr?'RM '+fmt(r.road_tax_1yr):'—')+'</td>'
+      +'<td>'+(r.insurance_1st?'RM '+fmt(r.insurance_1st):'—')+'</td>'
+      +'<td>'+(r.insurance_3rd?'RM '+fmt(r.insurance_3rd):'—')+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td style="color:#8b949e;font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis">'+esc(r.notes||'')+'</td>'
+      +'<td>'+(canEdit?'<button class="up-act-btn" onclick="openUPModal('+r.id+')">Edit</button> '
+        +'<button class="up-act-btn del" onclick="deleteUP('+r.id+')">Del</button>':'')+'</td>'
+      +'</tr>';
+  }).join('');
+}
+function fmt(v){return parseFloat(v||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function openUPModal(id){
+  var r=id?_upData.find(function(x){return x.id===id;}):null;
+  ge('up_id').value=id||'';
+  ge('upModalTitle').textContent=id?'Edit Vehicle':'Add Vehicle';
+  ge('up_plate').value=r?r.plate_no||'':'';
+  ge('up_brand').value=r?r.brand||'':'';
+  ge('up_model').value=r?r.model||'':'';
+  ge('up_year').value=r?r.year||'':'';
+  ge('up_condition').value=r?r.condition||'good':'good';
+  ge('up_cash').value=r?r.cash_price||'':'';
+  ge('up_loan').value=r?r.loan_price||'':'';
+  ge('up_down').value=r?r.down_payment||'':'';
+  ge('up_loan_amt').value=r?r.loan_amount||'':'';
+  ge('up_instalment').value=r?r.installment||'':'';
+  ge('up_rtax').value=r?r.road_tax_1yr||'':'';
+  ge('up_ins1st').value=r?r.insurance_1st||'':'';
+  ge('up_ins3rd').value=r?r.insurance_3rd||'':'';
+  ge('up_sold').checked=r?!!r.is_sold:false;
+  ge('up_notes').value=r?r.notes||'':'';
+  ge('upModal').classList.add('open');
+}
+function closeUPModal(){ge('upModal').classList.remove('open');}
+async function saveUPRecord(){
+  var id=ge('up_id').value;
+  function n(id){var v=parseFloat(ge(id).value);return isNaN(v)||!ge(id).value?null:v;}
+  var data={
+    plate_no:(ge('up_plate').value||'').trim().toUpperCase(),
+    brand:ge('up_brand').value.trim(),model:ge('up_model').value.trim(),
+    year:parseInt(ge('up_year').value)||null,condition:ge('up_condition').value,
+    cash_price:n('up_cash'),loan_price:n('up_loan'),down_payment:n('up_down'),
+    loan_amount:n('up_loan_amt'),installment:n('up_instalment'),
+    road_tax_1yr:n('up_rtax'),insurance_1st:n('up_ins1st'),insurance_3rd:n('up_ins3rd'),
+    is_sold:ge('up_sold').checked,notes:ge('up_notes').value.trim()||null,
+    created_by:currentUser.username
+  };
+  if(!data.plate_no){alert('Plate No required');return;}
+  if(id){
+    await fetch(SB_URL+'/rest/v1/used_vehicles?id=eq.'+id,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(data)});
+  } else {
+    await fetch(SB_URL+'/rest/v1/used_vehicles',{method:'POST',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(data)});
+  }
+  closeUPModal();await loadUPData();
+}
+async function deleteUP(id){
+  if(!confirm('Delete this vehicle record?'))return;
+  await fetch(SB_URL+'/rest/v1/used_vehicles?id=eq.'+id,{method:'DELETE',headers:sbHeaders()});
+  await loadUPData();
+}
+
+/* ══ PRICE COMPARE ══ */
+async function pcPopulateItems(){
+  var src=ge('pcSource').value;
+  var sel=ge('pcVehicle');
+  sel.innerHTML='<option value="">— Select vehicle —</option>';
+  if(src==='new'){
+    // Use existing PL data
+    var items=(window.PL&&window.PL.list)||[];
+    items.forEach(function(e){
+      var opt=document.createElement('option');
+      opt.value=JSON.stringify({name:e.name,cash:e.cashOTR,rtax:e.roadTax,ins:e.ins1});
+      opt.textContent=e.name+' — RM '+(e.cashOTR?fmt(e.cashOTR):'—');
+      sel.appendChild(opt);
+    });
+  } else {
+    var used=await sbGet('used_vehicles','is_sold=eq.false&order=brand.asc,model.asc');
+    used.forEach(function(r){
+      var opt=document.createElement('option');
+      opt.value=JSON.stringify({name:r.plate_no+' '+r.brand+' '+r.model,cash:r.cash_price,rtax:r.road_tax_1yr,ins:r.insurance_1st,ins3:r.insurance_3rd});
+      opt.textContent=r.plate_no+' — '+r.brand+' '+r.model+' — RM '+(r.cash_price?fmt(r.cash_price):'—');
+      sel.appendChild(opt);
+    });
+  }
+  calcPC();
+}
+function calcPC(){
+  var raw=ge('pcVehicle').value;
+  var cards=ge('pcCards');
+  if(!raw){cards.innerHTML='<div style="color:#30363d;font-size:12px;padding:20px">Select a vehicle to compare</div>';return;}
+  var v=JSON.parse(raw);
+  var cash=parseFloat(v.cash)||0;
+  var rtax=parseFloat(v.rtax)||0;
+  var ins=parseFloat(v.ins)||0;
+  var ins3=parseFloat(v.ins3)||0;
+  var kedaiRate=parseFloat(ge('pcKedaiRate').value)||3.5;
+  var kedaiDP=parseFloat(ge('pcKedaiDP').value)||10;
+  var bankRate=parseFloat(ge('pcBankRate').value)||3.5;
+  var eppDiv=parseFloat(ge('pcEppDiv').value)||86;
+  var tenure=parseInt(ge('pcTenure').value)||36;
+  // Cash OTR
+  var cashTotal=cash+rtax+ins;
+  // Kedai loan
+  var kDP=Math.ceil(cash*kedaiDP/100);
+  var kLoan=cash-kDP;
+  var kMonthly=kLoan*(1+kedaiRate/100*tenure/12)/tenure;
+  var kTotal=kDP+kMonthly*tenure+rtax+ins;
+  // Bank/AEON 0 DP
+  var bLoan=cash;
+  var bMonthly=bLoan*(1+bankRate/100*tenure/12)/tenure;
+  var bTotal=bMonthly*tenure+rtax+ins;
+  // EPP
+  var eppRaw=cash/(eppDiv/100);
+  var eppTens=Math.floor(eppRaw/10);
+  var eppPrice=(eppTens+1)*10;// tens digit +1, units = 0
+  function card(tag,tagStyle,title,priceHtml,rows,featured){
+    return '<div class="pc-card'+(featured?' featured':'')+'"><span class="pc-card-tag" style="'+tagStyle+'">'+tag+'</span>'
+      +'<div class="pc-card-title">'+title+'</div>'
+      +'<div class="pc-card-price">'+priceHtml+'</div>'
+      +rows.map(function(r){return '<div class="pc-row"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';}).join('')
+      +'</div>';
+  }
+  cards.innerHTML=
+    card('Cash','background:#1a3a1a;color:#3fb950','Cash OTR',
+      '<span style="color:#3fb950">RM '+fmt(cash)+'</span>',
+      [['Road tax','RM '+fmt(rtax)],['Insurance (1st)','RM '+fmt(ins)],['Total outlay','RM '+fmt(cashTotal)]],true)+
+    card('Kedai Loan','background:#1a2a3a;color:#58a6ff','Kedai Loan',
+      '<span style="color:#58a6ff">RM '+fmt(Math.round(kMonthly))+'/mo</span>',
+      [['Down payment','RM '+fmt(kDP)+' ('+kedaiDP+'%)'],['Loan','RM '+fmt(kLoan)],['Rate',kedaiRate+'% p.a. / '+tenure+'m'],['Total paid','RM '+fmt(Math.round(kTotal))]])+
+    card('Bank/AEON','background:#2a1a3a;color:#d2a8ff','Bank / AEON 0%DP',
+      '<span style="color:#d2a8ff">RM '+fmt(Math.round(bMonthly))+'/mo</span>',
+      [['Down payment','RM 0'],['Loan','RM '+fmt(bLoan)],['Rate',bankRate+'% p.a. / '+tenure+'m'],['Total paid','RM '+fmt(Math.round(bTotal))]])+
+    card('EPP','background:#3a2a0a;color:#f0883e','EPP Fixed Price',
+      '<span style="color:#f0883e">RM '+fmt(eppPrice)+'</span>',
+      [['Formula','RM '+fmt(cash)+' ÷ '+(eppDiv/100)],['Raw result','RM '+eppRaw.toFixed(2)],['Rounded up','RM '+fmt(eppPrice)],['12m','RM '+fmt(Math.round(eppPrice/12))+'/mo'],['24m','RM '+fmt(Math.round(eppPrice/24))+'/mo']]);
+}
+
+/* ══ STOCK KIT ══ */
+var _skData=[];var _skCat='';
+async function loadSKData(){
+  _skData=await sbGet('stock_items','is_active=eq.true&order=category.asc,item_name.asc');
+  renderSKCats();renderSKTable();
+  var canEdit=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  var canSee=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  ge('skAddBtn').style.display=canEdit?'':'none';
+  ge('skCostHdr').style.display=canSee?'':'none';
+}
+function renderSKCats(){
+  var cats=[...new Set(_skData.map(function(r){return r.category;}).filter(Boolean))].sort();
+  ge('skCatList').innerHTML=cats.map(function(c){
+    return '<button class="sk-cat-btn'+(c===_skCat?' active':'')+'" onclick="setSKCat(\''+esc(c)+'\')">'+esc(c)+'</button>';
+  }).join('');
+  // Also populate datalist for modal
+  var dl=ge('skCatDatalist');if(dl)dl.innerHTML=cats.map(function(c){return '<option value="'+esc(c)+'">';}).join('');
+}
+function setSKCat(cat){
+  _skCat=cat;
+  document.querySelectorAll('.sk-cat-btn').forEach(function(b){b.classList.remove('active');});
+  var btns=document.querySelectorAll('.sk-cat-btn');
+  btns.forEach(function(b){if(b.textContent===(cat||'All items'))b.classList.add('active');});
+  renderSKTable();
+}
+function renderSKTable(){
+  var q=(ge('skSearch').value||'').toLowerCase();
+  var sort=ge('skSortBy').value;
+  var canSee=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  var canEdit=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  var rows=_skData.filter(function(r){
+    if(_skCat&&r.category!==_skCat)return false;
+    if(q){var s=(r.item_name+r.item_code+r.brand+r.category).toLowerCase();if(!s.includes(q))return false;}
+    return true;
+  }).sort(function(a,b){
+    if(sort==='stock')return (a.stock_qty||0)-(b.stock_qty||0);
+    if(sort==='category')return (a.category||'').localeCompare(b.category||'');
+    return (a.item_name||'').localeCompare(b.item_name||'');
+  });
+  var tb=ge('skTableBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="10" style="text-align:center;color:#30363d;padding:20px">No items</td></tr>';return;}
+  tb.innerHTML=rows.map(function(r){
+    var lowStock=r.stock_qty!=null&&r.min_stock!=null&&r.stock_qty<=r.min_stock;
+    return '<tr>'
+      +'<td style="color:#8b949e;font-family:monospace">'+esc(r.item_code||'—')+'</td>'
+      +'<td style="color:#f0f6fc">'+esc(r.item_name||'—')+'</td>'
+      +'<td>'+esc(r.brand||'—')+'</td>'
+      +'<td style="color:#8b949e">'+esc(r.unit||'pcs')+'</td>'
+      +(canSee?'<td>'+(r.cost_code?'<span class="cost-code">'+esc(r.cost_code)+'</span>':'—')+'</td>':'')
+      +'<td style="color:#3fb950">'+(r.sell_price?'RM '+fmt(r.sell_price):'—')+'</td>'
+      +'<td style="color:#58a6ff">'+(r.install_price?'RM '+fmt(r.install_price):'—')+'</td>'
+      +'<td class="'+(lowStock?'sk-low':'')+'">'+((r.stock_qty!=null)?r.stock_qty:'—')+(lowStock?' ⚠':'')+'</td>'
+      +'<td style="color:#8b949e">'+((r.min_stock!=null)?r.min_stock:'—')+'</td>'
+      +'<td>'+(canEdit?'<button class="sk-act" onclick="openSKModal('+r.id+')">Edit</button> '
+        +'<button class="sk-act del" onclick="deleteSK('+r.id+')">Del</button>':'')+'</td>'
+      +'</tr>';
+  }).join('');
+}
+function openSKModal(id){
+  var r=id?_skData.find(function(x){return x.id===id;}):null;
+  ge('sk_id').value=id||'';
+  ge('skModalTitle').textContent=id?'Edit Item':'Add Item';
+  ge('sk_category').value=r?r.category||'':'';
+  ge('sk_code').value=r?r.item_code||'':'';
+  ge('sk_name').value=r?r.item_name||'':'';
+  ge('sk_brand').value=r?r.brand||'':'';
+  ge('sk_unit').value=r?r.unit||'pcs':'pcs';
+  ge('sk_cost_code').value=r?r.cost_code||'':'';
+  ge('sk_sell').value=r?r.sell_price||'':'';
+  ge('sk_install').value=r?r.install_price||'':'';
+  ge('sk_stock').value=r?r.stock_qty||'0':'0';
+  ge('sk_min').value=r?r.min_stock||'5':'5';
+  // Show cost code only to editors
+  var canSee=currentUser.role==='admin'||currentUser.can_edit_stock_kit;
+  ge('skCostWrap').style.display=canSee?'':'none';
+  ge('skModal').classList.add('open');
+}
+function closeSKModal(){ge('skModal').classList.remove('open');}
+async function saveSKItem(){
+  var id=ge('sk_id').value;
+  function n(id){var v=parseFloat(ge(id).value);return isNaN(v)||!ge(id).value?null:v;}
+  var data={
+    category:ge('sk_category').value.trim(),item_code:ge('sk_code').value.trim(),
+    item_name:ge('sk_name').value.trim(),brand:ge('sk_brand').value.trim(),
+    unit:ge('sk_unit').value,cost_code:(ge('sk_cost_code').value||'').trim().toUpperCase()||null,
+    sell_price:n('sk_sell'),install_price:n('sk_install'),
+    stock_qty:parseInt(ge('sk_stock').value)||0,min_stock:parseInt(ge('sk_min').value)||5,
+    is_active:true,created_by:currentUser.username
+  };
+  if(!data.item_name){alert('Item name required');return;}
+  if(id){
+    await fetch(SB_URL+'/rest/v1/stock_items?id=eq.'+id,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(data)});
+  } else {
+    await fetch(SB_URL+'/rest/v1/stock_items',{method:'POST',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(data)});
+  }
+  closeSKModal();await loadSKData();
+}
+async function deleteSK(id){
+  if(!confirm('Delete this item?'))return;
+  await fetch(SB_URL+'/rest/v1/stock_items?id=eq.'+id,{method:'DELETE',headers:sbHeaders()});
+  await loadSKData();
+}
+
+/* ══ SERVICE ══ */
+var _svData=[];var _svSelectedId=null;
+async function loadSVData(){
+  _svData=await sbGet('service_orders','order=created_at.desc&limit=200');
+  renderSVList();
+  // Populate technicians in modal
+  var sel=ge('sv_assigned');
+  try{
+    var users=await sbGet('users','is_active=eq.true&select=username,display_name');
+    sel.innerHTML='<option value="">— Unassigned —</option>'
+      +users.map(function(u){return '<option value="'+esc(u.username)+'">'+esc(u.display_name||u.username)+'</option>';}).join('');
+  }catch(e){}
+}
+function renderSVList(){
+  var q=(ge('svSearch').value||'').toLowerCase();
+  var st=ge('svStatusFilter').value;
+  var rows=_svData.filter(function(r){
+    if(st&&r.status!==st)return false;
+    if(q){var s=(r.plate_no+r.customer_name+r.customer_phone+(r.brand||'')+(r.model||'')).toLowerCase();if(!s.includes(q))return false;}
+    return true;
+  });
+  var el=ge('svListItems');
+  if(!rows.length){el.innerHTML='<div style="font-size:11px;color:#30363d;padding:10px">No orders found</div>';return;}
+  // Group by date
+  var groups={};
+  rows.forEach(function(r){
+    var d=r.created_at?r.created_at.slice(0,10):'Unknown';
+    if(!groups[d])groups[d]=[];
+    groups[d].push(r);
+  });
+  el.innerHTML=Object.entries(groups).map(function(kv){
+    var d=kv[0];var items=kv[1];
+    var today=new Date().toISOString().slice(0,10);
+    var yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+    var dlbl=d===today?'Today':d===yesterday?'Yesterday':d;
+    return '<div style="font-size:9px;color:#8b949e;padding:6px 2px 3px;text-transform:uppercase;letter-spacing:.05em">'+dlbl+'</div>'
+      +items.map(function(r){
+        return '<div class="sv-item'+(r.id===_svSelectedId?' sel':'')+'" onclick="openSVDetail('+r.id+')">'
+          +'<div class="sv-item-plate">'+esc(r.plate_no||'—')+'</div>'
+          +'<div class="sv-item-meta">'+(r.brand?esc(r.brand)+' ':'')+esc(r.model||'')+(r.customer_name?' · '+esc(r.customer_name):'')+'</div>'
+          +(r.customer_phone?'<div class="sv-item-meta">'+esc(r.customer_phone)+'</div>':'')
+          +'<span class="sv-status '+r.status+'">'+r.status.replace('_',' ')+'</span>'
+          +'</div>';
+      }).join('');
+  }).join('');
+}
+async function openSVDetail(id){
+  _svSelectedId=id;
+  renderSVList();
+  var r=_svData.find(function(x){return x.id===id;});
+  if(!r)return;
+  var canManage=currentUser.role==='admin'||currentUser.can_manage_service;
+  // Fetch history for this plate
+  var history=r.plate_no?await sbGet('service_orders','plate_no=eq.'+encodeURIComponent(r.plate_no)+'&status=eq.completed&id=neq.'+r.id+'&order=created_at.desc&limit=5&select=id,created_at,service_type,parts_used,total'):'[]';
+  var parts=r.parts_used||[];
+  var partsTotal=parts.reduce(function(s,p){return s+((p.qty||1)*parseFloat(p.unit_price||0));},0);
+  var labour=parseFloat(r.labour_fee||0);
+  var discount=parseFloat(r.discount||0);
+  var grand=partsTotal+labour-discount;
+  ge('svDetailPanel').innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">'
+      +'<div><div style="font-size:15px;font-weight:700;color:#f0f6fc">'+esc(r.order_no||'SO-'+r.id)+'</div>'
+      +'<div style="font-size:10px;color:#8b949e">'+esc(r.plate_no||'—')+' · '+esc(r.brand||'')+' '+esc(r.model||'')+(r.year?' · '+r.year:'')+'</div></div>'
+      +'<span class="sv-status '+r.status+'" style="font-size:10px">'+r.status.replace('_',' ')+'</span>'
+    +'</div>'
+    // Vehicle + Customer
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
+      +'<div><div class="sv-sec-hdr">Vehicle</div><div class="sv-field-grid">'
+        +'<div class="sv-field"><div class="sv-field-lbl">Plate</div><div class="sv-field-val">'+esc(r.plate_no||'—')+'</div></div>'
+        +'<div class="sv-field"><div class="sv-field-lbl">Mileage</div><div class="sv-field-val">'+(r.mileage?(r.mileage.toLocaleString()+' km'):'—')+'</div></div>'
+        +'<div class="sv-field"><div class="sv-field-lbl">Brand</div><div class="sv-field-val">'+esc(r.brand||'—')+'</div></div>'
+        +'<div class="sv-field"><div class="sv-field-lbl">Model</div><div class="sv-field-val">'+esc(r.model||'—')+'</div></div>'
+      +'</div></div>'
+      +'<div><div class="sv-sec-hdr">Customer</div><div class="sv-field-grid">'
+        +'<div class="sv-field"><div class="sv-field-lbl">Name</div><div class="sv-field-val">'+esc(r.customer_name||'—')+'</div></div>'
+        +'<div class="sv-field"><div class="sv-field-lbl">Phone</div><div class="sv-field-val">'+esc(r.customer_phone||'—')+'</div></div>'
+      +'</div></div>'
+    +'</div>'
+    // History
+    +(history.length?'<div class="sv-section"><div class="sv-sec-hdr">History for '+esc(r.plate_no||'')+' <span style="color:#3fb950;font-size:9px">'+history.length+' past visit'+(history.length>1?'s':'')+'</span></div>'
+      +history.map(function(h){
+        var stype=(h.service_type||[]).join(', ');
+        return '<div class="sv-hist-item"><span class="sv-hist-date">'+h.created_at.slice(0,10)+'</span>'
+          +'<div class="sv-hist-desc">'+esc(stype)+(h.total?' · RM '+fmt(h.total):'')+'</div></div>';
+      }).join('')+'</div>':'')
+    // Complaints / Diagnosis
+    +(r.complaints?'<div class="sv-section"><div class="sv-sec-hdr">Complaints</div><div style="font-size:11px;color:#c9d1d9;background:#161b22;border-radius:5px;padding:7px 9px">'+esc(r.complaints)+'</div></div>':'')
+    // Parts
+    +'<div class="sv-section"><div class="sv-sec-hdr">Parts Used '
+      +(canManage?'<button class="sv-add-part-btn" onclick="openPartsPicker('+r.id+')">+ Add part</button>':'')
+    +'</div>'
+    +(parts.length?'<table class="sv-parts-table"><thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>'+(canManage?'<th></th>':'')+'</tr></thead><tbody>'
+      +parts.map(function(p,i){
+        return '<tr><td>'+esc(p.item_name||'—')+'</td><td>'+esc(p.qty||1)+'</td>'
+          +'<td>RM '+fmt(p.unit_price||0)+'</td>'
+          +'<td style="color:#3fb950">RM '+fmt((p.qty||1)*parseFloat(p.unit_price||0))+'</td>'
+          +(canManage?'<td><button style="background:none;border:none;color:#f85149;cursor:pointer;font-size:12px" onclick="removePart('+r.id+','+i+')">✕</button></td>':'')
+          +'</tr>';
+      }).join('')+'</tbody></table>':'<div style="font-size:11px;color:#30363d">No parts added yet</div>')
+    +'</div>'
+    // Labour + Total
+    +(canManage?'<div class="sv-section"><div class="sv-sec-hdr">Labour & Total</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +'<label style="font-size:11px;color:#8b949e">Labour fee (RM):</label>'
+      +'<input type="number" value="'+labour+'" style="width:90px;padding:4px 7px;background:#1e1e1e;border:1px solid #333;border-radius:5px;color:#d8d8d8;font-size:11px" oninput="updateLabour('+r.id+',this.value)">'
+      +'<label style="font-size:11px;color:#8b949e">Discount (RM):</label>'
+      +'<input type="number" value="'+discount+'" style="width:90px;padding:4px 7px;background:#1e1e1e;border:1px solid #333;border-radius:5px;color:#d8d8d8;font-size:11px" oninput="updateDiscount('+r.id+',this.value)">'
+      +'</div></div>':'')
+    +'<div class="sv-total-bar">'
+      +'<span>Parts: <span style="color:#c9d1d9">RM '+fmt(partsTotal)+'</span></span>'
+      +'<span>Labour: <span style="color:#c9d1d9">RM '+fmt(labour)+'</span></span>'
+      +(discount?'<span>Discount: <span style="color:#f85149">-RM '+fmt(discount)+'</span></span>':'')
+      +'<span class="sv-grand">Total: RM '+fmt(grand)+'</span>'
+    +'</div>'
+    // Status change
+    +(canManage?'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
+      +['open','in_progress','completed','cancelled'].map(function(s){
+        return '<button onclick="updateSVStatus('+r.id+',\''+s+'\')" style="padding:5px 12px;border:1px solid '
+          +(r.status===s?'#388bfd':'#30363d')+';border-radius:5px;background:'+(r.status===s?'#1c2d3d':'none')
+          +';color:'+(r.status===s?'#58a6ff':'#8b949e')+';font-size:11px;cursor:pointer">'+s.replace('_',' ')+'</button>';
+      }).join('')+'</div>':'');
+}
+
+function openSVModal(){
+  ge('sv_plate').value='';ge('sv_mileage').value='';ge('sv_brand').value='';
+  ge('sv_model').value='';ge('sv_year').value='';ge('sv_cust_name').value='';
+  ge('sv_cust_phone').value='';ge('sv_assigned').value='';
+  ge('sv_complaints').value='';ge('svHistoryPreview').style.display='none';
+  document.querySelectorAll('#svModal input[type=checkbox]').forEach(function(c){c.checked=false;});
+  ge('svModal').classList.add('open');
+}
+function closeSVModal(){ge('svModal').classList.remove('open');}
+
+async function svLookupHistory(plate){
+  plate=(plate||'').trim().toUpperCase();
+  var prev=ge('svHistoryPreview');
+  if(!plate||plate.length<4){prev.style.display='none';return;}
+  var history=await sbGet('service_orders','plate_no=eq.'+encodeURIComponent(plate)+'&status=eq.completed&order=created_at.desc&limit=3&select=created_at,service_type,total,customer_name,customer_phone');
+  if(!history.length){prev.style.display='none';return;}
+  var last=history[0];
+  // Auto-fill customer details from most recent
+  if(last.customer_name&&!ge('sv_cust_name').value)ge('sv_cust_name').value=last.customer_name;
+  if(last.customer_phone&&!ge('sv_cust_phone').value)ge('sv_cust_phone').value=last.customer_phone;
+  prev.style.display='';
+  prev.innerHTML='<div style="font-size:10px;font-weight:600;color:#3fb950;margin-bottom:4px">'+plate+' — '+history.length+' past visit'+(history.length>1?'s':'')+'</div>'
+    +history.map(function(h){return '<div style="font-size:10px;color:#8b949e">'+h.created_at.slice(0,10)+' · '+(h.service_type||[]).join(', ')+(h.total?' · RM '+fmt(h.total):'')+'</div>';}).join('');
+}
+
+async function saveSVOrder(){
+  var plate=(ge('sv_plate').value||'').trim().toUpperCase();
+  if(!plate){alert('Plate No required');return;}
+  var serviceTypes=Array.from(document.querySelectorAll('#svModal input[type=checkbox]:checked')).map(function(c){return c.value;});
+  // Generate order number
+  var d=new Date();var ds=d.getFullYear().toString()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  var existing=await sbGet('service_orders','order_no=like.SO-'+ds+'%&select=order_no&order=order_no.desc&limit=1');
+  var seq=existing.length?parseInt(existing[0].order_no.split('-').pop()||'0')+1:1;
+  var orderNo='SO-'+ds+'-'+String(seq).padStart(4,'0');
+  var data={
+    order_no:orderNo,plate_no:plate,
+    brand:ge('sv_brand').value.trim(),model:ge('sv_model').value.trim(),
+    year:parseInt(ge('sv_year').value)||null,mileage:parseInt(ge('sv_mileage').value)||null,
+    customer_name:ge('sv_cust_name').value.trim(),customer_phone:ge('sv_cust_phone').value.trim(),
+    service_type:serviceTypes,complaints:ge('sv_complaints').value.trim(),
+    assigned_to:ge('sv_assigned').value||null,status:'open',
+    parts_used:[],labour_fee:0,parts_total:0,discount:0,total:0,
+    created_by:currentUser.username
+  };
+  var res=await fetch(SB_URL+'/rest/v1/service_orders',{method:'POST',headers:Object.assign({},sbHeaders(),{'Prefer':'return=representation'}),body:JSON.stringify(data)});
+  if(res.ok){
+    var newRec=await res.json();
+    closeSVModal();
+    await loadSVData();
+    if(newRec.length)openSVDetail(newRec[0].id);
+  }
+}
+
+async function updateSVStatus(id,status){
+  var update={status:status};
+  if(status==='completed')update.completed_at=new Date().toISOString();
+  await fetch(SB_URL+'/rest/v1/service_orders?id=eq.'+id,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify(update)});
+  var idx=_svData.findIndex(function(r){return r.id===id;});
+  if(idx>=0)Object.assign(_svData[idx],update);
+  renderSVList();openSVDetail(id);
+}
+async function updateLabour(id,val){
+  var labour=parseFloat(val)||0;
+  var r=_svData.find(function(x){return x.id===id;});if(!r)return;
+  r.labour_fee=labour;
+  var parts=(r.parts_used||[]).reduce(function(s,p){return s+((p.qty||1)*parseFloat(p.unit_price||0));},0);
+  r.total=parts+labour-parseFloat(r.discount||0);
+  await fetch(SB_URL+'/rest/v1/service_orders?id=eq.'+id,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify({labour_fee:labour,total:r.total})});
+}
+async function updateDiscount(id,val){
+  var discount=parseFloat(val)||0;
+  var r=_svData.find(function(x){return x.id===id;});if(!r)return;
+  r.discount=discount;
+  var parts=(r.parts_used||[]).reduce(function(s,p){return s+((p.qty||1)*parseFloat(p.unit_price||0));},0);
+  r.total=parts+parseFloat(r.labour_fee||0)-discount;
+  await fetch(SB_URL+'/rest/v1/service_orders?id=eq.'+id,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify({discount:discount,total:r.total})});
+}
+
+/* Parts Picker */
+var _ppOrderId=null;
+async function openPartsPicker(orderId){
+  _ppOrderId=orderId;
+  if(!_skData.length)await loadSKData();
+  ge('ppSearch').value='';
+  renderPartsPicker();
+  ge('partsPickerModal').classList.add('open');
+}
+function closePartsPicker(){ge('partsPickerModal').classList.remove('open');}
+function renderPartsPicker(){
+  var q=(ge('ppSearch').value||'').toLowerCase();
+  var rows=_skData.filter(function(r){
+    if(!q)return true;
+    return (r.item_name+r.item_code+r.category).toLowerCase().includes(q);
+  });
+  ge('ppList').innerHTML=rows.map(function(r){
+    return '<div class="pp-item">'
+      +'<div class="pp-item-name">'+esc(r.item_name)+(r.category?'<span style="font-size:9px;color:#8b949e;margin-left:6px">'+esc(r.category)+'</span>':'')+'</div>'
+      +(r.sell_price?'<span class="pp-item-price" onclick="addPartToOrder('+r.id+',\'sell\')" title="Sell only" style="cursor:pointer">RM '+fmt(r.sell_price)+'</span>':'')
+      +(r.install_price?'<span class="pp-item-install" onclick="addPartToOrder('+r.id+',\'install\')" title="Install price" style="cursor:pointer">+install RM '+fmt(r.install_price)+'</span>':'')
+      +'<span class="pp-item-stock">'+((r.stock_qty!=null)?r.stock_qty+' '+esc(r.unit||'pcs'):'—')+'</span>'
+      +'</div>';
+  }).join('')||'<div style="color:#30363d;font-size:11px;padding:10px">No items found</div>';
+}
+async function addPartToOrder(itemId,priceType){
+  var item=_skData.find(function(r){return r.id===itemId;});
+  if(!item)return;
+  var price=priceType==='install'?item.install_price:item.sell_price;
+  var part={item_id:itemId,item_name:item.item_name,qty:1,unit_price:parseFloat(price||0),price_type:priceType};
+  var r=_svData.find(function(x){return x.id===_ppOrderId;});
+  if(!r)return;
+  var parts=(r.parts_used||[]).concat([part]);
+  r.parts_used=parts;
+  var partsTotal=parts.reduce(function(s,p){return s+((p.qty||1)*parseFloat(p.unit_price||0));},0);
+  r.parts_total=partsTotal;
+  r.total=partsTotal+parseFloat(r.labour_fee||0)-parseFloat(r.discount||0);
+  await fetch(SB_URL+'/rest/v1/service_orders?id=eq.'+_ppOrderId,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify({parts_used:parts,parts_total:partsTotal,total:r.total})});
+  closePartsPicker();
+  openSVDetail(_ppOrderId);
+}
+async function removePart(orderId,idx){
+  var r=_svData.find(function(x){return x.id===orderId;});if(!r)return;
+  var parts=(r.parts_used||[]).filter(function(_,i){return i!==idx;});
+  r.parts_used=parts;
+  var partsTotal=parts.reduce(function(s,p){return s+((p.qty||1)*parseFloat(p.unit_price||0));},0);
+  r.parts_total=partsTotal;r.total=partsTotal+parseFloat(r.labour_fee||0)-parseFloat(r.discount||0);
+  await fetch(SB_URL+'/rest/v1/service_orders?id=eq.'+orderId,{method:'PATCH',headers:Object.assign({},sbHeaders(),{'Prefer':'return=minimal'}),body:JSON.stringify({parts_used:parts,parts_total:partsTotal,total:r.total})});
+  openSVDetail(orderId);
+}
 </script>
 </body>
 </html>
