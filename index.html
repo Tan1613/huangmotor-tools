@@ -5052,41 +5052,40 @@ function renderRmPerms(){
     }
     html+='</div>';
 
-    // Rows — flex layout, one row per permission line
+    // Rows
     var hasViewEdit=sec.rows.some(function(r){return r.view;});
     html+='<div id="rmSec_'+sec.key+'"'+(sec.gateId&&!gateChecked?' style="display:none"':'')+' >';
-    // Column header
+    html+='<table style="width:100%;border-collapse:collapse">';
     if(hasViewEdit){
-      html+='<div style="display:flex;align-items:center;padding:4px 12px;gap:0;border-bottom:1px solid #0a0f1a">'
-        +'<div style="width:110px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em"></div>'
-        +'<div style="width:90px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em">View</div>'
-        +'<div style="flex:1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Edit / Manage</div>'
-        +'</div>';
+      html+='<tr style="border-bottom:1px solid #0a0f1a">'
+        +'<td style="width:120px;padding:3px 12px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase"></td>'
+        +'<td style="width:80px;padding:3px 8px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase">View</td>'
+        +'<td style="padding:3px 8px;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase">Edit / Manage</td>'
+        +'</tr>';
     }
     sec.rows.forEach(function(r){
       if(r.view){
         var viewIn=filtered.some(function(p){return p.id===r.view.id;});
         var editIn=filtered.some(function(p){return p.id===r.edit.id;});
         if(!viewIn&&!editIn)return;
-        html+='<div style="display:flex;align-items:center;padding:5px 12px;border-top:1px solid #0a0f1a;gap:0">'
-          +'<div style="width:110px;font-size:11px;color:#8b949e;flex-shrink:0">'+r.label+'</div>'
-          +'<div style="width:90px;flex-shrink:0">'+(viewIn?mkCk(r.view.id,'View'):'')+'</div>'
-          +'<div style="flex:1">'+(editIn?mkCk(r.edit.id,'Edit'):'')+'</div>'
-          +'</div>';
+        html+='<tr style="border-top:1px solid #0a0f1a">'
+          +'<td style="padding:6px 12px;font-size:11px;color:#8b949e;width:120px">'+r.label+'</td>'
+          +'<td style="padding:6px 8px;width:80px">'+(viewIn?mkCk(r.view.id,'View'):'')+'</td>'
+          +'<td style="padding:6px 8px">'+(editIn?mkCk(r.edit.id,'Edit'):'')+'</td>'
+          +'</tr>';
       } else if(r.single){
         var anyIn=r.single.some(function(s){return filtered.some(function(p){return p.id===s.id;});});
         if(!anyIn)return;
-        html+='<div style="display:flex;align-items:center;flex-wrap:wrap;padding:5px 12px;border-top:1px solid #0a0f1a;gap:8px">'
-          +'<div style="width:110px;font-size:11px;color:#8b949e;flex-shrink:0">'+r.label+'</div>'
-          +'<div style="display:flex;flex-wrap:wrap;gap:10px">'
-          +r.single.map(function(s){
-            var inF=filtered.some(function(p){return p.id===s.id;});
-            return inF?mkCk(s.id,s.label):'';
-          }).join('')
-          +'</div></div>';
+        var cks=r.single.map(function(s){
+          return filtered.some(function(p){return p.id===s.id;})?mkCk(s.id,s.label):'';
+        }).join('&nbsp;&nbsp;');
+        html+='<tr style="border-top:1px solid #0a0f1a">'
+          +'<td style="padding:6px 12px;font-size:11px;color:#8b949e;width:120px">'+r.label+'</td>'
+          +'<td colspan="2" style="padding:6px 8px">'+cks+'</td>'
+          +'</tr>';
       }
     });
-    html+='</div></div>';
+    html+='</table></div></div>';
   });
 
   if(!html)html='<div style="padding:1rem;font-size:12px;color:#4a6fa5;text-align:center">No permissions in this filter</div>';
