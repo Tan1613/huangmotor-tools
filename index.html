@@ -3854,19 +3854,22 @@ function plPrintSelected(){
       var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
 
       /* 7 columns:
-         Col1           Col2   Col3   Col4   Col5   Col6   Col7
-         Brand/Model(r) Cash   K.DP   2yr    3yr    4yr    5yr
+         Col1(r)        Col2   Col3   Col4   Col5   Col6   Col7
+         Brand/Model    Cash   K.DP   2yr    3yr    4yr    5yr
                         HP     RTax   Ins1   1st+   3rd    SUM
-                        AEON   ADP    yr1    yr2    yr3    yr4
+                        Lowest DP from RMxxx (colspan=2)  yr1  yr2  yr3  yr4
       */
       rows+=
         '<tr class="'+ra+'">'
-          +'<td class="left" rowspan="'+nRows+'"><b>'+esc(brand)+'</b> '+esc(e.model||'')+'</td>'
+          +'<td class="left" rowspan="'+nRows+'" style="white-space:normal">'+
+            '<b>'+esc(brand)+'</b> '+esc(e.model||'')+'</td>'
           +'<td class="cash">'+rm(cash)+'</td>'
           +'<td style="text-align:right">'+rm(dpk)+'</td>'
           +[2,3,4,5].map(function(yr){
             var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
-            return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">--</td>';
+            return v
+              ?'<td class="inst" style="white-space:nowrap">'+v.toLocaleString()+' <span style="font-size:7px;color:#888">'+yr+'yr</span></td>'
+              :'<td class="na">--</td>';
           }).join('')
         +'</tr>'
         +'<tr class="'+rb+'">'
@@ -3879,16 +3882,15 @@ function plPrintSelected(){
         +'</tr>'
         +(hasAeon
           ?'<tr class="'+ra+'">'
-            +'<td style="text-align:right;font-size:7.5px;color:#555;white-space:nowrap">L.DP</td>'
             +(aeon_pa&&aeonLoan>0
-              ?'<td style="text-align:right;font-size:8px">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</td>'
+              ?'<td colspan="2" style="font-size:8px;color:#555;white-space:nowrap">Lowest DP from '+(aeonDP>0?rm(aeonDP):'RM 0')+'</td>'
                +aYrs.map(function(yr){
                  var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
                  return v
-                   ?'<td style="text-align:center;font-size:8.5px;font-weight:700">'+yr+'yr<br>'+v.toLocaleString()+'</td>'
-                   :'<td class="na" style="font-size:8px;color:#bbb">'+yr+'yr<br>--</td>';
+                   ?'<td class="inst" style="white-space:nowrap">'+v.toLocaleString()+' <span style="font-size:7px;color:#888">'+yr+'yr</span></td>'
+                   :'<td class="na" style="font-size:8px;color:#bbb">-- <span style="font-size:7px">'+yr+'yr</span></td>';
                }).join('')
-              :'<td colspan="5" style="font-size:8px;color:#999;text-align:center;font-style:italic">No calculation available yet</td>'
+              :'<td colspan="6" style="font-size:8px;color:#999;text-align:center;font-style:italic">No calculation available yet</td>'
             )
           +'</tr>'
           :'');
@@ -3898,8 +3900,8 @@ function plPrintSelected(){
 
   var dateStr=pdfDateStr();
   var colgroup='<colgroup>'
-    +'<col style="width:23%"><col style="width:10%">'
-    +'<col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:9%"><col style="width:9%">'
+    +'<col style="width:22%"><col style="width:9%">'
+    +'<col style="width:9%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:10%">'
     +'</colgroup>';
   var thead='<thead>'
     +'<tr>'
@@ -3917,7 +3919,7 @@ function plPrintSelected(){
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM) &middot; AEON year shown per cell</div>'
+    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM)</div>'
     +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
