@@ -3837,8 +3837,8 @@ function plPrintSelected(){
   var seen={};var brands=[];
   entries.forEach(function(e){var b=e.brand||'—';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
 
-  var hasLong=entries.some(function(e){return parseInt(e.loanyear||7)>=6;});
-  var yrcols=hasLong?[3,4,5,7]:[2,3,4,5];
+  // Kedai: ALWAYS [2,3,4,5]
+  var kYrs=[2,3,4,5];
 
   var rows='';var idx=0;
   brands.forEach(function(brand){
@@ -3857,61 +3857,63 @@ function plPrintSelected(){
       var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
       var nRows=hasAeon?3:2;
 
-      // Kedai cells — max 5yr
-      var kCells=yrcols.map(function(yr){
-        if(yr>5||!pa||!kloan)return '<td class="na">—</td>';
+      // AEON year cols follow loanyear
+      var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+
+      // Kedai cells: always 2/3/4/5
+      var kCells=kYrs.map(function(yr){
+        if(!pa||!kloan)return '<td class="na">—</td>';
         var v=instV(kloan,pa,yr);
         return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
       }).join('');
-      // AEON cells
-      var aCells=yrcols.map(function(yr){
-        if(yr>loanyear||!aeon_pa||!aeonLoan)return '<td class="na">—</td>';
+
+      // AEON cells: follow aYrs, self-label inside cell
+      var aCells=aYrs.map(function(yr){
+        if(yr>loanyear||!aeon_pa||!aeonLoan)
+          return '<td class="na" style="font-style:italic"><span style="font-size:6px;display:block;color:#999">'+yr+'yr</span>—</td>';
         var v=instV(aeonLoan,aeon_pa,yr);
-        return v?'<td class="inst" style="font-style:italic">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+        return v
+          ?'<td class="inst" style="font-style:italic"><span style="font-size:6px;display:block;color:#888">'+yr+'yr</span>'+v.toLocaleString()+'</td>'
+          :'<td class="na" style="font-style:italic"><span style="font-size:6px;display:block;color:#999">'+yr+'yr</span>—</td>';
       }).join('');
 
       rows+=
-        // Row 1: Cash, KDP, Kedai installments
         '<tr class="'+ra+'">'
           +'<td class="left" rowspan="'+nRows+'" style="font-weight:700">'+esc(brand)+'</td>'
           +'<td class="model" rowspan="'+nRows+'">'+esc(e.model||'—')+'</td>'
-          +'<td class="cash">'+rm(cash)+'</td>'
+          +'<td class="cash" rowspan="'+nRows+'">'+rm(cash)+'</td>'
           +'<td style="text-align:right">'+rm(dpk)+'</td>'
           +kCells
         +'</tr>'
-        // Row 2: HP, Ins details (reusing same column positions)
         +'<tr class="'+rb+'">'
           +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(hp)+'</td>'
           +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1)+'</td>'
           +(ins1p?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1p)+'</td>':'<td class="na">—</td>')
           +(ins3?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins3)+'</td>':'<td class="na">—</td>')
           +(inssum?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(inssum)+'</td>':'<td class="na">—</td>')
-          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(rtax)+'</td>'
         +'</tr>'
-        // Row 3: AEON (if exists)
-        +(hasAeon?'<tr class="'+ra+'">'
-          +'<td style="text-align:right;font-size:8px;font-style:italic;color:#444">AEON</td>'
-          +'<td style="text-align:right;font-size:8px;font-style:italic">RM '+Math.round(aeonDP).toLocaleString()+'</td>'
-          +aCells
-        +'</tr>':'');
+        +(hasAeon
+          ?'<tr class="'+ra+'">'
+            +'<td style="text-align:right;font-size:8px;font-style:italic;color:#444">AEON<br><span style="font-size:7px;color:#888">RM '+Math.round(aeonDP).toLocaleString()+'</span></td>'
+            +aCells
+          +'</tr>':'');
       idx++;
     });
   });
 
   var dateStr=pdfDateStr();
-  var yrStr=yrcols.join('yr / ')+'yr';
   var colgroup='<colgroup>'
-    +'<col style="width:9%"><col style="width:15%">'
-    +'<col style="width:9%"><col style="width:8%">'
-    +yrcols.map(function(){return '<col style="width:'+(59/yrcols.length).toFixed(1)+'%">';}).join('')
+    +'<col style="width:9%"><col style="width:15%"><col style="width:9%">'
+    +'<col style="width:8%">'
+    +'<col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">'
     +'</colgroup>';
-  var yrHdr=yrcols.map(function(yr){return '<th>'+yr+'yr</th>';}).join('');
   var thead='<thead>'
     +'<tr>'
       +'<th class="left" rowspan="2">Brand</th>'
       +'<th class="left" rowspan="2">Model</th>'
       +'<th rowspan="2">Cash OTR</th>'
-      +'<th>K.DP</th>'+yrHdr
+      +'<th>K.DP</th>'
+      +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
     +'</tr>'
     +'<tr>'
       +'<th class="r2">HP</th>'
@@ -3919,14 +3921,13 @@ function plPrintSelected(){
       +'<th class="r2">Ins 1st+</th>'
       +'<th class="r2">Ins 3rd</th>'
       +'<th class="r2">Ins SUM</th>'
-      +'<th class="r2">RTax</th>'
     +'</tr>'
     +'</thead>';
 
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">K.DP = Kedai Down Payment &nbsp;·&nbsp; Kedai max 5yr &nbsp;·&nbsp; AEON row in italics if applicable &nbsp;·&nbsp; Monthly instalment (RM)</div>'
+    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai: 2–5yr max &nbsp;·&nbsp; AEON (italics): year shown in cell &nbsp;·&nbsp; Monthly instalment (RM)</div>'
     +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
 
@@ -3938,6 +3939,7 @@ function plPrintSelected(){
   var lbl=ge('pdfFontSizeLabel');if(lbl)lbl.textContent=pdfFontSize+'px';
   setTimeout(applyPdfFontSize,50);
 }
+
 
 function pdfDateStr(){
   var n=new Date();
