@@ -1236,6 +1236,28 @@ body.theme-white .home-welcome{color:#555}
           <button id="plPrintModeBtn" onclick="plTogglePrintMode()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🖨 Print Mode</button>
           <button id="plTrashBtn" onclick="plToggleTrash()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🗑</button>
           <button id="plLogBtn" onclick="plToggleLog()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">📋 Log</button>
+          <button id="plSettingsBtn" onclick="plToggleSettings()" style="display:none;padding:5px 11px;background:none;border:1px solid #30363d;border-radius:7px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">⚙</button>
+        </div>
+        <!-- Settings panel -->
+        <div id="plSettingsPanel" style="display:none;margin-top:10px;padding:10px 12px;background:#111827;border-radius:8px;border:1px solid #1e2d45">
+          <div style="font-size:10px;color:#4a6fa5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Global Pricelist Settings</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px">
+            <div>
+              <label style="font-size:10px;color:#8b949e;display:block;margin-bottom:3px">Min Instalment (RM) <span style="color:#4a6fa5">— hide below this</span></label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="plSettingMinInst" type="number" placeholder="0 = off" value="" style="flex:1;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">
+                <button onclick="plSaveSetting('pl_min_instalment','plSettingMinInst')" style="padding:4px 10px;background:#1f6feb;border:none;border-radius:5px;color:#fff;font-size:10px;cursor:pointer">Save</button>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:10px;color:#8b949e;display:block;margin-bottom:3px">Used Vehicle Default PA % <span style="color:#4a6fa5">— if blank per vehicle</span></label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="plSettingUsedPa" type="number" placeholder="e.g. 10" step="0.1" value="" style="flex:1;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">
+                <button onclick="plSaveSetting('used_default_pa','plSettingUsedPa')" style="padding:4px 10px;background:#1f6feb;border:none;border-radius:5px;color:#fff;font-size:10px;cursor:pointer">Save</button>
+              </div>
+            </div>
+          </div>
+          <div id="plSettingStatus" style="font-size:10px;color:#3fb950;margin-top:6px;display:none">✓ Saved</div>
         </div>
         <div id="plNewEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px">
           <button onclick="openPLForm(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ New Entry</button>
@@ -3494,6 +3516,50 @@ function plPrintAny(){
   else plPrintSelected();
 }
 
+async function plToggleSettings(){
+  var panel=ge('plSettingsPanel');
+  if(!panel)return;
+  var open=panel.style.display==='none';
+  panel.style.display=open?'block':'none';
+  var btn=ge('plSettingsBtn');
+  if(btn){btn.style.background=open?'#0d1e35':'none';btn.style.color=open?'#58a6ff':'#8b949e';btn.style.borderColor=open?'#1f6feb':'#30363d';}
+  if(open){
+    // Load current values
+    try{
+      var rows=await sbGet('app_config','key=in.(pl_min_instalment,used_default_pa)&select=key,value');
+      (rows||[]).forEach(function(r){
+        if(r.key==='pl_min_instalment'){var el=ge('plSettingMinInst');if(el)el.value=r.value||'';}
+        if(r.key==='used_default_pa'){var el=ge('plSettingUsedPa');if(el)el.value=r.value||'';}
+      });
+    }catch(e){}
+  }
+}
+
+async function plSaveSetting(key,inputId){
+  var el=ge(inputId);if(!el)return;
+  var val=(el.value||'').trim();
+  try{
+    // Try update first, then insert
+    var existing=await sbGet('app_config','key=eq.'+key+'&select=key');
+    if(existing&&existing.length){
+      await sbPatch('app_config',{key:key},{value:val});
+    } else {
+      await sbPost('app_config',{key:key,value:val});
+    }
+    // Update in-memory values
+    if(key==='pl_min_instalment'){_plMinInst=parseFloat(val)||0;_upMinInst=_plMinInst;}
+    if(key==='used_default_pa'){_upDefaultPa=parseFloat(val)||10;}
+    var st=ge('plSettingStatus');
+    if(st){st.style.display='block';st.textContent='✓ Saved';setTimeout(function(){st.style.display='none';},2000);}
+    // Re-render to apply new thresholds
+    if(_plCurrentTab==='new')renderNewVehicleList();
+    else renderUPList();
+  }catch(e){
+    var st=ge('plSettingStatus');
+    if(st){st.style.display='block';st.style.color='#e24b4a';st.textContent='✗ Save failed';setTimeout(function(){st.style.display='none';st.style.color='#3fb950';},3000);}
+  }
+}
+
 function plUpdatePrintBtn(){
   var n=_plChecked.size;
   var ps=ge('plPrintSelBtn');
@@ -3507,6 +3573,7 @@ function plSyncToolbar(){
   var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
   var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'':'none';
   var lb=ge('plLogBtn');if(lb)lb.style.display=canEdit?'':'none';
+  var sb=ge('plSettingsBtn');if(sb)sb.style.display=canEdit?'':'none';
   // Print mode button state
   if(pb){pb.textContent='🖨 Print Mode'+(''!==''?'':_plPrintMode?' ON':'');pb.style.background=_plPrintMode?'#1a3a1a':'none';pb.style.color=_plPrintMode?'#3fb950':'#8b949e';pb.style.borderColor=_plPrintMode?'#238636':'#30363d';}
   // Print selected button handled by plUpdatePrintBtn
@@ -3941,7 +4008,7 @@ function upPrintSelected(){
     }).join('');
     // Brand/Model cell: B&W — brand bold, model normal, year · Condition small italic
     var plateCell=esc(r.plate_no||'—')
-      +((r.year||condLabel)?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'
+      +((r.year||condLabel)?'<br><span style="font-size:8.5px;color:#444;font-style:normal;letter-spacing:.01em">'
         +(r.year?r.year:'')+(r.year&&condLabel?' · ':'')+condLabel+'</span>':'');
     var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span>'
       +(r.model?' <span style="font-weight:normal">'+esc(r.model)+'</span>':'');
