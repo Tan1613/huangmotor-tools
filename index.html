@@ -2084,7 +2084,7 @@ function printPLPdf(){
 }
 function closePLPdf(){document.getElementById('plPdfSheet').style.display='none';document.body.style.overflow='';}
 
-var pdfFontSize=16; // default, user can adjust
+var pdfFontSize=15; // default, user can adjust
 function adjustPdfFont(delta){
   pdfFontSize=Math.min(20,Math.max(8,pdfFontSize+delta));
   document.getElementById('pdfFontSizeLabel').textContent=pdfFontSize+'px';
@@ -3958,10 +3958,10 @@ function plPrintSelected(){
           +'<tr class="'+rb+'">'
             +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
             +'<td style="text-align:right;font-size:8px">'+rm(rtax)+'</td>'
-            +'<td style="text-align:right;font-size:8px">'+rm(ins1)+'</td>'
-            +'<td style="text-align:right;font-size:8px">'+(ins1p?rm(ins1p):'--')+'</td>'
-            +'<td style="text-align:right;font-size:8px">'+(ins3?rm(ins3):'--')+'</td>'
-            +'<td style="text-align:right;font-size:8px">'+(inssum?rm(inssum):'--')+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(ins1>0?Math.round(ins1).toLocaleString():'--')+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(ins1p>0?Math.round(ins1p).toLocaleString():'--')+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(ins3>0?Math.round(ins3).toLocaleString():'--')+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(inssum>0?Math.round(inssum).toLocaleString():'--')+'</td>'
           +'</tr>'
           +'<tr class="'+ra+'">'
             +(hasAeonCalc
@@ -3983,12 +3983,12 @@ function plPrintSelected(){
     +'<tr>'
       +'<th class="left" rowspan="2">Brand / Model</th>'
       +'<th>Cash</th>'
-      +'<th>K.DP</th><th colspan="4">Instalment</th>'
+      +'<th>K.DP</th><th colspan="4">Instalment (RM)</th>'
     +'</tr>'
     +'<tr>'
       +'<th class="r2">HP</th><th class="r2">RTax</th>'
-      +'<th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
-      +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
+      +'<th class="r2">Ins 1st (RM)</th><th class="r2">Ins 1st+ (RM)</th>'
+      +'<th class="r2">Ins 3rd (RM)</th><th class="r2">Ins SUM</th>'
     +'</tr>'
     +'</thead>';
 
@@ -4045,12 +4045,14 @@ function upUpdatePrintBtn(){
 function upPrintSelected(){
   var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
   if(!entries.length){alert('No entries selected.');return;}
-  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
+  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'--';}
+  function n(v){return v&&parseFloat(v)>0?Math.round(parseFloat(v)).toLocaleString():'--';}
   function instV(loan,pa,yr){
     if(!loan||loan<=0||!pa||!yr)return null;
     return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
   }
-  var rows='';var idx=0;
+
+  var tbodies='';var idx=0;
   entries.forEach(function(r){
     var hp=parseFloat(r.loan_price)||0;
     var dp=parseFloat(r.down_payment)||0;
@@ -4059,60 +4061,78 @@ function upPrintSelected(){
     var loanyear=parseInt(r.loanyear)||5;
     var inssum=parseFloat(r.inssum)||0;
     var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
+
+    // Condition plain text
     var condLabel=r.condition?r.condition.charAt(0).toUpperCase()+r.condition.slice(1):'';
-    var instCells=[2,3,4,5].map(function(yr){
-      if(yr>loanyear)return '<td class="na">—</td>';
-      var v=instV(loan,pa,yr);
-      return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
-    }).join('');
-    // Brand/Model cell: B&W — brand bold, model normal, year · Condition small italic
-    var plateCell=esc(r.plate_no||'—')
-      +((r.year||condLabel)?'<br><span style="font-size:8.5px;color:#444;font-style:normal;letter-spacing:.01em">'
+    var plateCell=esc(r.plate_no||'--')
+      +((r.year||condLabel)?'<br><span style="font-size:8.5px;color:#444">'
         +(r.year?r.year:'')+(r.year&&condLabel?' · ':'')+condLabel+'</span>':'');
-    var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span>'
-      +(r.model?' <span style="font-weight:normal">'+esc(r.model)+'</span>':'');
-    var nRows=r.notes?3:2;
-    rows+='<tr class="'+ra+'">'
-      +'<td class="left plate" rowspan="'+nRows+'">'+plateCell+'</td>'
-      +'<td class="model" rowspan="'+nRows+'">'+brandModel+'</td>'
-      +'<td class="cash">'+rm(r.cash_price)+'</td>'
-      +'<td class="dp">'+rm(dp)+'</td>'
-      +instCells+'</tr>'
-      +'<tr class="'+rb+'">'
-      +'<td class="hp">'+rm(hp)+'</td>'
-      +'<td class="sub">'+rm(r.road_tax_1yr)+'</td>'
-      +'<td class="sub">'+rm(r.insurance_1st)+'</td>'
-      +'<td class="sub">'+(r.ins1p&&parseFloat(r.ins1p)>0?rm(r.ins1p):'—')+'</td>'
-      +'<td class="sub">'+rm(r.insurance_3rd)+'</td>'
-      +'<td class="sub">'+(inssum>0?rm(inssum):'—')+'</td>'
-      +'</tr>'
-      +(r.notes?'<tr><td colspan="6" style="font-size:7.5px;color:#888;padding:1px 5px 3px;font-style:italic;border-top:none;text-align:left">'+esc(r.notes)+'</td></tr>':'');
+
+    var brandModel='<b>'+esc(r.brand||'')+'</b> '+esc(r.model||'');
+
+    // Instalment cells 2/3/4/5yr
+    var kCells=[2,3,4,5].map(function(yr){
+      if(yr>loanyear)return '<td class="na">--</td>';
+      var v=instV(loan,pa,yr);
+      return v
+        ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:2px">'+yr+'yr</span></td>'
+        :'<td class="na">--</td>';
+    }).join('');
+
+    tbodies+=
+      '<tbody style="page-break-inside:avoid">'
+        // Row 1: Plate(r=3) Brand/Model(r=3) Cash KDP installments
+        +'<tr class="'+ra+'">'
+          +'<td class="left" rowspan="3" style="white-space:normal;vertical-align:top;font-weight:700">'+plateCell+'</td>'
+          +'<td rowspan="3" style="vertical-align:top">'+brandModel+'</td>'
+          +'<td class="cash">'+rm(r.cash_price)+'</td>'
+          +'<td style="text-align:right">'+rm(dp)+'</td>'
+          +kCells
+        +'</tr>'
+        // Row 2: HP RTax Ins1(RM) Ins1+(RM) Ins3(RM) InsSUM
+        +'<tr class="'+rb+'">'
+          +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+rm(r.road_tax_1yr)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+n(r.insurance_1st)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+(r.ins1p&&parseFloat(r.ins1p)>0?n(r.ins1p):'--')+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+n(r.insurance_3rd)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+(inssum>0?n(inssum):'--')+'</td>'
+        +'</tr>'
+        // Row 3: Notes (always present)
+        +'<tr class="'+ra+'">'
+          +'<td colspan="6" style="font-size:8px;color:#777;font-style:italic;height:22px;padding:2px 5px">'+(r.notes?esc(r.notes):'&nbsp;')+'</td>'
+        +'</tr>'
+      +'</tbody>';
     idx++;
   });
+
   var dateStr=pdfDateStr();
   var colgroup='<colgroup>'
-    +'<col style="width:11%"><col style="width:20%">'
-    +'<col style="width:10%"><col style="width:9%">'
-    +'<col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%">'
+    +'<col style="width:11%"><col style="width:19%">'
+    +'<col style="width:9%"><col style="width:8%">'
+    +'<col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">'
     +'</colgroup>';
   var thead='<thead>'
     +'<tr>'
       +'<th class="left" rowspan="2">Plate</th>'
       +'<th class="left" rowspan="2">Brand / Model</th>'
-      +'<th>Cash</th><th>KDP</th>'
-      +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+      +'<th rowspan="2">Cash</th><th rowspan="2">KDP</th>'
+      +'<th colspan="4">Instalment (RM)</th>'
     +'</tr>'
     +'<tr>'
       +'<th class="r2">HP</th><th class="r2">RTax</th>'
-      +'<th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
-      +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
+      +'<th class="r2">Ins 1st (RM)</th><th class="r2">Ins 1st+ (RM)</th>'
+      +'<th class="r2">Ins 3rd (RM)</th><th class="r2">Ins SUM</th>'
     +'</tr>'
     +'</thead>';
+
   var inner='<div class="pl-pdf-hdr">'
-    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
+    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Monthly instalment (RM) &middot; PA shown per vehicle</div>'
+    +'<table class="pl-pdf-table">'+colgroup+thead+tbodies+'</table>'
+    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
+
   var sheet2=ge('plPdfSheet');var inner2=ge('plPdfInner');
   if(!sheet2||!inner2){alert('PDF sheet not found.');return;}
   inner2.innerHTML=inner;
