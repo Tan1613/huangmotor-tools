@@ -3832,6 +3832,14 @@ function plPrintSelected(){
     var v=Math.ceil(loan*(1+pa/100*yr)/(yr*12));
     return (_plMinInst&&v<_plMinInst)?null:v;
   }
+  // Instalment cell: big number + small year label, no wrap
+  function instCell(v,yr,cls){
+    cls=cls||'inst';
+    return v
+      ?'<td class="'+cls+'" style="white-space:nowrap;text-align:right">'+v.toLocaleString()+'<span style="font-size:8px;color:#888;margin-left:2px">'+yr+'yr</span></td>'
+      :'<td class="na" style="white-space:nowrap;text-align:right">--<span style="font-size:8px;color:#ccc;margin-left:2px">'+yr+'yr</span></td>';
+  }
+
   var seen={};var brands=[];
   entries.forEach(function(e){var b=e.brand||'';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
 
@@ -3848,30 +3856,25 @@ function plPrintSelected(){
       var tsp=cash+hand+other+ins1+rtax,kloan=hp-dpk;
       var mf=plMfLookup(e.brand,e.model);
       var aeonDP=mf!==null?Math.max(0,tsp-mf):0,aeonLoan=tsp-aeonDP;
-      var hasAeon=aeon_pa>0&&tsp>0;
+      var hasAeonCalc=aeon_pa>0&&tsp>0&&aeonLoan>0;
       var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
-      var nRows=hasAeon?3:2;
+      // Always 3 rows per entry for uniform layout
       var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
 
-      /* 7 columns:
-         Col1(r)        Col2   Col3   Col4   Col5   Col6   Col7
-         Brand/Model    Cash   K.DP   2yr    3yr    4yr    5yr
-                        HP     RTax   Ins1   1st+   3rd    SUM
-                        Lowest DP from RMxxx (colspan=2)  yr1  yr2  yr3  yr4
-      */
+      var brandCell='<b>'+esc(brand)+'</b><br>'+esc(e.model||'');
+
       rows+=
+        // Row 1: Kedai installments
         '<tr class="'+ra+'">'
-          +'<td class="left" rowspan="'+nRows+'" style="white-space:normal">'+
-            '<b>'+esc(brand)+'</b> '+esc(e.model||'')+'</td>'
+          +'<td class="left" rowspan="3" style="white-space:normal;vertical-align:top">'+brandCell+'</td>'
           +'<td class="cash">'+rm(cash)+'</td>'
           +'<td style="text-align:right">'+rm(dpk)+'</td>'
           +[2,3,4,5].map(function(yr){
             var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
-            return v
-              ?'<td class="inst" style="white-space:nowrap">'+v.toLocaleString()+' <span style="font-size:7px;color:#888">'+yr+'yr</span></td>'
-              :'<td class="na">--</td>';
+            return instCell(v,yr);
           }).join('')
         +'</tr>'
+        // Row 2: HP, RTax, Insurance
         +'<tr class="'+rb+'">'
           +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
           +'<td style="text-align:right;font-size:8px">'+rm(rtax)+'</td>'
@@ -3880,27 +3883,24 @@ function plPrintSelected(){
           +'<td style="text-align:right;font-size:8px">'+(ins3?rm(ins3):'--')+'</td>'
           +'<td style="text-align:right;font-size:8px">'+(inssum?rm(inssum):'--')+'</td>'
         +'</tr>'
-        +(hasAeon
-          ?'<tr class="'+ra+'">'
-            +(aeon_pa&&aeonLoan>0
-              ?'<td colspan="2" style="font-size:8px;color:#555;white-space:nowrap">Lowest DP from '+(aeonDP>0?rm(aeonDP):'RM 0')+'</td>'
-               +aYrs.map(function(yr){
-                 var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
-                 return v
-                   ?'<td class="inst" style="white-space:nowrap">'+v.toLocaleString()+' <span style="font-size:7px;color:#888">'+yr+'yr</span></td>'
-                   :'<td class="na" style="font-size:8px;color:#bbb">-- <span style="font-size:7px">'+yr+'yr</span></td>';
-               }).join('')
-              :'<td colspan="6" style="font-size:8px;color:#999;text-align:center;font-style:italic">No calculation available yet</td>'
-            )
-          +'</tr>'
-          :'');
+        // Row 3: AEON / Not available — always present
+        +'<tr class="'+ra+'">'
+          +(hasAeonCalc
+            ?'<td colspan="2" style="font-size:7.5px;color:#555;white-space:nowrap">Lowest DP <b style="font-size:9px;color:#333">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</b></td>'
+             +aYrs.map(function(yr){
+               var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
+               return instCell(v,yr);
+             }).join('')
+            :'<td colspan="6" style="font-size:8px;color:#bbb;text-align:center;font-style:italic">Not available yet</td>'
+          )
+        +'</tr>';
       idx++;
     });
   });
 
   var dateStr=pdfDateStr();
   var colgroup='<colgroup>'
-    +'<col style="width:22%"><col style="width:9%">'
+    +'<col style="width:21%"><col style="width:9%">'
     +'<col style="width:9%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:10%">'
     +'</colgroup>';
   var thead='<thead>'
