@@ -3904,34 +3904,36 @@ function upPrintSelected(){
     var loanyear=parseInt(r.loanyear)||5;
     var inssum=parseFloat(r.inssum)||0;
     var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
-    // Condition badge
-    var condColor={'good':'#1a6b2a','fair':'#7a6010','poor':'#7a1a1a'}[r.condition]||'#555';
-    var condBg={'good':'#e6f4ea','fair':'#fef9e7','poor':'#fde8e8'}[r.condition]||'#f5f5f5';
     var condLabel=r.condition?r.condition.charAt(0).toUpperCase()+r.condition.slice(1):'';
     var instCells=[2,3,4,5].map(function(yr){
       if(yr>loanyear)return '<td class="na">—</td>';
       var v=instV(loan,pa,yr);
       return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
     }).join('');
-    // Brand/Model cell: brand bold, model normal, year+condition badge inline
-    var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span> '+esc(r.model||'')
-      +(r.year||condLabel?'<br><span style="font-size:7.5px;color:#666">'+(r.year?r.year+' ':'')
-        +(condLabel?'<span style="background:'+condBg+';color:'+condColor+';border-radius:3px;padding:0 3px;font-size:7px">'+condLabel+'</span>':'')+'</span>':'');
+    // Brand/Model cell: B&W — brand bold, model normal, year · Condition small italic
+    var subLine=(r.year||condLabel)?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'
+      +(r.year?r.year:'')+(r.year&&condLabel?' · ':'')+condLabel+'</span>':'';
+    var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span>'
+      +(r.model?' <span style="font-weight:normal">'+esc(r.model)+'</span>':'')
+      +subLine;
+    var nRows=r.notes?3:2;// total rowspan
+    // Row 2 has 10 cells after rowspanned cols (total 12 cols - 2 rowspan = 10)
+    var notesColspan=10;
     rows+='<tr class="'+ra+'">'
-      +'<td class="left plate" rowspan="'+(r.notes?3:2)+'">'+esc(r.plate_no||'—')+'</td>'
-      +'<td class="model" rowspan="'+(r.notes?3:2)+'">'+brandModel+'</td>'
+      +'<td class="left plate" rowspan="'+nRows+'">'+esc(r.plate_no||'—')+'</td>'
+      +'<td class="model" rowspan="'+nRows+'">'+brandModel+'</td>'
       +'<td class="cash">'+rm(r.cash_price)+'</td>'
-      +'<td class="dp">'+rm(r.down_payment)+'</td>'
+      +'<td class="dp">'+rm(dp)+'</td>'
       +instCells+'</tr>'
       +'<tr class="'+rb+'">'
-      +'<td class="hp">'+rm(hp)+'</td>'
+      +'<td class="hp" style="font-size:8px;color:#333">'+rm(hp)+'</td>'
       +'<td class="sub">'+rm(r.road_tax_1yr)+'</td>'
       +'<td class="sub">'+rm(r.insurance_1st)+'</td>'
       +'<td class="sub">'+(r.ins1p&&parseFloat(r.ins1p)>0?rm(r.ins1p):'—')+'</td>'
       +'<td class="sub">'+rm(r.insurance_3rd)+'</td>'
-      +'<td class="sub">'+(inssum>0?rm(inssum):'—')+'</td>'
+      +'<td class="sub" style="font-size:8px;color:#333">'+(inssum>0?rm(inssum):'—')+'</td>'
       +'</tr>'
-      +(r.notes?'<tr><td colspan="6" style="font-size:7.5px;color:#888;padding:1px 5px 3px;font-style:italic;border-top:none">'+esc(r.notes)+'</td></tr>':'');
+      +(r.notes?'<tr><td colspan="'+notesColspan+'" style="font-size:7.5px;color:#888;padding:1px 5px 3px;font-style:italic;border-top:none;text-align:left">'+esc(r.notes)+'</td></tr>':'');
     idx++;
   });
   var dateStr=pdfDateStr();
@@ -3945,12 +3947,12 @@ function upPrintSelected(){
     +'<th class="left" rowspan="2">Plate</th>'
     +'<th class="left" rowspan="2">Brand / Model</th>'
     +'<th rowspan="2">Cash</th><th rowspan="2">KDP</th>'
-    +'<th colspan="4" style="background:#dbeafe;color:#1e40af">Monthly (Kedai)</th>'
+    +'<th colspan="4">Monthly (Kedai)</th>'
     +'</tr><tr>'
-    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">2yr</th>'
-    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">3yr</th>'
-    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">4yr</th>'
-    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">5yr</th>'
+    +'<th style="font-size:7px">2yr</th>'
+    +'<th style="font-size:7px">3yr</th>'
+    +'<th style="font-size:7px">4yr</th>'
+    +'<th style="font-size:7px">5yr</th>'
     +'<th class="r2">HP</th>'
     +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
     +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
