@@ -3879,7 +3879,7 @@ function plPrintSelected(){
         +'</tr>'
         +(hasAeon
           ?'<tr class="'+ra+'">'
-            +'<td style="text-align:right;font-size:8px;color:#555">Lowest DP</td>'
+            +'<td style="text-align:right;font-size:7.5px;color:#555;white-space:nowrap">L.DP</td>'
             +(aeon_pa&&aeonLoan>0
               ?'<td style="text-align:right;font-size:8px">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</td>'
                +aYrs.map(function(yr){
@@ -3898,8 +3898,8 @@ function plPrintSelected(){
 
   var dateStr=pdfDateStr();
   var colgroup='<colgroup>'
-    +'<col style="width:22%"><col style="width:9%">'
-    +'<col style="width:9%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:10%">'
+    +'<col style="width:23%"><col style="width:10%">'
+    +'<col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:9%"><col style="width:9%">'
     +'</colgroup>';
   var thead='<thead>'
     +'<tr>'
