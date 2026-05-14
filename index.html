@@ -172,6 +172,10 @@ body{font-family:sans-serif;font-size:13px;color:#1a1a1a;background:#f0efeb;min-
   .pl-pdf-actions{display:none!important}
   .pl-pdf-inner{margin:0!important;box-shadow:none!important;width:100%!important;padding:6mm!important;min-height:auto!important}
   .pl-pdf-table tbody{page-break-inside:avoid}
+  .pl-pdf-table{border:3px double #1a1a1a!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pl-pdf-table tr.sep-top td{border-top:2.5px solid #555!important}
+  .pl-pdf-table thead th{border-top:1.5px solid #1a1a1a!important;border-bottom:1px solid #1a1a1a!important}
+  .pl-pdf-table thead tr:nth-child(2) th{border-bottom:2px solid #1a1a1a!important}
   /* Quotation PDF */
   #pdfSheet{display:none!important}
   .pdf-actions{display:none!important}
@@ -4114,7 +4118,7 @@ function upPrintSelected(){
     +'<tr>'
       +'<th class="left" rowspan="2">Plate</th>'
       +'<th class="left" rowspan="2">Brand / Model</th>'
-      +'<th rowspan="2">Cash</th><th rowspan="2">KDP</th>'
+      +'<th>Cash</th><th>KDP</th>'
       +'<th colspan="4">Instalment (RM)</th>'
     +'</tr>'
     +'<tr>'
