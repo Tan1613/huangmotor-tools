@@ -1354,7 +1354,7 @@ body.theme-white .home-welcome{color:#555}
         <input type="hidden" id="up_loan_amt">
       </div>
       <div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Interest & Loan</div>
-      <div><label>PA % <span style="font-size:9px;color:#444">blank = default (10%)</span></label><input id="up_pa" type="number" placeholder="leave blank" step="0.1" oninput="upFormCalc()"></div>
+      <div><label>PA % <span id="upPaDefaultLabel" style="font-size:9px;color:#444">blank = default (10%)</span></label><input id="up_pa" type="number" placeholder="leave blank" step="0.1" oninput="upFormCalc()"></div>
       <div><label>Max Loan Year</label>
         <select id="up_loanyear" onchange="upFormCalc()">
           <option value="5">5yr (default)</option>
@@ -3573,7 +3573,7 @@ function plSyncToolbar(){
   var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
   var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'':'none';
   var lb=ge('plLogBtn');if(lb)lb.style.display=canEdit?'':'none';
-  var sb=ge('plSettingsBtn');if(sb)sb.style.display=canEdit?'':'none';
+  var sb=ge('plSettingsBtn');if(sb)sb.style.display=(currentUser.role==='admin')?'':'none';
   // Print mode button state
   if(pb){pb.textContent='🖨 Print Mode'+(''!==''?'':_plPrintMode?' ON':'');pb.style.background=_plPrintMode?'#1a3a1a':'none';pb.style.color=_plPrintMode?'#3fb950':'#8b949e';pb.style.borderColor=_plPrintMode?'#238636':'#30363d';}
   // Print selected button handled by plUpdatePrintBtn
@@ -3830,114 +3830,103 @@ function plPrintSelected(){
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
   function instV(loan,pa,yr){
     if(!loan||loan<=0||!pa||!yr)return null;
-    return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
+    var v=Math.ceil(loan*(1+pa/100*yr)/(yr*12));
+    return (_plMinInst&&v<_plMinInst)?null:v;
   }
 
-  // Group by brand
   var seen={};var brands=[];
-  entries.forEach(function(e){
-    var b=e.brand||'—';
-    if(!seen[b]){seen[b]=[];brands.push(b);}
-    seen[b].push(e);
-  });
+  entries.forEach(function(e){var b=e.brand||'—';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
 
-  // Determine shared yrcols (use 7yr cols if any entry has loanyear≥6)
   var hasLong=entries.some(function(e){return parseInt(e.loanyear||7)>=6;});
   var yrcols=hasLong?[3,4,5,7]:[2,3,4,5];
-  var ncols=yrcols.length;// 4
 
   var rows='';var idx=0;
   brands.forEach(function(brand){
     (seen[brand]||[]).forEach(function(e){
-      var cash=parseFloat(e.cash)||0;
-      var hp=parseFloat(e.hp)||0;
-      var dpk=parseFloat(e.dpk)||0;
-      var ins1=parseFloat(e.ins1)||0;
-      var ins1p=parseFloat(e.ins1p)||0;
-      var ins3=parseFloat(e.ins3)||0;
-      var rtax=parseFloat(e.rtax)||0;
-      var hand=parseFloat(e.hand)||0;
-      var other=parseFloat(e.other)||0;
-      var pa=parseFloat(e.pa)||0;
-      var aeon_pa=parseFloat(e.aeon_pa)||0;
+      var cash=parseFloat(e.cash)||0,hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
+      var ins1=parseFloat(e.ins1)||0,ins1p=parseFloat(e.ins1p)||0;
+      var ins3=parseFloat(e.ins3)||0,rtax=parseFloat(e.rtax)||0;
+      var hand=parseFloat(e.hand)||0,other=parseFloat(e.other)||0;
+      var pa=parseFloat(e.pa)||0,aeon_pa=parseFloat(e.aeon_pa)||0;
       var loanyear=parseInt(e.loanyear)||7;
-      var tsp=cash+hand+other+ins1+rtax;
-      var kloan=hp-dpk;
+      var inssum=parseFloat(e.inssum)||0;
+      var tsp=cash+hand+other+ins1+rtax,kloan=hp-dpk;
       var mf=plMfLookup(e.brand,e.model);
-      var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
-      var aeonLoan=tsp-aeonDP;
-      var shade=idx%2===0;
-      var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
-
-      // Kedai inst cells
-      var kCells=yrcols.map(function(yr){
-        if(yr>5)return '<td class="na" style="background:#f8fbff">—</td>';
-        if(!pa||!kloan)return '<td class="na">—</td>';
-        var v=instV(kloan,pa,yr);
-        return v?'<td class="inst" style="color:#1e40af">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
-      }).join('');
-      // AEON inst cells
-      var aCells=yrcols.map(function(yr){
-        if(yr>loanyear)return '<td class="na" style="background:#fdf8ff">—</td>';
-        if(!aeon_pa||!aeonLoan)return '<td class="na" style="background:#fdf8ff">—</td>';
-        var v=instV(aeonLoan,aeon_pa,yr);
-        return v?'<td class="inst" style="color:#6b21a8;background:#fdf8ff">'+v.toLocaleString()+'</td>':'<td class="na" style="background:#fdf8ff">—</td>';
-      }).join('');
-
+      var aeonDP=mf!==null?Math.max(0,tsp-mf):0,aeonLoan=tsp-aeonDP;
       var hasAeon=aeon_pa>0&&tsp>0;
-      var totalRows=hasAeon?3:2;
-      rows+='<tr class="'+ra+'">'
-        +'<td class="left" rowspan="'+totalRows+'" style="font-weight:700;font-size:8px">'+esc(brand)+'</td>'
-        +'<td class="model" rowspan="'+totalRows+'">'+esc(e.model||'—')+'</td>'
+      var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
+      var nRows=hasAeon?3:2;
+
+      // Kedai cells — max 5yr
+      var kCells=yrcols.map(function(yr){
+        if(yr>5||!pa||!kloan)return '<td class="na">—</td>';
+        var v=instV(kloan,pa,yr);
+        return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+      }).join('');
+      // AEON cells
+      var aCells=yrcols.map(function(yr){
+        if(yr>loanyear||!aeon_pa||!aeonLoan)return '<td class="na">—</td>';
+        var v=instV(aeonLoan,aeon_pa,yr);
+        return v?'<td class="inst" style="font-style:italic">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+      }).join('');
+
+      rows+=
         // Row 1: Cash, KDP, Kedai installments
-        +'<td class="cash">'+rm(cash)+'</td>'
-        +'<td style="text-align:right;font-size:8px;color:#1e40af">'+rm(dpk)+'</td>'
-        +kCells
+        '<tr class="'+ra+'">'
+          +'<td class="left" rowspan="'+nRows+'" style="font-weight:700">'+esc(brand)+'</td>'
+          +'<td class="model" rowspan="'+nRows+'">'+esc(e.model||'—')+'</td>'
+          +'<td class="cash">'+rm(cash)+'</td>'
+          +'<td style="text-align:right">'+rm(dpk)+'</td>'
+          +kCells
         +'</tr>'
-        // Row 2: ins/fees info
+        // Row 2: HP, Ins details (reusing same column positions)
         +'<tr class="'+rb+'">'
-        +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1+(ins1p||0))+'</td>'
-        +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(rtax)+'</td>'
-        +'<td colspan="'+ncols+'" style="text-align:left;font-size:7.5px;color:#888;padding:2px 5px">'
-          +'HP RM'+(hp?Math.round(hp).toLocaleString():'—')
-          +' · Ins SUM '+rm(parseFloat(e.inssum))
-          +(ins1p?' · Ins 1st+ '+rm(ins1p):'')
-          +(ins3?' · Ins 3rd '+rm(ins3):'')
-        +'</td>'
+          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(hp)+'</td>'
+          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1)+'</td>'
+          +(ins1p?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1p)+'</td>':'<td class="na">—</td>')
+          +(ins3?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins3)+'</td>':'<td class="na">—</td>')
+          +(inssum?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(inssum)+'</td>':'<td class="na">—</td>')
+          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(rtax)+'</td>'
         +'</tr>'
-        // Row 3: AEON (if applicable)
-        +(hasAeon?'<tr style="background:#fdf8ff">'
-          +'<td style="text-align:right;font-size:8px;color:#6b21a8;font-style:italic">AEON</td>'
-          +'<td style="text-align:right;font-size:8px;color:#6b21a8">RM '+Math.round(aeonDP).toLocaleString()+'</td>'
-          +aCells+'</tr>':'');
+        // Row 3: AEON (if exists)
+        +(hasAeon?'<tr class="'+ra+'">'
+          +'<td style="text-align:right;font-size:8px;font-style:italic;color:#444">AEON</td>'
+          +'<td style="text-align:right;font-size:8px;font-style:italic">RM '+Math.round(aeonDP).toLocaleString()+'</td>'
+          +aCells
+        +'</tr>':'');
       idx++;
     });
   });
 
   var dateStr=pdfDateStr();
-  var yrHdrs=yrcols.map(function(yr){return '<th style="background:#dbeafe;color:#1e40af;font-size:7px">'+yr+'yr</th>';}).join('');
-  var yrHdrs2=yrcols.map(function(yr){return '<th style="background:#f3e8ff;color:#6b21a8;font-size:7px">'+yr+'yr</th>';}).join('');
+  var yrStr=yrcols.join('yr / ')+'yr';
   var colgroup='<colgroup>'
-    +'<col style="width:9%"><col style="width:14%">'
-    +'<col style="width:8%"><col style="width:8%">'
-    +yrcols.map(function(){return '<col style="width:'+(44/ncols).toFixed(1)+'%">';}).join('')
+    +'<col style="width:9%"><col style="width:15%">'
+    +'<col style="width:9%"><col style="width:8%">'
+    +yrcols.map(function(){return '<col style="width:'+(59/yrcols.length).toFixed(1)+'%">';}).join('')
     +'</colgroup>';
-  var thead='<thead><tr>'
-    +'<th class="left" rowspan="3">Brand</th><th class="left" rowspan="3">Model</th>'
-    +'<th rowspan="3">Cash OTR</th>'
-    +'<th colspan="'+(ncols+1)+'" style="background:#dbeafe;color:#1e40af">Kedai</th>'
-    +'</tr><tr>'
-    +'<th style="background:#dbeafe;color:#1e40af;font-size:8px">DP</th>'
-    +yrHdrs
-    +'</tr><tr>'
-    +'<th class="r2" style="background:#f0f9f0;color:#15803d;font-size:7.5px">Ins</th>'
-    +'<th class="r2" style="background:#f0f9f0;color:#15803d;font-size:7.5px">RTax</th>'
-    +'<th class="r2" colspan="'+ncols+'" style="background:#f5f5f5;color:#555;font-size:7.5px;text-align:left">AEON: DP · '+yrcols.join('yr · ')+'yr</th>'
-    +'</tr></thead>';
+  var yrHdr=yrcols.map(function(yr){return '<th>'+yr+'yr</th>';}).join('');
+  var thead='<thead>'
+    +'<tr>'
+      +'<th class="left" rowspan="2">Brand</th>'
+      +'<th class="left" rowspan="2">Model</th>'
+      +'<th rowspan="2">Cash OTR</th>'
+      +'<th>K.DP</th>'+yrHdr
+    +'</tr>'
+    +'<tr>'
+      +'<th class="r2">HP</th>'
+      +'<th class="r2">Ins 1st</th>'
+      +'<th class="r2">Ins 1st+</th>'
+      +'<th class="r2">Ins 3rd</th>'
+      +'<th class="r2">Ins SUM</th>'
+      +'<th class="r2">RTax</th>'
+    +'</tr>'
+    +'</thead>';
 
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
+    +'<div style="font-size:7px;color:#888;margin-bottom:4px">K.DP = Kedai Down Payment &nbsp;·&nbsp; Kedai max 5yr &nbsp;·&nbsp; AEON row in italics if applicable &nbsp;·&nbsp; Monthly instalment (RM)</div>'
     +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
 
@@ -4557,6 +4546,8 @@ function openUPModal(id){
   ge('up_rtax').value=r?r.road_tax_1yr||'':'';
   ge('up_sold').checked=r?!!r.is_sold:false;
   ge('up_notes').value=r?r.notes||'':'';
+  // Update PA default label
+  var pdl=ge('upPaDefaultLabel');if(pdl)pdl.textContent='blank = default ('+_upDefaultPa+'%)';
   // Reset special plate
   if(ge('up_special_plate'))ge('up_special_plate').checked=false;
   if(ge('up_plate_err'))ge('up_plate_err').style.display='none';
