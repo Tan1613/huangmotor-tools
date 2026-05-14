@@ -3826,26 +3826,19 @@ function plToggleCheck(id){
 function plPrintSelected(){
   var entries=_plData.filter(function(e){return _plChecked.has(String(e.id))||_plChecked.has(e.id);});
   if(!entries.length){alert('No entries selected.');return;}
-
-  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
+  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'--';}
   function instV(loan,pa,yr){
     if(!loan||loan<=0||!pa||!yr)return null;
     var v=Math.ceil(loan*(1+pa/100*yr)/(yr*12));
     return (_plMinInst&&v<_plMinInst)?null:v;
   }
-
   var seen={};var brands=[];
-  entries.forEach(function(e){
-    var b=e.brand||'—';
-    if(!seen[b]){seen[b]=[];brands.push(b);}
-    seen[b].push(e);
-  });
+  entries.forEach(function(e){var b=e.brand||'';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
 
   var rows='';var idx=0;
   brands.forEach(function(brand){
     (seen[brand]||[]).forEach(function(e){
-      var cash=parseFloat(e.cash)||0;
-      var hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
+      var cash=parseFloat(e.cash)||0,hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
       var ins1=parseFloat(e.ins1)||0,ins1p=parseFloat(e.ins1p)||0;
       var ins3=parseFloat(e.ins3)||0,rtax=parseFloat(e.rtax)||0;
       var hand=parseFloat(e.hand)||0,other=parseFloat(e.other)||0;
@@ -3858,56 +3851,45 @@ function plPrintSelected(){
       var hasAeon=aeon_pa>0&&tsp>0;
       var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
       var nRows=hasAeon?3:2;
-
-      // Kedai: always 2/3/4/5, max 5yr
-      var kCells=[2,3,4,5].map(function(yr){
-        if(!pa||!kloan)return '<td class="na">—</td>';
-        var v=instV(kloan,pa,yr);
-        return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
-      }).join('');
-
-      // AEON: loanyear-based [2,3,4,5] or [3,4,5,7], year label shown clearly
       var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
-      var aHasData=hasAeon&&aeon_pa>0&&aeonLoan>0;
-      var aCells='';
-      if(!aHasData){
-        aCells='<td colspan="4" style="text-align:center;font-size:8px;color:#999;font-style:italic;padding:4px">暂时没有计算</td>';
-      } else {
-        aCells=aYrs.map(function(yr){
-          if(yr>loanyear||!aeon_pa||!aeonLoan)
-            return '<td style="text-align:center;font-size:8px;color:#bbb"><div style="font-size:7.5px;color:#ccc;margin-bottom:1px">'+yr+'yr</div>—</td>';
-          var v=instV(aeonLoan,aeon_pa,yr);
-          return v
-            ?'<td style="text-align:center;font-weight:600;font-size:9px"><div style="font-size:7.5px;color:#888;margin-bottom:1px">'+yr+'yr</div>'+v.toLocaleString()+'</td>'
-            :'<td style="text-align:center;font-size:8px;color:#bbb"><div style="font-size:7.5px;color:#ccc;margin-bottom:1px">'+yr+'yr</div>—</td>';
-        }).join('');
-      }
 
-      var brandModel='<span style="font-weight:700;font-size:9px">'+esc(brand)+'</span> '+esc(e.model||'—');
-
+      /* 7 columns:
+         Col1           Col2   Col3   Col4   Col5   Col6   Col7
+         Brand/Model(r) Cash   K.DP   2yr    3yr    4yr    5yr
+                        HP     RTax   Ins1   1st+   3rd    SUM
+                        AEON   ADP    yr1    yr2    yr3    yr4
+      */
       rows+=
-        // Row 1: Kedai
         '<tr class="'+ra+'">'
-          +'<td class="left model" rowspan="'+nRows+'">'+brandModel+'</td>'
-          +'<td class="cash" rowspan="'+nRows+'">'+rm(cash)+'</td>'
+          +'<td class="left" rowspan="'+nRows+'"><b>'+esc(brand)+'</b> '+esc(e.model||'')+'</td>'
+          +'<td class="cash">'+rm(cash)+'</td>'
           +'<td style="text-align:right">'+rm(dpk)+'</td>'
-          +kCells
-          +'<td class="na">—</td>'  // 8th col placeholder
+          +[2,3,4,5].map(function(yr){
+            var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
+            return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">--</td>';
+          }).join('')
         +'</tr>'
-        // Row 2: HP, RTax, Insurance details
         +'<tr class="'+rb+'">'
-          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(hp)+'</td>'
-          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(rtax)+'</td>'
-          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1)+'</td>'
-          +(ins1p?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1p)+'</td>':'<td class="na">—</td>')
-          +(ins3?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins3)+'</td>':'<td class="na">—</td>')
-          +(inssum?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(inssum)+'</td>':'<td class="na">—</td>')
+          +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+rm(rtax)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+rm(ins1)+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+(ins1p?rm(ins1p):'--')+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+(ins3?rm(ins3):'--')+'</td>'
+          +'<td style="text-align:right;font-size:8px">'+(inssum?rm(inssum):'--')+'</td>'
         +'</tr>'
-        // Row 3: AEON
         +(hasAeon
           ?'<tr class="'+ra+'">'
-            +'<td style="text-align:center;font-size:9px;font-weight:700;color:#333;padding:3px 4px">AEON<br><span style="font-size:8px;font-weight:400;color:#555">DP '+rm(aeonDP)+'</span></td>'
-            +aCells
+            +'<td style="text-align:center;font-weight:700;font-size:9px">AEON</td>'
+            +(aeon_pa&&aeonLoan>0
+              ?'<td style="text-align:right;font-size:8px">'+rm(aeonDP)+'</td>'
+               +aYrs.map(function(yr){
+                 var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
+                 return v
+                   ?'<td style="text-align:center"><div style="font-size:7px;color:#888">'+yr+'yr</div><b style="font-size:9px">'+v.toLocaleString()+'</b></td>'
+                   :'<td class="na"><div style="font-size:7px;color:#ccc">'+yr+'yr</div>--</td>';
+               }).join('')
+              :'<td colspan="5" style="font-size:8px;color:#999;text-align:center;font-style:italic">No calculation available yet</td>'
+            )
           +'</tr>'
           :'');
       idx++;
@@ -3915,41 +3897,29 @@ function plPrintSelected(){
   });
 
   var dateStr=pdfDateStr();
-  // 8 columns: Brand/Model | Cash | K.DP | 2yr | 3yr | 4yr | 5yr | (info/aeon)
   var colgroup='<colgroup>'
-    +'<col style="width:21%">'   // Brand/Model
-    +'<col style="width:8%">'    // Cash
-    +'<col style="width:8%">'    // K.DP / HP / AEON label
-    +'<col style="width:8%">'    // 2yr / RTax / AEON yr1
-    +'<col style="width:9%">'    // 3yr / Ins1 / AEON yr2
-    +'<col style="width:9%">'    // 4yr / Ins1+ / AEON yr3
-    +'<col style="width:9%">'    // 5yr / Ins3 / AEON yr4
-    +'<col style="width:9%">'    // — / InsSUM / —
+    +'<col style="width:22%"><col style="width:9%">'
+    +'<col style="width:9%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:10%">'
     +'</colgroup>';
   var thead='<thead>'
     +'<tr>'
       +'<th class="left" rowspan="2">Brand / Model</th>'
-      +'<th rowspan="2">Cash</th>'
-      +'<th>K.DP</th>'
-      +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
-      +'<th></th>'
+      +'<th>Cash</th>'
+      +'<th>K.DP</th><th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
     +'</tr>'
     +'<tr>'
-      +'<th class="r2">HP</th>'
-      +'<th class="r2">RTax</th>'
-      +'<th class="r2">Ins 1st</th>'
-      +'<th class="r2">Ins 1st+</th>'
-      +'<th class="r2">Ins 3rd</th>'
-      +'<th class="r2">Ins SUM</th>'
+      +'<th class="r2">HP</th><th class="r2">RTax</th>'
+      +'<th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
+      +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
     +'</tr>'
     +'</thead>';
 
   var inner='<div class="pl-pdf-hdr">'
-    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
+    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr · AEON: year shown per cell · Monthly instalment (RM)</div>'
+    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM) &middot; AEON year shown per cell</div>'
     +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
   if(!sheet||!inner_el){alert('PDF sheet not found.');return;}
