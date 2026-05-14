@@ -3934,7 +3934,9 @@ function plPrintSelected(){
 
       var kCells=[2,3,4,5].map(function(yr){
         var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
-        return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">--</td>';
+        return v
+          ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:2px">'+yr+'yr</span></td>'
+          :'<td class="na">--</td>';
       }).join('');
 
       var aCells=aYrs.map(function(yr){
@@ -3981,7 +3983,7 @@ function plPrintSelected(){
     +'<tr>'
       +'<th class="left" rowspan="2">Brand / Model</th>'
       +'<th>Cash</th>'
-      +'<th>K.DP</th><th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+      +'<th>K.DP</th><th colspan="4">Instalment</th>'
     +'</tr>'
     +'<tr>'
       +'<th class="r2">HP</th><th class="r2">RTax</th>'
