@@ -3701,7 +3701,7 @@ function renderNVCard(e,expanded,editing,canEdit){
   var tsp=cash+hand+other+ins1+rtax,kloan=hp-dpk;
   var mf=plMfLookup(e.brand,e.model);
   var aeonDP=mf!==null?Math.max(0,tsp-mf):0,aeonLoan=tsp-aeonDP,noMF=mf===null;
-  var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7],kedaiMax=5;
+  var yrcols=loanyear<=5?[5,4,3,2]:[7,5,4,3],kedaiMax=5;
   var checked=_plChecked.has(String(e.id));
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
   function instCells(loan,rate,maxYr,color){
@@ -3941,9 +3941,9 @@ function plPrintSelected(){
       var aeonDP=mf!==null?Math.max(0,tsp-mf):0,aeonLoan=tsp-aeonDP;
       var hasAeonCalc=aeon_pa>0&&tsp>0&&aeonLoan>0;
       var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
-      var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+      var aYrs=loanyear<=5?[5,4,3,2]:[7,5,4,3];
 
-      var kCells=[2,3,4,5].map(function(yr){
+      var kCells=[5,4,3,2].map(function(yr){
         var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
         return v
           ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:3px"> '+yr+'yr</span></td>'
@@ -4016,140 +4016,6 @@ function plPrintSelected(){
   sheet.style.display='block';
   document.body.style.overflow='hidden';
   var lbl=ge('pdfFontSizeLabel');if(lbl)lbl.textContent=pdfFontSize+'px';
-  setTimeout(applyPdfFontSize,50);
-}
-
-
-function pdfDateStr(){
-  var n=new Date();
-  return n.getDate().toString().padStart(2,'0')+'/'+(n.getMonth()+1).toString().padStart(2,'0')+'/'+n.getFullYear()
-    +' '+n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
-}
-
-/* ── Used Vehicle Print ── */
-var _upChecked=new Set();
-var _upPrintMode=false;
-
-function upTogglePrintMode(){
-  _upPrintMode=!_upPrintMode;
-  if(!_upPrintMode)_upChecked.clear();
-  var btn=ge('upPrintModeBtn');
-  if(btn){btn.style.background=_upPrintMode?'#1a3a1a':'none';btn.style.color=_upPrintMode?'#3fb950':'#8b949e';btn.style.borderColor=_upPrintMode?'#238636':'#30363d';btn.textContent='🖨 Print Mode'+(_upPrintMode?' ON':'');}
-  upUpdatePrintBtn();
-  renderUPList();
-}
-function upToggleCheck(id){
-  var sid=String(id);
-  if(_upChecked.has(sid))_upChecked.delete(sid);else _upChecked.add(sid);
-  try{localStorage.setItem('up_checked',JSON.stringify([..._upChecked]));}catch(e){}
-  var cb=document.querySelector('input[onchange*="upToggleCheck(\''+sid+'\'"]');
-  if(cb)cb.checked=_upChecked.has(sid);
-  upUpdatePrintBtn();
-}
-function upUpdatePrintBtn(){
-  var n=_upChecked.size;
-  var ps=ge('plPrintSelBtn');
-  if(ps)ps.style.display=(_upPrintMode&&n>0)?'block':'none';
-  var cnt=ge('plPrintSelCount');if(cnt)cnt.textContent=n;
-  var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=n?n+' selected':'';
-}
-function upPrintSelected(){
-  var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
-  if(!entries.length){alert('No entries selected.');return;}
-  function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'--';}
-  function n(v){return v&&parseFloat(v)>0?Math.round(parseFloat(v)).toLocaleString():'--';}
-  function instV(loan,pa,yr){
-    if(!loan||loan<=0||!pa||!yr)return null;
-    return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
-  }
-
-  var tbodies='';var idx=0;
-  entries.forEach(function(r){
-    var hp=parseFloat(r.loan_price)||0;
-    var dp=parseFloat(r.down_payment)||0;
-    var loan=hp-dp;
-    var pa=parseFloat(r.pa)||_upDefaultPa;
-    var loanyear=parseInt(r.loanyear)||5;
-    var inssum=parseFloat(r.inssum)||0;
-    var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
-
-    // Condition plain text
-    var condLabel=r.condition?r.condition.charAt(0).toUpperCase()+r.condition.slice(1):'';
-    var plateCell=esc(r.plate_no||'--')
-      +((r.year||condLabel)?'<br><span style="font-size:11px;color:#444">'
-        +(r.year?r.year:'')+(r.year&&condLabel?' · ':'')+condLabel+'</span>':'');
-
-    var brandModel='<b>'+esc(r.brand||'')+'</b> '+esc(r.model||'');
-
-    // Instalment cells 2/3/4/5yr
-    var kCells=[2,3,4,5].map(function(yr){
-      if(yr>loanyear)return '<td class="na">--</td>';
-      var v=instV(loan,pa,yr);
-      return v
-        ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:3px"> '+yr+'yr</span></td>'
-        :'<td class="na">--</td>';
-    }).join('');
-
-    tbodies+=
-      '<tbody style="page-break-inside:avoid">'
-        // Row 1: Plate(r=3) Brand/Model(r=3) Cash KDP installments
-        +'<tr class="'+ra+' sep-top">'
-          +'<td class="left" rowspan="3" style="white-space:normal;vertical-align:top;font-weight:700;border-bottom:1.5px solid #888">'+plateCell+'</td>'
-          +'<td rowspan="3" style="vertical-align:top;white-space:normal;text-align:left;border-bottom:1.5px solid #888">'+brandModel+'</td>'
-          +'<td class="cash">'+rm(r.cash_price)+'</td>'
-          +'<td style="text-align:right">'+rm(dp)+'</td>'
-          +kCells
-        +'</tr>'
-        // Row 2: HP RTax Ins1(RM) Ins1+(RM) Ins3(RM) InsSUM
-        +'<tr class="'+rb+'">'
-          +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+rm(r.road_tax_1yr)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+n(r.insurance_1st)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+(r.ins1p&&parseFloat(r.ins1p)>0?n(r.ins1p):'--')+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+n(r.insurance_3rd)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+(inssum>0?n(inssum):'--')+'</td>'
-        +'</tr>'
-        // Row 3: Notes (always present)
-        +'<tr>'
-          +'<td colspan="6" style="font-size:8px;color:#555;font-style:italic;padding:2px 6px 4px;text-align:left;border-top:1px dashed #ccc;border-bottom:1.5px solid #888">'+(r.notes?esc(r.notes):'&nbsp;')+'</td>'
-        +'</tr>'
-      +'</tbody>';
-    idx++;
-  });
-
-  var dateStr=pdfDateStr();
-  var colgroup='<colgroup>'
-    +'<col style="width:10%"><col style="width:21%">'
-    +'<col style="width:9%"><col style="width:9%">'
-    +'<col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%">'
-    +'</colgroup>';
-  var thead='<thead>'
-    +'<tr>'
-      +'<th class="left" rowspan="2">Plate</th>'
-      +'<th class="left" rowspan="2">Brand / Model</th>'
-      +'<th>Cash</th><th>KDP</th>'
-      +'<th colspan="4">Instalment (RM)</th>'
-    +'</tr>'
-    +'<tr>'
-      +'<th class="r2">HP</th><th class="r2">RTax</th>'
-      +'<th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
-      +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
-    +'</tr>'
-    +'</thead>';
-
-  var inner='<div class="pl-pdf-hdr">'
-    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
-    +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Monthly instalment (RM) &middot; PA shown per vehicle</div>'
-    +'<div><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed;border:4px double #1a1a1a">'+colgroup+thead+tbodies+'</table>'
-    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
-
-  var sheet2=ge('plPdfSheet');var inner2=ge('plPdfInner');
-  if(!sheet2||!inner2){alert('PDF sheet not found.');return;}
-  inner2.innerHTML=inner;
-  sheet2.style.display='block';
-  document.body.style.overflow='hidden';
-  var lbl2=ge('pdfFontSizeLabel');if(lbl2)lbl2.textContent=pdfFontSize+'px';
   setTimeout(applyPdfFontSize,50);
 }
 /* ── Trash ── */
@@ -4535,7 +4401,7 @@ function renderUPCard(r,expanded,canEdit){
   var ins3=parseFloat(r.insurance_3rd)||0;
   var rtax=parseFloat(r.road_tax_1yr)||0;
   var condColor={'good':'#3fb950','fair':'#f0c060','poor':'#e24b4a'}[r.condition]||'#8b949e';
-  var yrcols=[2,3,4,5];
+  var yrcols=[5,4,3,2];
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
   function instCells(){
     return yrcols.map(function(yr){
@@ -4615,7 +4481,7 @@ function upFormCalc(){
   var la=ge('up_loan_amt');if(la)la.value=loan>0?loan:'';
   var tbl=ge('up_inst_table');if(!tbl)return;
   if(!loan||loan<=0||!pa){tbl.innerHTML='<span style="color:#4a6fa5">Fill HP, DP and PA%</span>';return;}
-  var cols=[2,3,4,5];
+  var cols=[5,4,3,2];
   tbl.innerHTML='<table style="width:100%;border-collapse:collapse"><tr>'
     +'<td style="font-size:9px;color:#2a4a6a;padding-right:8px">Monthly</td>'
     +cols.map(function(yr){
