@@ -3835,15 +3835,17 @@ function plPrintSelected(){
   }
 
   var seen={};var brands=[];
-  entries.forEach(function(e){var b=e.brand||'—';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
-
-  // Kedai: ALWAYS [2,3,4,5]
-  var kYrs=[2,3,4,5];
+  entries.forEach(function(e){
+    var b=e.brand||'—';
+    if(!seen[b]){seen[b]=[];brands.push(b);}
+    seen[b].push(e);
+  });
 
   var rows='';var idx=0;
   brands.forEach(function(brand){
     (seen[brand]||[]).forEach(function(e){
-      var cash=parseFloat(e.cash)||0,hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
+      var cash=parseFloat(e.cash)||0;
+      var hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
       var ins1=parseFloat(e.ins1)||0,ins1p=parseFloat(e.ins1p)||0;
       var ins3=parseFloat(e.ins3)||0,rtax=parseFloat(e.rtax)||0;
       var hand=parseFloat(e.hand)||0,other=parseFloat(e.other)||0;
@@ -3857,66 +3859,84 @@ function plPrintSelected(){
       var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
       var nRows=hasAeon?3:2;
 
-      // AEON year cols follow loanyear
-      var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
-
-      // Kedai cells: always 2/3/4/5
-      var kCells=kYrs.map(function(yr){
+      // Kedai: always 2/3/4/5, max 5yr
+      var kCells=[2,3,4,5].map(function(yr){
         if(!pa||!kloan)return '<td class="na">—</td>';
         var v=instV(kloan,pa,yr);
         return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
       }).join('');
 
-      // AEON cells: follow aYrs, self-label inside cell
-      var aCells=aYrs.map(function(yr){
-        if(yr>loanyear||!aeon_pa||!aeonLoan)
-          return '<td class="na" style="font-style:italic"><span style="font-size:6px;display:block;color:#999">'+yr+'yr</span>—</td>';
-        var v=instV(aeonLoan,aeon_pa,yr);
-        return v
-          ?'<td class="inst" style="font-style:italic"><span style="font-size:6px;display:block;color:#888">'+yr+'yr</span>'+v.toLocaleString()+'</td>'
-          :'<td class="na" style="font-style:italic"><span style="font-size:6px;display:block;color:#999">'+yr+'yr</span>—</td>';
-      }).join('');
+      // AEON: loanyear-based [2,3,4,5] or [3,4,5,7], year label shown clearly
+      var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+      var aHasData=hasAeon&&aeon_pa>0&&aeonLoan>0;
+      var aCells='';
+      if(!aHasData){
+        aCells='<td colspan="4" style="text-align:center;font-size:8px;color:#999;font-style:italic;padding:4px">暂时没有计算</td>';
+      } else {
+        aCells=aYrs.map(function(yr){
+          if(yr>loanyear||!aeon_pa||!aeonLoan)
+            return '<td style="text-align:center;font-size:8px;color:#bbb"><div style="font-size:7.5px;color:#ccc;margin-bottom:1px">'+yr+'yr</div>—</td>';
+          var v=instV(aeonLoan,aeon_pa,yr);
+          return v
+            ?'<td style="text-align:center;font-weight:600;font-size:9px"><div style="font-size:7.5px;color:#888;margin-bottom:1px">'+yr+'yr</div>'+v.toLocaleString()+'</td>'
+            :'<td style="text-align:center;font-size:8px;color:#bbb"><div style="font-size:7.5px;color:#ccc;margin-bottom:1px">'+yr+'yr</div>—</td>';
+        }).join('');
+      }
+
+      var brandModel='<span style="font-weight:700;font-size:9px">'+esc(brand)+'</span> '+esc(e.model||'—');
 
       rows+=
+        // Row 1: Kedai
         '<tr class="'+ra+'">'
-          +'<td class="left" rowspan="'+nRows+'" style="font-weight:700">'+esc(brand)+'</td>'
-          +'<td class="model" rowspan="'+nRows+'">'+esc(e.model||'—')+'</td>'
+          +'<td class="left model" rowspan="'+nRows+'">'+brandModel+'</td>'
           +'<td class="cash" rowspan="'+nRows+'">'+rm(cash)+'</td>'
           +'<td style="text-align:right">'+rm(dpk)+'</td>'
           +kCells
+          +'<td class="na">—</td>'  // 8th col placeholder
         +'</tr>'
+        // Row 2: HP, RTax, Insurance details
         +'<tr class="'+rb+'">'
           +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(hp)+'</td>'
+          +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(rtax)+'</td>'
           +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1)+'</td>'
           +(ins1p?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1p)+'</td>':'<td class="na">—</td>')
           +(ins3?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins3)+'</td>':'<td class="na">—</td>')
           +(inssum?'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(inssum)+'</td>':'<td class="na">—</td>')
         +'</tr>'
+        // Row 3: AEON
         +(hasAeon
           ?'<tr class="'+ra+'">'
-            +'<td style="text-align:right;font-size:8px;font-style:italic;color:#444">AEON<br><span style="font-size:7px;color:#888">RM '+Math.round(aeonDP).toLocaleString()+'</span></td>'
+            +'<td style="text-align:center;font-size:9px;font-weight:700;color:#333;padding:3px 4px">AEON<br><span style="font-size:8px;font-weight:400;color:#555">DP '+rm(aeonDP)+'</span></td>'
             +aCells
-          +'</tr>':'');
+          +'</tr>'
+          :'');
       idx++;
     });
   });
 
   var dateStr=pdfDateStr();
+  // 8 columns: Brand/Model | Cash | K.DP | 2yr | 3yr | 4yr | 5yr | (info/aeon)
   var colgroup='<colgroup>'
-    +'<col style="width:9%"><col style="width:15%"><col style="width:9%">'
-    +'<col style="width:8%">'
-    +'<col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">'
+    +'<col style="width:21%">'   // Brand/Model
+    +'<col style="width:8%">'    // Cash
+    +'<col style="width:8%">'    // K.DP / HP / AEON label
+    +'<col style="width:8%">'    // 2yr / RTax / AEON yr1
+    +'<col style="width:9%">'    // 3yr / Ins1 / AEON yr2
+    +'<col style="width:9%">'    // 4yr / Ins1+ / AEON yr3
+    +'<col style="width:9%">'    // 5yr / Ins3 / AEON yr4
+    +'<col style="width:9%">'    // — / InsSUM / —
     +'</colgroup>';
   var thead='<thead>'
     +'<tr>'
-      +'<th class="left" rowspan="2">Brand</th>'
-      +'<th class="left" rowspan="2">Model</th>'
-      +'<th rowspan="2">Cash OTR</th>'
+      +'<th class="left" rowspan="2">Brand / Model</th>'
+      +'<th rowspan="2">Cash</th>'
       +'<th>K.DP</th>'
       +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+      +'<th></th>'
     +'</tr>'
     +'<tr>'
       +'<th class="r2">HP</th>'
+      +'<th class="r2">RTax</th>'
       +'<th class="r2">Ins 1st</th>'
       +'<th class="r2">Ins 1st+</th>'
       +'<th class="r2">Ins 3rd</th>'
@@ -3927,7 +3947,7 @@ function plPrintSelected(){
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai: 2–5yr max &nbsp;·&nbsp; AEON (italics): year shown in cell &nbsp;·&nbsp; Monthly instalment (RM)</div>'
+    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr · AEON: year shown per cell · Monthly instalment (RM)</div>'
     +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
 
