@@ -174,7 +174,7 @@ body{font-family:sans-serif;font-size:13px;color:#1a1a1a;background:#f0efeb;min-
   .pl-pdf-inner{margin:0!important;box-shadow:none!important;width:100%!important;padding:6mm!important;min-height:auto!important}
   .pl-pdf-table tbody{page-break-inside:avoid}
   .pl-pdf-table{outline:3px double #1a1a1a!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  .pl-pdf-table td[style*="border-bottom:2.5px"]{border-bottom:2.5px solid #555!important}
+  .pl-pdf-table td[style*="border-bottom:2.5px"]{border-bottom:1.5px solid #888!important}
   /* Quotation PDF */
   #pdfSheet{display:none!important}
   .pdf-actions{display:none!important}
@@ -3936,14 +3936,14 @@ function plPrintSelected(){
       var kCells=[2,3,4,5].map(function(yr){
         var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
         return v
-          ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:2px">'+yr+'yr</span></td>'
+          ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:3px"> '+yr+'yr</span></td>'
           :'<td class="na">--</td>';
       }).join('');
 
       var aCells=aYrs.map(function(yr){
         var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
         return v
-          ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:2px">'+yr+'yr</span></td>'
+          ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:3px"> '+yr+'yr</span></td>'
           :'<td style="text-align:right;white-space:nowrap;height:24px"><span style="font-size:11px;color:#ccc">'+yr+'yr</span></td>';
       }).join('');
 
@@ -3966,8 +3966,8 @@ function plPrintSelected(){
           +'</tr>'
           +'<tr class="'+ra+'">'
             +(hasAeonCalc
-              ?'<td colspan="2" style="white-space:nowrap;border-bottom:2.5px solid #555"><span style="font-size:11px;color:#888">Lowest DP </span><span style="font-size:16px;font-weight:700">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</span></td>'+aCells
-              :'<td colspan="6" style="height:26px;border-bottom:2.5px solid #555">&nbsp;</td>'
+              ?'<td colspan="2" style="white-space:nowrap;border-bottom:1.5px solid #888"><span style="font-size:11px;color:#888">Lowest DP </span><span style="font-size:16px;font-weight:700">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</span></td>'+aCells
+              :'<td colspan="6" style="height:26px;border-bottom:1.5px solid #888">&nbsp;</td>'
             )
           +'</tr>'
         +'</tbody>';
@@ -3997,7 +3997,7 @@ function plPrintSelected(){
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM)</div>'
-    +'<div style="border:3px double #1a1a1a;display:block;width:100%;margin-bottom:8px"><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed">'+colgroup+thead+tbodies+'</table></div>'
+    +'<div style="border:1.5px double #1a1a1a;display:block;width:100%;margin-bottom:8px"><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed">'+colgroup+thead+tbodies+'</table></div>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
@@ -4076,7 +4076,7 @@ function upPrintSelected(){
       if(yr>loanyear)return '<td class="na">--</td>';
       var v=instV(loan,pa,yr);
       return v
-        ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:2px">'+yr+'yr</span></td>'
+        ?'<td style="text-align:right;white-space:nowrap"><span style="font-size:16px;font-weight:700">'+v.toLocaleString()+'</span><span style="font-size:11px;color:#666;margin-left:3px"> '+yr+'yr</span></td>'
         :'<td class="na">--</td>';
     }).join('');
 
@@ -4101,7 +4101,7 @@ function upPrintSelected(){
         +'</tr>'
         // Row 3: Notes (always present)
         +'<tr>'
-          +'<td colspan="6" style="font-size:8px;color:#555;font-style:italic;padding:2px 6px 4px;text-align:left;border-top:1px dashed #ccc;border-bottom:2.5px solid #555">'+(r.notes?esc(r.notes):'&nbsp;')+'</td>'
+          +'<td colspan="6" style="font-size:8px;color:#555;font-style:italic;padding:2px 6px 4px;text-align:left;border-top:1px dashed #ccc;border-bottom:1.5px solid #888">'+(r.notes?esc(r.notes):'&nbsp;')+'</td>'
         +'</tr>'
       +'</tbody>';
     idx++;
@@ -4131,7 +4131,7 @@ function upPrintSelected(){
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<div style="font-size:7px;color:#888;margin-bottom:4px">Monthly instalment (RM) &middot; PA shown per vehicle</div>'
-    +'<div style="border:3px double #1a1a1a;display:block;width:100%;margin-bottom:8px"><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed">'+colgroup+thead+tbodies+'</table></div>'
+    +'<div style="border:1.5px double #1a1a1a;display:block;width:100%;margin-bottom:8px"><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed">'+colgroup+thead+tbodies+'</table></div>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet2=ge('plPdfSheet');var inner2=ge('plPdfInner');
