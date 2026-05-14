@@ -3616,7 +3616,7 @@ function plSyncToolbar(){
   var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
   var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'':'none';
   var lb=ge('plLogBtn');if(lb)lb.style.display=canEdit?'':'none';
-  var sb=ge('plSettingsBtn');if(sb)sb.style.display=(currentUser.role==='admin')?'':'none';
+  var sb=ge('plSettingsBtn');if(sb)sb.style.display=(_editMode&&currentUser.role==='admin')?'':'none';
   // Print mode button state
   if(pb){pb.textContent='🖨 Print Mode'+(''!==''?'':_plPrintMode?' ON':'');pb.style.background=_plPrintMode?'#1a3a1a':'none';pb.style.color=_plPrintMode?'#3fb950':'#8b949e';pb.style.borderColor=_plPrintMode?'#238636':'#30363d';}
   // Print selected button handled by plUpdatePrintBtn
@@ -4779,8 +4779,9 @@ function calcPC(){
   var hand=parseFloat(isNew?e.hand:0)||0;
   var other=parseFloat(isNew?e.other:0)||0;
 
-  // Cash OTR
-  var cashOTR=cash+ins1+rtax;
+  // Cash OTR (Used: +RM60 更名费)
+  var tukarFee=isNew?0:60;
+  var cashOTR=cash+ins1+rtax+tukarFee;
 
   // Kedai: use lowest DP (dpk), max loanyear (capped 5)
   var kLoan=hp-dpk;
@@ -4826,8 +4827,10 @@ function calcPC(){
   cards.innerHTML=
     // CASH
     ccCard('#3fb950','💵 Cash OTR',
-      [['Cash Price',rm(cash)],['Insurance 1st',rm(ins1)],['Road Tax',rm(rtax)],['Total Outlay',rm(cashOTR)]],
-      rm(cashOTR))+
+      [['Cash Price',rm(cash)],['Insurance 1st',rm(ins1)],['Road Tax',rm(rtax)]
+       .concat(isNew?[]:['Transfer of Ownership','RM 60'])
+       .concat([['Total Outlay',rm(cashOTR)]])
+      ],rm(cashOTR))+
 
     // KEDAI
     (pa&&kLoan>0
@@ -4857,12 +4860,9 @@ function calcPC(){
 
     // EPP
     ccCard('#f0883e','💳 EPP',
-      (isAdmin
-        ?[['Cash OTR',rm(cashOTR)],['÷ 0.86 (raw)','RM '+eppRaw.toFixed(2)],['EPP Price ▲10',''],
-          ['Select Bank below','']]
-        :[['EPP Price',''],['Select Bank below','']]),
+      [['EPP Price',''],['Select Bank below','']],
       rm(eppPrice),
-      '<button onclick="pcShowBanks()" style="width:100%;margin-top:8px;padding:6px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">Select Bank →</button>');
+      +(aTotal>0&&eppPrice>0?'<div style="margin-top:6px;padding:6px 8px;background:#0a1f0a;border-radius:5px;font-size:10px;color:#3fb950">💰 Save RM '+Math.round(aTotal-eppPrice).toLocaleString()+' vs AEON full payment</div>':'')+'<button onclick="pcShowBanks()" style="width:100%;margin-top:8px;padding:6px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">Select Bank →</button>');
 
   if(epp_sec)epp_sec.style.display='block';
   pcRenderBanks();
