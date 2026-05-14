@@ -3916,9 +3916,7 @@ function upPrintSelected(){
     var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span>'
       +(r.model?' <span style="font-weight:normal">'+esc(r.model)+'</span>':'')
       +subLine;
-    var nRows=r.notes?3:2;// total rowspan
-    // Row 2 has 10 cells after rowspanned cols (total 12 cols - 2 rowspan = 10)
-    var notesColspan=10;
+    var nRows=r.notes?3:2;
     rows+='<tr class="'+ra+'">'
       +'<td class="left plate" rowspan="'+nRows+'">'+esc(r.plate_no||'—')+'</td>'
       +'<td class="model" rowspan="'+nRows+'">'+brandModel+'</td>'
@@ -3926,37 +3924,35 @@ function upPrintSelected(){
       +'<td class="dp">'+rm(dp)+'</td>'
       +instCells+'</tr>'
       +'<tr class="'+rb+'">'
-      +'<td class="hp" style="font-size:8px;color:#333">'+rm(hp)+'</td>'
+      +'<td class="hp">'+rm(hp)+'</td>'
       +'<td class="sub">'+rm(r.road_tax_1yr)+'</td>'
       +'<td class="sub">'+rm(r.insurance_1st)+'</td>'
       +'<td class="sub">'+(r.ins1p&&parseFloat(r.ins1p)>0?rm(r.ins1p):'—')+'</td>'
       +'<td class="sub">'+rm(r.insurance_3rd)+'</td>'
-      +'<td class="sub" style="font-size:8px;color:#333">'+(inssum>0?rm(inssum):'—')+'</td>'
+      +'<td class="sub">'+(inssum>0?rm(inssum):'—')+'</td>'
       +'</tr>'
-      +(r.notes?'<tr><td colspan="'+notesColspan+'" style="font-size:7.5px;color:#888;padding:1px 5px 3px;font-style:italic;border-top:none;text-align:left">'+esc(r.notes)+'</td></tr>':'');
+      +(r.notes?'<tr><td colspan="6" style="font-size:7.5px;color:#888;padding:1px 5px 3px;font-style:italic;border-top:none;text-align:left">'+esc(r.notes)+'</td></tr>':'');
     idx++;
   });
   var dateStr=pdfDateStr();
   var colgroup='<colgroup>'
-    +'<col style="width:11%"><col style="width:17%">'
-    +'<col style="width:9%"><col style="width:8%">'
-    +'<col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%">'
-    +'<col style="width:8%"><col style="width:7.5%"><col style="width:7%"><col style="width:7%">'
+    +'<col style="width:11%"><col style="width:20%">'
+    +'<col style="width:10%"><col style="width:9%">'
+    +'<col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%">'
     +'</colgroup>';
-  var thead='<thead><tr>'
-    +'<th class="left" rowspan="2">Plate</th>'
-    +'<th class="left" rowspan="2">Brand / Model</th>'
-    +'<th rowspan="2">Cash</th><th rowspan="2">KDP</th>'
-    +'<th colspan="4">Monthly (Kedai)</th>'
-    +'</tr><tr>'
-    +'<th style="font-size:7px">2yr</th>'
-    +'<th style="font-size:7px">3yr</th>'
-    +'<th style="font-size:7px">4yr</th>'
-    +'<th style="font-size:7px">5yr</th>'
-    +'<th class="r2">HP</th>'
-    +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
-    +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
-    +'</tr></thead>';
+  var thead='<thead>'
+    +'<tr>'
+      +'<th class="left" rowspan="2">Plate</th>'
+      +'<th class="left" rowspan="2">Brand / Model</th>'
+      +'<th>Cash</th><th>KDP</th>'
+      +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+    +'</tr>'
+    +'<tr>'
+      +'<th class="r2">HP</th><th class="r2">RTax</th>'
+      +'<th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
+      +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
+    +'</tr>'
+    +'</thead>';
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
