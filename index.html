@@ -4894,17 +4894,15 @@ function pcBuildEppDetail(price){
   if(!_pcSelectedBank||!price)
     return '<div style="font-size:10px;color:#2a4a6a">Select a bank above</div>';
   var bank=EPP_BANKS[_pcSelectedBank];
-  var months=[6,12,24,36,48,60];
+  var months=[60,48,36,24,12,6];
   var avail=months.filter(function(m){return bank[m]>0&&price>=bank[m];});
   var below=months.filter(function(m){return bank[m]>0&&price<bank[m];});
   var html='';
   if(avail.length){
     html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">';
     avail.forEach(function(m){
-      var mo=Math.ceil(price/m);
-      html+='<div style="background:#0a0f1a;border:1px solid #1e3a5f;border-radius:6px;padding:6px;text-align:center">'
-        +'<div style="font-size:9px;color:#4a6fa5">'+m+' mo</div>'
-        +'<div style="font-size:14px;font-weight:700;color:#58a6ff">RM '+mo.toLocaleString()+'</div>'
+      html+='<div style="background:#0a0f1a;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center">'
+        +'<div style="font-size:14px;font-weight:700;color:#58a6ff">'+m+' mo</div>'
         +'</div>';
     });
     html+='</div>';
@@ -4925,7 +4923,7 @@ var _pcCalcData={};
 function pcRenderCompareTenures(){
   var d=_pcCalcData;if(!d.eppPrice)return;
   // Only show tenures supported by selected bank; always exclude 6mo for AEON
-  var allMonths=[6,12,24,36,48,60];
+  var allMonths=[60,48,36,24,12,6];
   var bank2=_pcSelectedBank?EPP_BANKS[_pcSelectedBank]:null;
   var months=bank2?allMonths.filter(function(m){return bank2[m]&&bank2[m]>0;}):allMonths;
   if(!months.length)months=allMonths;
@@ -4952,13 +4950,14 @@ function pcRenderCompareTable(){
 
   // AEON at tenure m
   var aM=(d.aeon_pa&&d.aeonLoan>0&&m>=12&&m/12<=d.aYr)?Math.ceil(d.aeonLoan*(1+d.aeon_pa/100*(m/12))/(m)):0;
-  var aT=aM*m+d.aeonDP;
+  var aT=aM>0?(aM*m+d.aeonDP):0;
 
   // EPP at tenure m — check bank min
   var bank=_pcSelectedBank?EPP_BANKS[_pcSelectedBank]:null;
   var eppOk=bank&&bank[m]>0&&d.eppPrice>=bank[m];
   var eppM=eppOk?Math.ceil(d.eppPrice/m):0;
   var eppT=d.eppPrice;
+  var eppM2=eppOk?Math.ceil(d.eppPrice/m):0;
 
   function col(label,dp,total,monthly,accent){
     return '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid #0d1626">'
@@ -4974,9 +4973,9 @@ function pcRenderCompareTable(){
 
   el.innerHTML='<table style="width:100%;border-collapse:collapse;background:#0d1117;border:1px solid #21262d;border-radius:8px;overflow:hidden">'
     +'<tr>'
-    +col('🏦 Kedai',d.kdpOTR||d.dpk,kT||0,kM,'#58a6ff')
-    +col('🔷 AEON',d.aeonDP,aT||0,aM,'#d2a8ff')
-    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,0,'#f0883e')
+    +col('🏦 Kedai',d.kdpOTR||d.dpk,kT||0,kM||0,'#58a6ff')
+    +col('🔷 AEON',d.aeonDP,aT||0,aM||0,'#d2a8ff')
+    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,null,'#f0883e')
     +'</tr></table>'
     +(!eppOk&&_pcSelectedBank?'<div style="font-size:10px;color:#3a2a1a;margin-top:4px">'+_pcSelectedBank+' doesn\'t support '+m+'mo or min spend not met (RM '+((bank&&bank[m])||0).toLocaleString()+')</div>':'')
     +(!_pcSelectedBank?'<div style="font-size:10px;color:#2a4a6a;margin-top:4px">Select a bank in the EPP card above to compare</div>':'');
