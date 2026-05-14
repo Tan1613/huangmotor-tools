@@ -150,10 +150,8 @@ body{font-family:sans-serif;font-size:13px;color:#1a1a1a;background:#f0efeb;min-
 .pl-pdf-table tbody tr.row-b td,
 .pl-pdf-table tbody tr.row-a2 td{border-top:1px solid #e0e0e0}
 .pl-pdf-table tbody tr.row-b2 td{border-top:none}
-/* Thick separator between vehicles (top of each tbody first row) */
-.pl-pdf-table tbody{border-top:2px solid #555}
-/* First tbody touches the header — use 1px */
-.pl-pdf-table thead + tbody{border-top:1px solid #1a1a1a}
+/* Separator via tr — border-collapse:collapse ignores tbody border */
+.pl-pdf-table tbody tr.sep-top td{border-top:2.5px solid #555}
 /* Instalment */
 .pl-pdf-table td.inst{font-weight:700}
 .pl-pdf-table td.na{color:#bbb}
@@ -3949,7 +3947,7 @@ function plPrintSelected(){
       // Each vehicle = its own <tbody> so page-break-inside:avoid keeps 3 rows together
       tbodies+=
         '<tbody style="page-break-inside:avoid">'
-          +'<tr class="'+ra+'">'
+          +'<tr class="'+ra+' sep-top">'
             +'<td class="left" rowspan="3" style="white-space:normal;vertical-align:top"><b>'+esc(brand)+'</b><br>'+esc(e.model||'')+'</td>'
             +'<td class="cash">'+rm(cash)+'</td>'
             +'<td style="text-align:right">'+rm(dpk)+'</td>'
@@ -4082,9 +4080,9 @@ function upPrintSelected(){
     tbodies+=
       '<tbody style="page-break-inside:avoid">'
         // Row 1: Plate(r=3) Brand/Model(r=3) Cash KDP installments
-        +'<tr class="'+ra+'">'
+        +'<tr class="'+ra+' sep-top">'
           +'<td class="left" rowspan="3" style="white-space:normal;vertical-align:top;font-weight:700">'+plateCell+'</td>'
-          +'<td rowspan="3" style="vertical-align:top">'+brandModel+'</td>'
+          +'<td rowspan="3" style="vertical-align:top;white-space:normal">'+brandModel+'</td>'
           +'<td class="cash">'+rm(r.cash_price)+'</td>'
           +'<td style="text-align:right">'+rm(dp)+'</td>'
           +kCells
@@ -4108,7 +4106,7 @@ function upPrintSelected(){
 
   var dateStr=pdfDateStr();
   var colgroup='<colgroup>'
-    +'<col style="width:11%"><col style="width:19%">'
+    +'<col style="width:10%"><col style="width:18%">'
     +'<col style="width:9%"><col style="width:8%">'
     +'<col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">'
     +'</colgroup>';
