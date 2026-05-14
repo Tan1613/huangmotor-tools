@@ -4823,8 +4823,12 @@ function calcPC(){
   var bankBtns=Object.keys(EPP_BANKS).map(function(b){
     var active=b===_pcSelectedBank;
     var bk=EPP_BANKS[b];
-    var tenures=[60,48,36,24,12,6].filter(function(m){return bk[m]>0;}).join('/');
-    return '<button onclick="pcSelectBank(\''+b+'\')" style="padding:4px 10px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:5px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:10px;cursor:pointer;margin:2px">'+b+'<span style="font-size:8px;opacity:.7;margin-left:4px">'+tenures+'</span></button>';
+    var suppTenures=[60,48,36,24,12,6].filter(function(m){return bk[m]>0;});
+    var tenureStr=suppTenures.map(function(m){
+      var min=bk[m];var ok=_pcEppPrice>0&&_pcEppPrice<min;
+      return ok?'<span style="color:#555">'+m+'</span>':m;
+    }).join('/');
+    return '<button onclick="pcSelectBank(\''+b+'\')" style="padding:4px 10px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:5px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:10px;cursor:pointer;margin:2px">'+b+'<span style="font-size:9px;opacity:.8;margin-left:4px">'+tenureStr+'</span></button>';
   }).join('');
 
   var eppDetail=pcBuildEppDetail(eppPrice);
@@ -4908,7 +4912,9 @@ function pcRenderCompareTenures(){
   // Only show tenures supported by selected bank; always exclude 6mo for AEON
   var allMonths=[60,48,36,24,12,6];
   var bank2=_pcSelectedBank?EPP_BANKS[_pcSelectedBank]:null;
-  var months=bank2?allMonths.filter(function(m){return bank2[m]&&bank2[m]>0;}):allMonths;
+  var months=bank2
+    ?allMonths.filter(function(m){return bank2[m]&&bank2[m]>0&&(_pcEppPrice<=0||_pcEppPrice>=bank2[m]);})
+    :allMonths;
   if(!months.length)months=allMonths;
   // Auto-select first valid tenure if current not in list
   if(months.indexOf(_pcCompareTenure)<0)_pcCompareTenure=months[0];
@@ -4928,7 +4934,8 @@ function pcRenderCompareTable(){
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
 
   // Kedai at tenure m
-  var kM=(d.pa&&d.kLoan>0&&m/12<=d.kYr)?Math.ceil(d.kLoan*(1+d.pa/100*(m/12))/(m)):0;
+  var kMraw=(d.pa&&d.kLoan>0&&m/12<=d.kYr)?Math.ceil(d.kLoan*(1+d.pa/100*(m/12))/(m)):0;
+  var kM=(kMraw>0&&(!_plMinInst||kMraw>=_plMinInst))?kMraw:0;
   var kT=kM*m+d.dpk;
 
   // AEON at tenure m
@@ -4946,11 +4953,11 @@ function pcRenderCompareTable(){
     return '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid #0d1626">'
       +'<div style="font-size:10px;font-weight:700;color:'+accent+';margin-bottom:6px">'+label+'</div>'
       +'<div style="font-size:9px;color:#4a6fa5">Down Payment</div>'
-      +'<div style="font-size:13px;font-weight:700;color:#c9d1d9;margin-bottom:4px">'+(dp>0?'RM '+Math.round(dp).toLocaleString():'RM 0')+'</div>'
+      +'<div style="font-size:14px;font-weight:700;color:#c9d1d9;margin-bottom:6px">'+(dp>0?'RM '+Math.round(dp).toLocaleString():'RM 0')+'</div>'
       +'<div style="font-size:9px;color:#4a6fa5">Total Paid</div>'
-      +'<div style="font-size:16px;font-weight:800;color:'+accent+';margin-bottom:4px">'+(total>0?'RM '+Math.round(total).toLocaleString():'—')+'</div>'
-      +(monthly?'<div style="font-size:9px;color:#4a6fa5">Monthly ('+m+' mo)</div>'
-        +'<div style="font-size:13px;font-weight:700;color:#c9d1d9">'+(monthly>0?'RM '+Math.round(monthly).toLocaleString()+'/mo':'—')+'</div>':'')
+      +'<div style="font-size:18px;font-weight:800;color:'+accent+';margin-bottom:6px">'+(total>0?'RM '+Math.round(total).toLocaleString():'—')+'</div>'
+      +(monthly!==null?'<div style="font-size:9px;color:#4a6fa5">Monthly ('+m+' mo)</div>'
+        +'<div style="font-size:14px;font-weight:700;color:#c9d1d9">'+(monthly>0?'RM '+Math.round(monthly).toLocaleString()+'/mo':'—')+'</div>':'')
       +'</td>';
   }
 
