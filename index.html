@@ -3719,9 +3719,10 @@ function renderNVEditForm(e){
     +fld('dpk','Kedai DP (RM)',e.dpk)
     +'<div><label style="font-size:9px;color:#3fb950;display:block;margin-bottom:2px">Cash OTR <span style="color:#2a4a6a">(auto)</span></label><div id="plef_otr_'+e.id+'" style="padding:5px 8px;background:#0a0f1a;border:1px solid #0d1626;border-radius:5px;font-size:11px;color:#3fb950">—</div></div>'
     +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Interest Rates & Loan</div>'
-    +fld('aeon_pa','AEON PA %',e.aeon_pa)
+    +'<div>'+'<label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">AEON PA % <span style="font-size:8px;color:#2a4a6a">留空或0 = 不支援AEON</span></label>'+'<input id="plef_aeon_pa" type="number" value="'+(e.aeon_pa!=null?e.aeon_pa:'')+'" placeholder="0 = no AEON" style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box" oninput="plEfCalc(\''+e.id+'\')">'+'</div>'
     +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Loan Year</label>'+lySel+'</div>'
-    +fld('pa','Kedai PA %',e.pa)+'<div></div>'
+    +fld('pa','Kedai PA %',e.pa)
+    +'<div><label style="font-size:9px;color:#d2a8ff;display:block;margin-bottom:2px">Max Finance Amount (RM) <span style="font-size:8px;color:#2a4a6a">如有请填 · 空=full loan</span></label>'+'<input id="plef_mf_amt" type="number" value="" placeholder="0 or blank = full loan" style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'
     +'<div style="grid-column:1/-1;font-size:9px;color:#2a4a6a;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Insurance</div>'
     +fld('ins1','Ins 1st (RM)',e.ins1)+fld('ins1p','Ins 1st+ (RM)',e.ins1p)
     +fld('inssum','Ins SUM (RM)',e.inssum)+fld('ins3','Ins 3rd (RM)',e.ins3)
@@ -3735,7 +3736,13 @@ function renderNVEditForm(e){
       +'<button onclick="plCancelEdit()" style="padding:5px 12px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Cancel</button>'
       +'<button onclick="plSaveEdit(\''+e.id+'\')" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">Save</button>'
     +'</div></div>';
-  setTimeout(function(){plEfCalc(e.id);},0);
+  setTimeout(function(){
+    plEfCalc(e.id);
+    // Load current MF value
+    var mfVal=plMfLookup(e.brand,e.model);
+    var mfEl=ge('plef_mf_amt');
+    if(mfEl)mfEl.value=(mfVal!==null&&mfVal>0)?mfVal:'';
+  },0);
   return s;
 }
 
@@ -3766,6 +3773,19 @@ async function plSaveEdit(id){
   if(idx>=0)_plData[idx]=entry;else _plData.push(entry);
   if(window.PL)PL.list=_plData;
   plSaveLib();
+  // Save Max Finance Amount
+  var mfEl=ge('plef_mf_amt');
+  if(mfEl){
+    var mfAmt=parseFloat(mfEl.value)||0;
+    var existingMF=_plMFData.find(function(x){return (x.brand||'').toLowerCase()===brand.toLowerCase()&&(x.model||'').toLowerCase()===model.toLowerCase();});
+    if(mfAmt>0){
+      if(existingMF)await sbPatch('max_finance',{id:existingMF.id},{amt:mfAmt,brand:brand,model:model});
+      else await sbPost('max_finance',{brand:brand,model:model,amt:mfAmt});
+      // Update in-memory MF data
+      if(existingMF)existingMF.amt=mfAmt;
+      else _plMFData.push({brand:brand,model:model,amt:mfAmt});
+    }
+  }
   await plLog(id,isNew?'create':'edit',isNew?null:before,entry);
   _plEditingId=null;_plSelectedId=id;
   renderNewVehicleList();
