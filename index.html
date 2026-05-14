@@ -4737,6 +4737,14 @@ var _pcEppPrice=0;
 async function pcPopulateItems(){
   var src=ge('pcSource').value;
   var sel=ge('pcVehicle');
+  sel.innerHTML='<option value="">— Loading... —</option>';
+  // Ensure pricelist data is loaded
+  if(src==='new'&&!_plData.length){
+    var fetched=await sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc');
+    _plData=fetched||[];
+    var mfFetched=await sbGet('max_finance','select=brand,model,amt');
+    _plMFData=mfFetched||[];
+  }
   sel.innerHTML='<option value="">— Select vehicle —</option>';
   if(src==='new'){
     var items=_plData.length?_plData:((window.PL&&window.PL.list)||[]);
@@ -4792,9 +4800,12 @@ function calcPC(){
   var tukarFee=isNew?0:60;
 
   var cashOTR=cash+ins1+rtax+tukarFee;
+  // Used KDP OTR = KDP + RTax + Ins1 + RM80 transfer fee
+  var kdpOTR=isNew?dpk:(dpk+(rtax||0)+(ins1||0)+80);
   var kLoan=hp-dpk,kYr=Math.min(loanyear,5);
   var kMonthly=(pa&&kLoan>0)?Math.ceil(kLoan*(1+pa/100*kYr)/(kYr*12)):0;
-  var kTotal=kMonthly*kYr*12+dpk+ins1+rtax+tukarFee;
+  // kTotal: for new = monthly*yr + dpk + ins1 + rtax; for used = monthly*yr + kdpOTR
+  var kTotal=isNew?(kMonthly*kYr*12+dpk+ins1+rtax):(kMonthly*kYr*12+kdpOTR);
 
   var tsp=cash+hand+other+ins1+rtax+tukarFee;
   var mf=plMfLookup(e.brand,e.model);
@@ -4806,7 +4817,7 @@ function calcPC(){
 
   var eppPrice=Math.ceil(cashOTR/_eppDivisor/10)*10;
   _pcEppPrice=eppPrice;
-  _pcCalcData={cash:cashOTR,hp:hp,dpk:dpk,pa:pa,kLoan:kLoan,kYr:kYr,kMonthly:kMonthly,kTotal:kTotal,
+  _pcCalcData={cash:cashOTR,hp:hp,dpk:dpk,kdpOTR:kdpOTR,pa:pa,kLoan:kLoan,kYr:kYr,kMonthly:kMonthly,kTotal:kTotal,
     aeonDP:aeonDP,aeon_pa:aeon_pa,aeonLoan:aeonLoan,aYr:aYr,aMonthly:aMonthly,aTotal:aTotal,
     eppPrice:eppPrice,tsp:tsp,loanyear:loanyear};
 
@@ -4849,7 +4860,7 @@ function calcPC(){
 
     (pa&&kLoan>0
       ?card('#58a6ff','🏦 Kedai',rm(kTotal),rm(kMonthly)+'/mo',
-        [['HP',rm(hp)],['Down Payment',rm(dpk)],['Loan',rm(kLoan)],['Rate',pa+'% / '+kYr+'yr']],
+        [['Down Payment',kdpOTR>0?rm(kdpOTR):'RM 0'],['Monthly / '+kYr+'yr',rm(kMonthly)+'/mo']],
         extraRow(kTotal))
       :card('#58a6ff','🏦 Kedai',null,null,
         [['HP',rm(hp)],['Down Payment',rm(dpk)]],
@@ -4858,7 +4869,7 @@ function calcPC(){
     (isNew
       ?(aeon_pa&&aeonLoan>0
         ?card('#d2a8ff','🔷 AEON',rm(aTotal),rm(aMonthly)+'/mo',
-          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)],['Loan',rm(aeonLoan)],['Rate',aeon_pa+'% / '+aYr+'yr']],
+          [['Down Payment',aeonDP>0?rm(aeonDP):'RM 0'],['Monthly / '+aYr+'yr',rm(aMonthly)+'/mo']],
           extraRow(aTotal))
         :card('#d2a8ff','🔷 AEON',null,null,
           [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)]],
@@ -4913,7 +4924,13 @@ var _pcCalcData={};
 
 function pcRenderCompareTenures(){
   var d=_pcCalcData;if(!d.eppPrice)return;
-  var months=[6,12,24,36,48,60];
+  // Only show tenures supported by selected bank; always exclude 6mo for AEON
+  var allMonths=[6,12,24,36,48,60];
+  var bank2=_pcSelectedBank?EPP_BANKS[_pcSelectedBank]:null;
+  var months=bank2?allMonths.filter(function(m){return bank2[m]&&bank2[m]>0;}):allMonths;
+  if(!months.length)months=allMonths;
+  // Auto-select first valid tenure if current not in list
+  if(months.indexOf(_pcCompareTenure)<0)_pcCompareTenure=months[0];
   var btns=ge('pcCompareTenureBtns');if(!btns)return;
   btns.innerHTML=months.map(function(m){
     var active=m===_pcCompareTenure;
@@ -4934,7 +4951,7 @@ function pcRenderCompareTable(){
   var kT=kM*m+d.dpk;
 
   // AEON at tenure m
-  var aM=(d.aeon_pa&&d.aeonLoan>0&&m/12<=d.aYr)?Math.ceil(d.aeonLoan*(1+d.aeon_pa/100*(m/12))/(m)):0;
+  var aM=(d.aeon_pa&&d.aeonLoan>0&&m>=12&&m/12<=d.aYr)?Math.ceil(d.aeonLoan*(1+d.aeon_pa/100*(m/12))/(m)):0;
   var aT=aM*m+d.aeonDP;
 
   // EPP at tenure m — check bank min
@@ -4947,19 +4964,19 @@ function pcRenderCompareTable(){
     return '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid #0d1626">'
       +'<div style="font-size:10px;font-weight:700;color:'+accent+';margin-bottom:6px">'+label+'</div>'
       +'<div style="font-size:9px;color:#4a6fa5">Down Payment</div>'
-      +'<div style="font-size:13px;font-weight:700;color:#c9d1d9;margin-bottom:4px">'+rm(dp)+'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#c9d1d9;margin-bottom:4px">'+(dp>0?'RM '+Math.round(dp).toLocaleString():'RM 0')+'</div>'
       +'<div style="font-size:9px;color:#4a6fa5">Total Paid</div>'
-      +'<div style="font-size:16px;font-weight:800;color:'+accent+';margin-bottom:4px">'+rm(total)+'</div>'
-      +'<div style="font-size:9px;color:#4a6fa5">Monthly ('+m+' mo)</div>'
-      +'<div style="font-size:13px;font-weight:700;color:#c9d1d9">'+(monthly?rm(monthly)+'/mo':'—')+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:'+accent+';margin-bottom:4px">'+(total>0?'RM '+Math.round(total).toLocaleString():'—')+'</div>'
+      +(monthly?'<div style="font-size:9px;color:#4a6fa5">Monthly ('+m+' mo)</div>'
+        +'<div style="font-size:13px;font-weight:700;color:#c9d1d9">'+(monthly>0?'RM '+Math.round(monthly).toLocaleString()+'/mo':'—')+'</div>':'')
       +'</td>';
   }
 
   el.innerHTML='<table style="width:100%;border-collapse:collapse;background:#0d1117;border:1px solid #21262d;border-radius:8px;overflow:hidden">'
     +'<tr>'
-    +col('🏦 Kedai',d.dpk,kT||0,kM,'#58a6ff')
+    +col('🏦 Kedai',d.kdpOTR||d.dpk,kT||0,kM,'#58a6ff')
     +col('🔷 AEON',d.aeonDP,aT||0,aM,'#d2a8ff')
-    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,eppM,'#f0883e')
+    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,0,'#f0883e')
     +'</tr></table>'
     +(!eppOk&&_pcSelectedBank?'<div style="font-size:10px;color:#3a2a1a;margin-top:4px">'+_pcSelectedBank+' doesn\'t support '+m+'mo or min spend not met (RM '+((bank&&bank[m])||0).toLocaleString()+')</div>':'')
     +(!_pcSelectedBank?'<div style="font-size:10px;color:#2a4a6a;margin-top:4px">Select a bank in the EPP card above to compare</div>':'');
