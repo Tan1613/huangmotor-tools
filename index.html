@@ -3710,16 +3710,9 @@ function plToggleCheck(id){
   plUpdatePrintBtn();
 }
 function plPrintSelected(){
-  console.log('plPrintSelected called, _plChecked:', [..._plChecked], '_plData.length:', _plData.length);
-  var entries=_plData.filter(function(e){
-    return _plChecked.has(String(e.id))||_plChecked.has(e.id);
-  });
-  console.log('matched entries:', entries.length);
-  if(!entries.length){
-    if(_plChecked.size===0){alert('No entries selected. Check some items first.');}
-    else{alert('Selected items not found in current data. Try refreshing the pricelist.');}
-    return;
-  }
+  var entries=_plData.filter(function(e){return _plChecked.has(String(e.id))||_plChecked.has(e.id);});
+  if(!entries.length){alert('No entries selected. Checked: '+[..._plChecked].join(', ')+' | Data IDs: '+_plData.slice(0,3).map(function(e){return e.id;}).join(', '));return;}
+  if(!confirm('Print '+entries.length+' entr'+(entries.length>1?'ies':'y')+'?'))return;
 
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
   function inst(hp,dpk,pa,yr){
@@ -3826,7 +3819,8 @@ function upToggleCheck(id){
 }
 function upPrintSelected(){
   var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
-  if(!entries.length)return;
+  if(!entries.length){alert('No entries selected.');return;}
+  if(!confirm('Print '+entries.length+' vehicle'+(entries.length>1?'s':'')+'?'))return;
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
   function inst(loan,pa,yr){
     if(!loan||loan<=0||!pa||!yr)return null;
