@@ -3879,14 +3879,14 @@ function plPrintSelected(){
         +'</tr>'
         +(hasAeon
           ?'<tr class="'+ra+'">'
-            +'<td style="text-align:center;font-weight:700;font-size:9px">AEON</td>'
+            +'<td style="text-align:right;font-size:8px;color:#555">Lowest DP</td>'
             +(aeon_pa&&aeonLoan>0
-              ?'<td style="text-align:right;font-size:8px">'+rm(aeonDP)+'</td>'
+              ?'<td style="text-align:right;font-size:8px">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</td>'
                +aYrs.map(function(yr){
                  var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
                  return v
-                   ?'<td style="text-align:center"><div style="font-size:7px;color:#888">'+yr+'yr</div><b style="font-size:9px">'+v.toLocaleString()+'</b></td>'
-                   :'<td class="na"><div style="font-size:7px;color:#ccc">'+yr+'yr</div>--</td>';
+                   ?'<td style="text-align:center;font-size:8.5px;font-weight:700">'+yr+'yr<br>'+v.toLocaleString()+'</td>'
+                   :'<td class="na" style="font-size:8px;color:#bbb">'+yr+'yr<br>--</td>';
                }).join('')
               :'<td colspan="5" style="font-size:8px;color:#999;text-align:center;font-style:italic">No calculation available yet</td>'
             )
