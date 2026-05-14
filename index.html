@@ -1195,8 +1195,8 @@ body.theme-white .home-welcome{color:#555}
     <div class="tool-card" id="tcCalc" onclick="openModule('calculator')">
       <div class="tc-icon">🧮</div>
       <div class="tc-tag tc-tag-v" id="tcCalcTag">View</div>
-      <div class="tc-name">Calculator</div>
-      <div class="tc-desc">Show customers Cash / Kedai / Bank / EPP cost comparison</div>
+      <div class="tc-name">Costing Compare</div>
+      <div class="tc-desc">成本对比 · Cash / Kedai / AEON / EPP</div>
     </div>
     <div class="tool-card" id="tcGen" onclick="openModule('generator')">
       <div class="tc-icon">📄</div>
@@ -1415,34 +1415,28 @@ body.theme-white .home-welcome{color:#555}
 <div class="mod-page" id="mod-calculator">
   <div class="mod-topbar">
     <button class="mod-back" onclick="goHome()">← Home</button>
-    <span class="mod-title-bar">🧮 Auto Calculator</span>
-    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()" style="display:none;margin-left:8px">✏ Edit Mode</button>
+    <span class="mod-title-bar">🧮 Costing Compare 成本对比</span>
   </div>
-  <div class="mod-body">
-    <div class="pc-wrap">
-      <div class="pc-settings">
-        <div><label>Source:</label>
-          <select id="pcSource" onchange="pcPopulateItems()">
-            <option value="new">New Pricelist</option><option value="used">Used Pricelist</option>
-          </select>
-        </div>
-        <div><label>Vehicle:</label>
-          <select id="pcVehicle" onchange="calcPC()" style="width:260px"></select>
-        </div>
-        <div style="border-left:1px solid #30363d;padding-left:16px">
-          <label>Kedai rate (% p.a.):</label><input id="pcKedaiRate" type="number" value="3.5" step="0.1" oninput="calcPC()">
-        </div>
-        <div><label>Kedai min DP (%):</label><input id="pcKedaiDP" type="number" value="10" step="1" oninput="calcPC()"></div>
-        <div><label>Bank rate (% p.a.):</label><input id="pcBankRate" type="number" value="3.5" step="0.1" oninput="calcPC()"></div>
-        <div><label>EPP divisor (%):</label><input id="pcEppDiv" type="number" value="86" step="1" min="1" max="99" oninput="calcPC()"></div>
-        <div><label>Tenure (months):</label>
-          <select id="pcTenure" onchange="calcPC()">
-            <option value="24">24</option><option value="36" selected>36</option>
-            <option value="48">48</option><option value="60">60</option>
-          </select>
-        </div>
+  <div class="mod-body" style="overflow-y:auto">
+    <div style="padding:14px 16px;max-width:900px;margin:0 auto">
+      <!-- Vehicle selector -->
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+        <select id="pcSource" onchange="pcPopulateItems()" style="padding:7px 10px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none">
+          <option value="new">🏍 New Vehicles</option>
+          <option value="used">🔄 Used Vehicles</option>
+        </select>
+        <select id="pcVehicle" onchange="calcPC()" style="flex:1;min-width:200px;padding:7px 10px;background:#161b22;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none">
+          <option value="">— Select vehicle —</option>
+        </select>
       </div>
-      <div class="pc-cards" id="pcCards"></div>
+      <!-- Comparison cards -->
+      <div id="pcCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+      <!-- EPP bank section -->
+      <div id="pcEppSection" style="display:none;margin-top:14px">
+        <div style="font-size:11px;color:#4a6fa5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">EPP — Select Bank</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="pcBankBtns"></div>
+        <div id="pcEppDetail" style="background:#111827;border:1px solid #1e2d45;border-radius:8px;padding:12px"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -4705,80 +4699,234 @@ async function deleteUP(id){
 }
 
 /* ══ PRICE COMPARE ══ */
+/* ══ COSTING COMPARE ══ */
+// EPP bank data: {months: minAmount} — 0 = not supported
+var EPP_BANKS = {
+  'MBB':    {6:500,12:1000,18:0,24:2500,36:2500,48:0,60:0},
+  'PBB':    {6:500,12:500, 18:0,24:500, 36:500, 48:4000,60:6000},
+  'HLBB':   {6:500,12:1000,18:0,24:1000,36:2000,48:4000,60:6000},
+  'RHB':    {6:500,12:1000,18:0,24:1500,36:2000,48:0,  60:0},
+  'OCBC':   {6:500,12:1000,18:0,24:2000,36:2000,48:0,  60:0},
+  'UOB':    {6:500,12:500, 18:0,24:1000,36:2000,48:0,  60:0},
+  'AFFIN':  {6:500,12:1000,18:0,24:1000,36:1000,48:0,  60:0},
+  'CIMB':   {6:600,12:1200,18:0,24:2400,36:3600,48:4800,60:6000},
+  'AMBANK': {6:500,12:1000,18:0,24:1500,36:2000,48:2500,60:3000},
+  'HSBC':   {6:500,12:1000,18:0,24:2000,36:2000,48:0,  60:0},
+  'SCB':    {6:800,12:800, 18:0,24:800, 36:800, 48:0,  60:0}
+};
+var _pcSelectedBank='';
+var _pcEppPrice=0;
+
 async function pcPopulateItems(){
   var src=ge('pcSource').value;
   var sel=ge('pcVehicle');
   sel.innerHTML='<option value="">— Select vehicle —</option>';
   if(src==='new'){
-    // Use existing PL data
-    var items=(window.PL&&window.PL.list)||[];
+    var items=_plData.length?_plData:((window.PL&&window.PL.list)||[]);
     items.forEach(function(e){
+      if(!e.cash)return;
       var opt=document.createElement('option');
-      opt.value=JSON.stringify({name:e.name,cash:e.cashOTR,rtax:e.roadTax,ins:e.ins1});
-      opt.textContent=e.name+' — RM '+(e.cashOTR?fmt(e.cashOTR):'—');
+      opt.value=e.id;
+      opt.textContent=(e.brand||'')+' '+(e.model||'')+' — RM '+Math.round(parseFloat(e.cash)).toLocaleString();
       sel.appendChild(opt);
     });
   } else {
     var used=await sbGet('used_vehicles','is_sold=eq.false&order=brand.asc,model.asc');
-    used.forEach(function(r){
+    (used||[]).forEach(function(r){
       var opt=document.createElement('option');
-      opt.value=JSON.stringify({name:r.plate_no+' '+r.brand+' '+r.model,cash:r.cash_price,rtax:r.road_tax_1yr,ins:r.insurance_1st,ins3:r.insurance_3rd});
-      opt.textContent=r.plate_no+' — '+r.brand+' '+r.model+' — RM '+(r.cash_price?fmt(r.cash_price):'—');
+      opt.value=JSON.stringify({type:'used',id:r.id,
+        brand:r.brand,model:r.model,plate:r.plate_no,
+        cash:r.cash_price,hp:r.loan_price,dp:r.down_payment,
+        pa:r.pa,loanyear:r.loanyear,
+        ins1:r.insurance_1st,ins3:r.insurance_3rd,rtax:r.road_tax_1yr});
+      opt.textContent=(r.plate_no||'')+(r.brand?' '+r.brand:'')+(r.model?' '+r.model:'')+' — RM '+(r.cash_price?Math.round(r.cash_price).toLocaleString():'?');
       sel.appendChild(opt);
     });
   }
-  calcPC();
+  _pcSelectedBank='';calcPC();
 }
+
 function calcPC(){
-  var raw=ge('pcVehicle').value;
+  var src=ge('pcSource').value;
+  var vid=ge('pcVehicle').value;
   var cards=ge('pcCards');
-  if(!raw){cards.innerHTML='<div style="color:#30363d;font-size:12px;padding:20px">Select a vehicle to compare</div>';return;}
-  var v=JSON.parse(raw);
-  var cash=parseFloat(v.cash)||0;
-  var rtax=parseFloat(v.rtax)||0;
-  var ins=parseFloat(v.ins)||0;
-  var ins3=parseFloat(v.ins3)||0;
-  var kedaiRate=parseFloat(ge('pcKedaiRate').value)||3.5;
-  var kedaiDP=parseFloat(ge('pcKedaiDP').value)||10;
-  var bankRate=parseFloat(ge('pcBankRate').value)||3.5;
-  var eppDiv=parseFloat(ge('pcEppDiv').value)||86;
-  var tenure=parseInt(ge('pcTenure').value)||36;
-  // Cash OTR
-  var cashTotal=cash+rtax+ins;
-  // Kedai loan
-  var kDP=Math.ceil(cash*kedaiDP/100);
-  var kLoan=cash-kDP;
-  var kMonthly=kLoan*(1+kedaiRate/100*tenure/12)/tenure;
-  var kTotal=kDP+kMonthly*tenure+rtax+ins;
-  // Bank/AEON 0 DP
-  var bLoan=cash;
-  var bMonthly=bLoan*(1+bankRate/100*tenure/12)/tenure;
-  var bTotal=bMonthly*tenure+rtax+ins;
-  // EPP
-  var eppRaw=cash/(eppDiv/100);
-  var eppTens=Math.floor(eppRaw/10);
-  var eppPrice=(eppTens+1)*10;// tens digit +1, units = 0
-  function card(tag,tagStyle,title,priceHtml,rows,featured){
-    return '<div class="pc-card'+(featured?' featured':'')+'"><span class="pc-card-tag" style="'+tagStyle+'">'+tag+'</span>'
-      +'<div class="pc-card-title">'+title+'</div>'
-      +'<div class="pc-card-price">'+priceHtml+'</div>'
-      +rows.map(function(r){return '<div class="pc-row"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';}).join('')
-      +'</div>';
+  var epp_sec=ge('pcEppSection');
+  if(!vid){
+    cards.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#2a4a6a;font-size:12px">Select a vehicle to compare</div>';
+    if(epp_sec)epp_sec.style.display='none';
+    return;
   }
+
+  var e=null;
+  if(src==='new'){
+    e=_plData.find(function(x){return String(x.id)===String(vid);})||
+      (window.PL&&PL.list.find(function(x){return String(x.id)===String(vid);}));
+  } else {
+    try{e=JSON.parse(vid);}catch(ex){return;}
+  }
+  if(!e){cards.innerHTML='<div style="grid-column:1/-1;color:#e24b4a;padding:1rem">Vehicle data not found.</div>';return;}
+
+  var isNew=src==='new';
+  // Extract values
+  var cash=parseFloat(e.cash||(isNew?e.cash:e.cash))||0;
+  var hp=parseFloat(isNew?e.hp:e.hp)||0;
+  var dpk=parseFloat(isNew?e.dpk:e.dp)||0;
+  var pa=parseFloat(e.pa)||0;
+  var aeon_pa=parseFloat(isNew?e.aeon_pa:0)||0;
+  var loanyear=parseInt(e.loanyear)||(isNew?7:5);
+  var ins1=parseFloat(isNew?e.ins1:e.ins1)||0;
+  var rtax=parseFloat(isNew?e.rtax:e.rtax)||0;
+  var hand=parseFloat(isNew?e.hand:0)||0;
+  var other=parseFloat(isNew?e.other:0)||0;
+
+  // Cash OTR
+  var cashOTR=cash+ins1+rtax;
+
+  // Kedai: use lowest DP (dpk), max loanyear (capped 5)
+  var kLoan=hp-dpk;
+  var kYr=Math.min(loanyear,5);
+  var kMonthly=(pa&&kLoan>0)?Math.ceil(kLoan*(1+pa/100*kYr)/(kYr*12)):0;
+  var kTotal=kMonthly*kYr*12+dpk+ins1+rtax;
+
+  // AEON: lowest DP from MF lookup, max loanyear
+  var tsp=cash+hand+other+ins1+rtax;
+  var mf=plMfLookup(e.brand,e.model);
+  var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
+  var aeonLoan=tsp-aeonDP;
+  var aYr=loanyear;
+  var aMonthly=(aeon_pa&&aeonLoan>0)?Math.ceil(aeonLoan*(1+aeon_pa/100*aYr)/(aYr*12)):0;
+  var aTotal=aMonthly*aYr*12+aeonDP;
+
+  // EPP price: cashOTR ÷ 0.86, round up to nearest 10
+  var eppRaw=cashOTR/0.86;
+  var eppPrice=Math.ceil(eppRaw/10)*10;
+  _pcEppPrice=eppPrice;
+
+  var isAdmin=currentUser&&currentUser.role==='admin';
+  function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
+  function diff(total){
+    var d=total-cashOTR;
+    if(d<=0)return '';
+    return '<span style="font-size:10px;color:#e24b4a">比现金多付 RM '+Math.round(d).toLocaleString()+'</span>';
+  }
+
+  function ccCard(accent,label,rows,highlight,extraHtml){
+    return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px;border-top:3px solid '+accent+'">'
+      +'<div style="font-size:10px;font-weight:700;color:'+accent+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">'+label+'</div>'
+      +(highlight?'<div style="font-size:20px;font-weight:800;color:'+accent+';margin-bottom:8px">'+highlight+'</div>':'')
+      +rows.map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #0d1626;font-size:11px">'
+          +'<span style="color:#4a6fa5">'+r[0]+'</span>'
+          +'<span style="color:#c9d1d9;font-weight:600">'+r[1]+'</span></div>';
+      }).join('')
+      +(extraHtml||'')
+    +'</div>';
+  }
+
   cards.innerHTML=
-    card('Cash','background:#1a3a1a;color:#3fb950','Cash OTR',
-      '<span style="color:#3fb950">RM '+fmt(cash)+'</span>',
-      [['Road tax','RM '+fmt(rtax)],['Insurance (1st)','RM '+fmt(ins)],['Total outlay','RM '+fmt(cashTotal)]],true)+
-    card('Kedai Loan','background:#1a2a3a;color:#58a6ff','Kedai Loan',
-      '<span style="color:#58a6ff">RM '+fmt(Math.round(kMonthly))+'/mo</span>',
-      [['Down payment','RM '+fmt(kDP)+' ('+kedaiDP+'%)'],['Loan','RM '+fmt(kLoan)],['Rate',kedaiRate+'% p.a. / '+tenure+'m'],['Total paid','RM '+fmt(Math.round(kTotal))]])+
-    card('Bank/AEON','background:#2a1a3a;color:#d2a8ff','Bank / AEON 0%DP',
-      '<span style="color:#d2a8ff">RM '+fmt(Math.round(bMonthly))+'/mo</span>',
-      [['Down payment','RM 0'],['Loan','RM '+fmt(bLoan)],['Rate',bankRate+'% p.a. / '+tenure+'m'],['Total paid','RM '+fmt(Math.round(bTotal))]])+
-    card('EPP','background:#3a2a0a;color:#f0883e','EPP Fixed Price',
-      '<span style="color:#f0883e">RM '+fmt(eppPrice)+'</span>',
-      [['Formula','RM '+fmt(cash)+' ÷ '+(eppDiv/100)],['Raw result','RM '+eppRaw.toFixed(2)],['Rounded up','RM '+fmt(eppPrice)],['12m','RM '+fmt(Math.round(eppPrice/12))+'/mo'],['24m','RM '+fmt(Math.round(eppPrice/24))+'/mo']]);
+    // CASH
+    ccCard('#3fb950','💵 Cash OTR',
+      [['Cash Price',rm(cash)],['Insurance 1st',rm(ins1)],['Road Tax',rm(rtax)],['Total Outlay',rm(cashOTR)]],
+      rm(cashOTR))+
+
+    // KEDAI
+    (pa&&kLoan>0
+      ?ccCard('#58a6ff','🏦 Kedai',
+        [['HP',rm(hp)],['Down Payment',rm(dpk)],['Loan',rm(kLoan)],
+         ['Rate',pa+'% p.a. / '+kYr+'yr'],
+         ['Monthly',rm(kMonthly)],['Total Paid',rm(kTotal)]],
+        rm(kMonthly)+'/mo',
+        '<div style="margin-top:6px">'+diff(kTotal)+'</div>')
+      :ccCard('#58a6ff','🏦 Kedai',
+        [['HP',rm(hp)],['Down Payment',rm(dpk)]],null,
+        '<div style="font-size:10px;color:#2a4a6a;margin-top:6px">Kedai PA not set</div>'))+
+
+    // AEON
+    (isNew
+      ?(aeon_pa&&aeonLoan>0
+        ?ccCard('#d2a8ff','🔷 AEON',
+          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)+(mf===null?' (Full Loan)':'')],['Loan',rm(aeonLoan)],
+           ['Rate',aeon_pa+'% p.a. / '+aYr+'yr'],
+           ['Monthly',rm(aMonthly)],['Total Paid',rm(aTotal)]],
+          rm(aMonthly)+'/mo',
+          '<div style="margin-top:6px">'+diff(aTotal)+'</div>')
+        :ccCard('#d2a8ff','🔷 AEON',
+          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)]],null,
+          '<div style="font-size:10px;color:#2a4a6a;margin-top:6px">AEON PA not set</div>'))
+      :'')+
+
+    // EPP
+    ccCard('#f0883e','💳 EPP',
+      (isAdmin
+        ?[['Cash OTR',rm(cashOTR)],['÷ 0.86 (raw)','RM '+eppRaw.toFixed(2)],['EPP Price ▲10',''],
+          ['Select Bank below','']]
+        :[['EPP Price',''],['Select Bank below','']]),
+      rm(eppPrice),
+      '<button onclick="pcShowBanks()" style="width:100%;margin-top:8px;padding:6px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">Select Bank →</button>');
+
+  if(epp_sec)epp_sec.style.display='block';
+  pcRenderBanks();
 }
+
+function pcShowBanks(){
+  var sec=ge('pcEppSection');
+  if(sec){sec.style.display='block';sec.scrollIntoView({behavior:'smooth'});}
+}
+
+function pcRenderBanks(){
+  var btns=ge('pcBankBtns');if(!btns)return;
+  btns.innerHTML=Object.keys(EPP_BANKS).map(function(bank){
+    var active=bank===_pcSelectedBank;
+    return '<button onclick="pcSelectBank(\''+bank+'\')" style="padding:5px 12px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:6px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:11px;cursor:pointer">'+bank+'</button>';
+  }).join('');
+  pcRenderEppDetail();
+}
+
+function pcSelectBank(bank){
+  _pcSelectedBank=bank;
+  pcRenderBanks();
+}
+
+function pcRenderEppDetail(){
+  var el=ge('pcEppDetail');if(!el)return;
+  if(!_pcSelectedBank||!_pcEppPrice){
+    el.innerHTML='<div style="font-size:11px;color:#2a4a6a">Select a bank above to see available tenures</div>';
+    return;
+  }
+  var bank=EPP_BANKS[_pcSelectedBank];
+  var price=_pcEppPrice;
+  var months=[6,12,24,36,48,60];
+  var available=months.filter(function(m){return bank[m]&&bank[m]>0&&price>=bank[m];});
+  var notAvail=months.filter(function(m){return bank[m]&&bank[m]>0&&price<bank[m];});
+  var notSupported=months.filter(function(m){return !bank[m]||bank[m]===0;});
+
+  var html='<div style="font-size:11px;color:#c9d1d9;font-weight:600;margin-bottom:8px">'+_pcSelectedBank+' — EPP RM '+price.toLocaleString()+'</div>';
+
+  if(available.length){
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
+    available.forEach(function(m){
+      var monthly=Math.ceil(price/m);
+      html+='<div style="background:#0a0f1a;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center">'
+        +'<div style="font-size:10px;color:#4a6fa5;margin-bottom:2px">'+m+' months</div>'
+        +'<div style="font-size:15px;font-weight:700;color:#58a6ff">RM '+monthly.toLocaleString()+'</div>'
+        +'<div style="font-size:9px;color:#2a4a6a">0% interest</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+
+  if(notAvail.length){
+    html+='<div style="font-size:9px;color:#4a3a2a;margin-top:4px">Below min spend: '
+      +notAvail.map(function(m){return m+'mo (min RM '+bank[m].toLocaleString()+')'}).join(', ')+'</div>';
+  }
+  if(notSupported.length){
+    html+='<div style="font-size:9px;color:#2a4a6a;margin-top:2px">Not supported: '
+      +notSupported.map(function(m){return m+'mo'}).join(', ')+'</div>';
+  }
+
+  el.innerHTML=html;
+}
+
 
 /* ══ STOCK KIT ══ */
 var _skData=[];var _skCat='';
