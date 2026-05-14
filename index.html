@@ -4711,7 +4711,9 @@ function calcPC(){
   // EPP bank picker inline
   var bankBtns=Object.keys(EPP_BANKS).map(function(b){
     var active=b===_pcSelectedBank;
-    return '<button onclick="pcSelectBank(\''+b+'\')" style="padding:4px 10px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:5px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:10px;cursor:pointer;margin:2px">'+b+'</button>';
+    var bk=EPP_BANKS[b];
+    var tenures=[60,48,36,24,12,6].filter(function(m){return bk[m]>0;}).join('/');
+    return '<button onclick="pcSelectBank(\''+b+'\')" style="padding:4px 10px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:5px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:10px;cursor:pointer;margin:2px">'+b+'<span style="font-size:8px;opacity:.7;margin-left:4px">'+tenures+'</span></button>';
   }).join('');
 
   var eppDetail=pcBuildEppDetail(eppPrice);
@@ -4746,7 +4748,6 @@ function calcPC(){
       [['EPP Price',rm(eppPrice)]],
       '<div style="margin-top:8px"><div style="font-size:9px;color:#4a6fa5;margin-bottom:4px">SELECT BANK</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:2px">'+bankBtns+'</div>'
-      +'<div style="margin-top:8px">'+eppDetail+'</div>'
       +eppSaveHtml+'</div>');
 
   // Comparison section
@@ -4779,7 +4780,12 @@ function pcBuildEppDetail(price){
 
 function pcSelectBank(bank){
   _pcSelectedBank=bank;
-  // Re-render EPP card's bank section only
+  // Auto-select longest supported tenure for comparison
+  var bk=EPP_BANKS[bank];
+  if(bk){
+    var supported=[60,48,36,24,12,6].filter(function(m){return bk[m]>0&&(_pcEppPrice<=0||_pcEppPrice>=bk[m]);});
+    if(supported.length)_pcCompareTenure=supported[0];
+  }
   calcPC();
 }
 
@@ -4841,7 +4847,7 @@ function pcRenderCompareTable(){
     +'<tr>'
     +col('🏦 Kedai',d.kdpOTR||d.dpk,kT||0,kM||0,'#58a6ff')
     +col('🔷 AEON',d.aeonDP,aT||0,aM||0,'#d2a8ff')
-    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,null,'#f0883e')
+    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,eppM2||0,'#f0883e')
     +'</tr></table>'
     +(!eppOk&&_pcSelectedBank?'<div style="font-size:10px;color:#3a2a1a;margin-top:4px">'+_pcSelectedBank+' doesn\'t support '+m+'mo or min spend not met (RM '+((bank&&bank[m])||0).toLocaleString()+')</div>':'')
     +(!_pcSelectedBank?'<div style="font-size:10px;color:#2a4a6a;margin-top:4px">Select a bank in the EPP card above to compare</div>':'');
