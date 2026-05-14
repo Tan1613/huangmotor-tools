@@ -3487,7 +3487,7 @@ function switchPLTab(tab){
   // Kill print mode on the tab we're leaving
   if(tab==='used'){
     if(_plPrintMode){_plPrintMode=false;var ps=ge('plPrintSelBtn');if(ps)ps.style.display='none';}
-    if(!_upData.length)loadUPData();else{upSyncEditBar();renderUPList();}
+    if(!_upData||!_upData.length)loadUPData();else{upSyncEditBar();renderUPList();}
   }
   if(tab==='new'){
     if(_upPrintMode){_upPrintMode=false;var upb=ge('upPrintModeBtn');if(upb){upb.style.background='none';upb.style.color='#8b949e';upb.style.borderColor='#30363d';}}
@@ -4328,7 +4328,8 @@ var _upMinInst=0;
 var _upSelectedId=null;
 
 async function loadUPData(){
-  _upData=await sbGet('used_vehicles','order=created_at.desc');
+  try{_upData=await sbGet('used_vehicles','order=created_at.desc')||[];}catch(e){_upData=[];}
+  if(!Array.isArray(_upData))_upData=[];
   try{
     var cfg=await sbGet('app_config','key=in.(used_default_pa,pl_min_instalment,epp_divisor)&select=key,value');
     (cfg||[]).forEach(function(r){
@@ -4449,6 +4450,7 @@ function renderUPList(){
   var sold=ge('upFilterSold')&&ge('upFilterSold').value||'available';
   var sortBy=ge('upSortBy')&&ge('upSortBy').value||'created';
   var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  if(!_upData||!_upData.length){var wrap=ge('upList');if(wrap)wrap.innerHTML='<div style="text-align:center;padding:3rem;color:#4a6fa5;font-size:12px">No vehicles found</div>';upSyncEditBar();return;}
   var rows=_upData.filter(function(r){
     if(brand&&r.brand!==brand)return false;
     if(cond&&r.condition!==cond)return false;
