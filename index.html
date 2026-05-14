@@ -113,24 +113,53 @@ body{font-family:sans-serif;font-size:13px;color:#1a1a1a;background:#f0efeb;min-
 .pl-pdf-btn:disabled{opacity:.3;cursor:not-allowed}
 /* Pricelist PDF sheet */
 #plPdfSheet{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:10000;overflow:auto}
-.pl-pdf-inner{background:#fff;width:210mm;min-height:297mm;margin:20px auto;padding:12mm 13mm;font-family:'Arial',sans-serif;font-size:12px;color:#1a1a1a;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.4)}
-.pl-pdf-co{font-size:15px;font-weight:700;margin-bottom:2px}
-.pl-pdf-sub{font-size:9px;color:#666;margin-bottom:10px}
-.pl-pdf-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:2px solid #1a1a1a;margin-bottom:10px}
-.pl-pdf-date{font-size:10px;color:#555;text-align:right}
-.pl-pdf-table{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:auto}
-.pl-pdf-table th{background:#1a1a1a;color:#fff;padding:4px 5px;text-align:center;border:1px solid #555;white-space:nowrap;font-size:8px;line-height:1.3}
-.pl-pdf-table th.r2{background:#2d2d2d;font-size:7.5px}
-.pl-pdf-table th:nth-child(1),.pl-pdf-table th:nth-child(2){text-align:left}
-.pl-pdf-table td{padding:4px 5px;border:1px solid #ddd;text-align:right;vertical-align:middle;font-size:8.5px}
-.pl-pdf-table td:nth-child(1){text-align:left;font-weight:700;color:#333;white-space:nowrap}
-.pl-pdf-table td:nth-child(2){text-align:left;color:#333}
-.pl-pdf-table tr:nth-child(4n+3) td,.pl-pdf-table tr:nth-child(4n+4) td{background:#f7f7f7}
-.pl-pdf-table .num{font-variant-numeric:tabular-nums}
-.pl-pdf-table .loan-val{color:#aaa;font-style:italic}
-.pl-pdf-table .inst-val{font-weight:700;color:#1a1a1a}
-.pl-pdf-table .na{color:#ddd}
-.pl-pdf-footer-note{font-size:7px;color:#aaa;text-align:right;margin-top:6px}
+.pl-pdf-inner{background:#fff;width:210mm;min-height:297mm;margin:20px auto;padding:12mm 14mm;font-family:'Arial',sans-serif;font-size:12px;color:#1a1a1a;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.pl-pdf-co{font-size:15px;font-weight:700;margin-bottom:2px;letter-spacing:-.01em}
+.pl-pdf-sub{font-size:9px;color:#777;margin-bottom:10px}
+.pl-pdf-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:7px;border-bottom:2.5px solid #1a1a1a;margin-bottom:10px}
+.pl-pdf-date{font-size:10px;color:#555;text-align:right;line-height:1.6}
+/* Table */
+.pl-pdf-table{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed}
+/* Header: solid black top/bottom, no side borders */
+.pl-pdf-table thead th{
+  background:#fff;color:#1a1a1a;
+  padding:4px 5px;text-align:center;
+  border-top:1.5px solid #1a1a1a;
+  border-bottom:1px solid #1a1a1a;
+  border-left:none;border-right:none;
+  white-space:nowrap;font-size:8px;font-weight:700;line-height:1.3
+}
+.pl-pdf-table thead th.left{text-align:left}
+/* Second header row: lighter */
+.pl-pdf-table thead tr:nth-child(2) th{
+  border-top:none;
+  border-bottom:1.5px solid #1a1a1a;
+  font-size:7.5px;font-weight:600;color:#444
+}
+/* Body: horizontal rules only, alternating tint */
+.pl-pdf-table tbody td{
+  padding:4px 5px;
+  border-top:none;border-bottom:none;border-left:none;border-right:none;
+  text-align:right;vertical-align:middle;font-size:8.5px
+}
+.pl-pdf-table tbody td:nth-child(1){text-align:left;font-weight:700;color:#1a1a1a;white-space:nowrap}
+.pl-pdf-table tbody td:nth-child(2){text-align:left;color:#1a1a1a}
+/* Hairline between each vehicle's two rows */
+.pl-pdf-table tbody tr.row-a td,
+.pl-pdf-table tbody tr.row-b td{border-top:1px solid #ddd}
+.pl-pdf-table tbody tr.row-a2 td,
+.pl-pdf-table tbody tr.row-b2 td{border-bottom:none}
+/* Zebra: every other vehicle gets a light gray tint across BOTH rows */
+.pl-pdf-table tbody tr.row-b td,
+.pl-pdf-table tbody tr.row-b2 td{background:#f4f4f4}
+/* Instalment numbers: bold */
+.pl-pdf-table td.inst{font-weight:700}
+.pl-pdf-table td.na{color:#bbb}
+.pl-pdf-table td.cash,.pl-pdf-table td.hp{font-weight:600}
+/* Thick rule after last row */
+.pl-pdf-table tbody tr:last-child td{border-bottom:1.5px solid #1a1a1a}
+/* Footer */
+.pl-pdf-footer-note{font-size:7.5px;color:#666;text-align:right;margin-top:8px;padding-top:5px;border-top:1px dashed #ccc}
 .pl-pdf-actions{position:fixed;bottom:28px;right:28px;display:flex;gap:8px;z-index:10002}
 .pl-pdf-act{padding:10px 20px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3)}
 @media print{
@@ -1972,8 +2001,8 @@ function openPLPdf(){
     +'<div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Pricelist</b><br>'+dateStr+'</div>'
     +'</div>'
-    +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div class="pl-pdf-footer-note">For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
+    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
 
   document.getElementById('plPdfSheet').style.display='block';
   document.body.style.overflow='hidden';
@@ -2023,7 +2052,7 @@ function printPLPdf(){
 }
 function closePLPdf(){document.getElementById('plPdfSheet').style.display='none';document.body.style.overflow='';}
 
-var pdfFontSize=11; // default, user can adjust
+var pdfFontSize=16; // default, user can adjust
 function adjustPdfFont(delta){
   pdfFontSize=Math.min(20,Math.max(8,pdfFontSize+delta));
   document.getElementById('pdfFontSizeLabel').textContent=pdfFontSize+'px';
@@ -3842,8 +3871,8 @@ function plPrintSelected(){
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div style="margin-top:6px;font-size:7.5px;color:#666">🔵 Kedai · 🟣 AEON · Ins = 1st+1st+ · For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
+    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
   if(!sheet||!inner_el){alert('PDF sheet not found.');return;}
@@ -3911,14 +3940,14 @@ function upPrintSelected(){
       return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
     }).join('');
     // Brand/Model cell: B&W — brand bold, model normal, year · Condition small italic
-    var subLine=(r.year||condLabel)?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'
-      +(r.year?r.year:'')+(r.year&&condLabel?' · ':'')+condLabel+'</span>':'';
+    var plateCell=esc(r.plate_no||'—')
+      +((r.year||condLabel)?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'
+        +(r.year?r.year:'')+(r.year&&condLabel?' · ':'')+condLabel+'</span>':'');
     var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span>'
-      +(r.model?' <span style="font-weight:normal">'+esc(r.model)+'</span>':'')
-      +subLine;
+      +(r.model?' <span style="font-weight:normal">'+esc(r.model)+'</span>':'');
     var nRows=r.notes?3:2;
     rows+='<tr class="'+ra+'">'
-      +'<td class="left plate" rowspan="'+nRows+'">'+esc(r.plate_no||'—')+'</td>'
+      +'<td class="left plate" rowspan="'+nRows+'">'+plateCell+'</td>'
       +'<td class="model" rowspan="'+nRows+'">'+brandModel+'</td>'
       +'<td class="cash">'+rm(r.cash_price)+'</td>'
       +'<td class="dp">'+rm(dp)+'</td>'
@@ -3956,8 +3985,8 @@ function upPrintSelected(){
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div class="pl-pdf-footer-note">Instalment calculated at PA shown · For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
+    +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'—')+' · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
   var sheet2=ge('plPdfSheet');var inner2=ge('plPdfInner');
   if(!sheet2||!inner2){alert('PDF sheet not found.');return;}
   inner2.innerHTML=inner;
