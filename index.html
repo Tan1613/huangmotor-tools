@@ -1258,6 +1258,13 @@ body.theme-white .home-welcome{color:#555}
                 <button onclick="plSaveSetting('used_default_pa','plSettingUsedPa')" style="padding:4px 10px;background:#1f6feb;border:none;border-radius:5px;color:#fff;font-size:10px;cursor:pointer">Save</button>
               </div>
             </div>
+            <div>
+              <label style="font-size:10px;color:#8b949e;display:block;margin-bottom:3px">EPP Divisor <span style="color:#4a6fa5">— e.g. 0.86 (14% fee)</span></label>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input id="plSettingEppDiv" type="number" placeholder="0.86" step="0.01" min="0.5" max="0.99" value="" style="flex:1;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">
+                <button onclick="plSaveSetting('epp_divisor','plSettingEppDiv')" style="padding:4px 10px;background:#1f6feb;border:none;border-radius:5px;color:#fff;font-size:10px;cursor:pointer">Save</button>
+              </div>
+            </div>
           </div>
           <div id="plSettingStatus" style="font-size:10px;color:#3fb950;margin-top:6px;display:none">✓ Saved</div>
           <!-- Brand Order -->
@@ -3459,6 +3466,7 @@ var _plSelectedId=null;
 var _plEditingId=null;
 var _plChecked=new Set();
 var _plMinInst=0;
+var _eppDivisor=0.86; // EPP formula divisor
 var _plLoaded=false;
 var _plPrintMode=false;
 var _plTrashMode=false;
@@ -3501,8 +3509,11 @@ async function loadPricelistModule(){
     if(window.PL)PL.list=_plData;
     var mfRows=await sbGet('max_finance','order=brand.asc');
     _plMFData=mfRows||[];
-    var cfg=await sbGet('app_config','key=eq.pl_min_instalment&select=value');
-    _plMinInst=cfg&&cfg[0]?parseFloat(cfg[0].value)||0:0;
+    var cfg=await sbGet('app_config','key=in.(pl_min_instalment,epp_divisor)&select=key,value');
+    (cfg||[]).forEach(function(r){
+      if(r.key==='pl_min_instalment')_plMinInst=parseFloat(r.value)||0;
+      if(r.key==='epp_divisor')_eppDivisor=parseFloat(r.value)||0.86;
+    });
   }catch(e){_plData=[];_plMFData=[];}
   _plLoaded=true;
   // Restore checkbox selection from localStorage
@@ -3533,10 +3544,11 @@ async function plToggleSettings(){
   if(btn){btn.style.background=open?'#0d1e35':'none';btn.style.color=open?'#58a6ff':'#8b949e';btn.style.borderColor=open?'#1f6feb':'#30363d';}
   if(open){
     try{
-      var rows=await sbGet('app_config','key=in.(pl_min_instalment,used_default_pa)&select=key,value');
+      var rows=await sbGet('app_config','key=in.(pl_min_instalment,used_default_pa,epp_divisor)&select=key,value');
       (rows||[]).forEach(function(r){
         if(r.key==='pl_min_instalment'){var el=ge('plSettingMinInst');if(el)el.value=r.value||'';}
         if(r.key==='used_default_pa'){var el=ge('plSettingUsedPa');if(el)el.value=r.value||'';}
+        if(r.key==='epp_divisor'){var el=ge('plSettingEppDiv');if(el)el.value=r.value||'';}
       });
     }catch(e){}
     plRenderSettingsBrandOrder();
@@ -3595,6 +3607,7 @@ async function plSaveSetting(key,inputId){
     // Update in-memory values
     if(key==='pl_min_instalment'){_plMinInst=parseFloat(val)||0;_upMinInst=_plMinInst;}
     if(key==='used_default_pa'){_upDefaultPa=parseFloat(val)||10;}
+    if(key==='epp_divisor'){_eppDivisor=parseFloat(val)||0.86;}
     var st=ge('plSettingStatus');
     if(st){st.style.display='block';st.textContent='✓ Saved';setTimeout(function(){st.style.display='none';},2000);}
     // Re-render to apply new thresholds
@@ -4363,9 +4376,10 @@ var _upSelectedId=null;
 async function loadUPData(){
   _upData=await sbGet('used_vehicles','order=created_at.desc');
   try{
-    var cfg=await sbGet('app_config','key=in.(used_default_pa,pl_min_instalment)&select=key,value');
+    var cfg=await sbGet('app_config','key=in.(used_default_pa,pl_min_instalment,epp_divisor)&select=key,value');
     (cfg||[]).forEach(function(r){
       if(r.key==='used_default_pa')_upDefaultPa=parseFloat(r.value)||10;
+      if(r.key==='epp_divisor')_eppDivisor=parseFloat(r.value)||0.86;
       if(r.key==='pl_min_instalment')_upMinInst=parseFloat(r.value)||0;
     });
   }catch(e){}
@@ -4790,7 +4804,7 @@ function calcPC(){
   var aMonthly=(aeon_pa&&aeonLoan>0)?Math.ceil(aeonLoan*(1+aeon_pa/100*aYr)/(aYr*12)):0;
   var aTotal=aMonthly*aYr*12+aeonDP;
 
-  var eppPrice=Math.ceil(cashOTR/0.86/10)*10;
+  var eppPrice=Math.ceil(cashOTR/_eppDivisor/10)*10;
   _pcEppPrice=eppPrice;
   _pcCalcData={cash:cashOTR,hp:hp,dpk:dpk,pa:pa,kLoan:kLoan,kYr:kYr,kMonthly:kMonthly,kTotal:kTotal,
     aeonDP:aeonDP,aeon_pa:aeon_pa,aeonLoan:aeonLoan,aYr:aYr,aMonthly:aMonthly,aTotal:aTotal,
