@@ -3732,14 +3732,12 @@ function plPrintSelected(){
   if(!entries.length){alert('No entries selected.');return;}
 
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
-  function inst(hp,dpk,pa,yr){
-    var h=parseFloat(hp),d=parseFloat(dpk)||0,r=parseFloat(pa),y=parseInt(yr);
-    if(!h||!r||!y)return null;
-    var p=h-d;if(p<=0)return null;
-    return Math.ceil(p*(1+r/100*y)/(y*12));
+  function instV(loan,pa,yr){
+    if(!loan||loan<=0||!pa||!yr)return null;
+    return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
   }
 
-  // Group by brand preserving _plData order
+  // Group by brand
   var seen={};var brands=[];
   entries.forEach(function(e){
     var b=e.brand||'—';
@@ -3747,61 +3745,108 @@ function plPrintSelected(){
     seen[b].push(e);
   });
 
+  // Determine shared yrcols (use 7yr cols if any entry has loanyear≥6)
+  var hasLong=entries.some(function(e){return parseInt(e.loanyear||7)>=6;});
+  var yrcols=hasLong?[3,4,5,7]:[2,3,4,5];
+  var ncols=yrcols.length;// 4
+
   var rows='';var idx=0;
   brands.forEach(function(brand){
     (seen[brand]||[]).forEach(function(e){
+      var cash=parseFloat(e.cash)||0;
+      var hp=parseFloat(e.hp)||0;
+      var dpk=parseFloat(e.dpk)||0;
+      var ins1=parseFloat(e.ins1)||0;
+      var ins1p=parseFloat(e.ins1p)||0;
+      var ins3=parseFloat(e.ins3)||0;
+      var rtax=parseFloat(e.rtax)||0;
+      var hand=parseFloat(e.hand)||0;
+      var other=parseFloat(e.other)||0;
+      var pa=parseFloat(e.pa)||0;
+      var aeon_pa=parseFloat(e.aeon_pa)||0;
       var loanyear=parseInt(e.loanyear)||7;
-      var yrcols=loanyear<=5?[2,3,4,5]:[3,4,5,7];
+      var tsp=cash+hand+other+ins1+rtax;
+      var kloan=hp-dpk;
+      var mf=plMfLookup(e.brand,e.model);
+      var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
+      var aeonLoan=tsp-aeonDP;
       var shade=idx%2===0;
-      var r1=shade?'row-a':'row-b';var r2=shade?'row-a2':'row-b2';
-      var yrCells=yrcols.map(function(yr){
-        var v=inst(e.hp,e.dpk,e.pa,yr);
-        return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+      var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
+
+      // Kedai inst cells
+      var kCells=yrcols.map(function(yr){
+        if(yr>5)return '<td class="na" style="background:#f8fbff">—</td>';
+        if(!pa||!kloan)return '<td class="na">—</td>';
+        var v=instV(kloan,pa,yr);
+        return v?'<td class="inst" style="color:#1e40af">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
       }).join('');
-      var yrHdrCells=yrcols.map(function(yr){return '<th>'+yr+'yr</th>';}).join('');
-      rows+='<tr class="'+r1+'">'
-        +'<td class="left" rowspan="2">'+esc(brand)+'</td>'
-        +'<td class="model" rowspan="2">'+esc(e.model||'—')+'</td>'
-        +'<td class="cash">'+rm(e.cash)+'</td>'
-        +'<td class="dp">'+rm(e.dpk)+'</td>'
-        +yrCells+'</tr>'
-        +'<tr class="'+r2+'">'
-        +'<td class="hp">'+rm(e.hp)+'</td>'
-        +'<td class="loan">'+(parseFloat(e.hp)>0&&parseFloat(e.dpk)>=0?'RM '+Math.round(parseFloat(e.hp)-parseFloat(e.dpk||0)).toLocaleString():'—')+'</td>'
-        +'<td class="sub">'+rm(e.rtax)+'</td>'
-        +'<td class="sub">'+rm(e.ins1)+'</td>'
-        +'<td class="sub">'+(parseFloat(e.ins1p)>0?rm(e.ins1p):'—')+'</td>'
-        +'<td class="sub">'+rm(e.ins3)+'</td>'
-        +'</tr>';
+      // AEON inst cells
+      var aCells=yrcols.map(function(yr){
+        if(yr>loanyear)return '<td class="na" style="background:#fdf8ff">—</td>';
+        if(!aeon_pa||!aeonLoan)return '<td class="na" style="background:#fdf8ff">—</td>';
+        var v=instV(aeonLoan,aeon_pa,yr);
+        return v?'<td class="inst" style="color:#6b21a8;background:#fdf8ff">'+v.toLocaleString()+'</td>':'<td class="na" style="background:#fdf8ff">—</td>';
+      }).join('');
+
+      var hasAeon=aeon_pa>0&&tsp>0;
+      var totalRows=hasAeon?3:2;
+      rows+='<tr class="'+ra+'">'
+        +'<td class="left" rowspan="'+totalRows+'" style="font-weight:700;font-size:8px">'+esc(brand)+'</td>'
+        +'<td class="model" rowspan="'+totalRows+'">'+esc(e.model||'—')+'</td>'
+        // Row 1: Cash, KDP, Kedai installments
+        +'<td class="cash">'+rm(cash)+'</td>'
+        +'<td style="text-align:right;font-size:8px;color:#1e40af">'+rm(dpk)+'</td>'
+        +kCells
+        +'</tr>'
+        // Row 2: ins/fees info
+        +'<tr class="'+rb+'">'
+        +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(ins1+(ins1p||0))+'</td>'
+        +'<td style="text-align:right;font-size:7.5px;color:#555">'+rm(rtax)+'</td>'
+        +'<td colspan="'+ncols+'" style="text-align:left;font-size:7.5px;color:#888;padding:2px 5px">'
+          +'HP RM'+(hp?Math.round(hp).toLocaleString():'—')
+          +' · Ins SUM '+rm(parseFloat(e.inssum))
+          +(ins1p?' · Ins 1st+ '+rm(ins1p):'')
+          +(ins3?' · Ins 3rd '+rm(ins3):'')
+        +'</td>'
+        +'</tr>'
+        // Row 3: AEON (if applicable)
+        +(hasAeon?'<tr style="background:#fdf8ff">'
+          +'<td style="text-align:right;font-size:8px;color:#6b21a8;font-style:italic">AEON</td>'
+          +'<td style="text-align:right;font-size:8px;color:#6b21a8">RM '+Math.round(aeonDP).toLocaleString()+'</td>'
+          +aCells+'</tr>':'');
       idx++;
     });
   });
 
   var dateStr=pdfDateStr();
-  // Use first entry's loanyear to decide column headers (or majority)
-  var sampleLy=parseInt((entries[0]&&entries[0].loanyear)||7);
-  var hdrCols=sampleLy<=5?['2yr','3yr','4yr','5yr']:['3yr','4yr','5yr','7yr'];
-  var colgroup='<colgroup><col style="width:10%"><col style="width:16%"><col style="width:9%"><col style="width:9%">'
-    +hdrCols.map(function(){return '<col style="width:7%">';}).join('')
-    +'<col style="width:8%"><col style="width:8%"><col style="width:7%"><col style="width:8%"><col style="width:8%"></colgroup>';
+  var yrHdrs=yrcols.map(function(yr){return '<th style="background:#dbeafe;color:#1e40af;font-size:7px">'+yr+'yr</th>';}).join('');
+  var yrHdrs2=yrcols.map(function(yr){return '<th style="background:#f3e8ff;color:#6b21a8;font-size:7px">'+yr+'yr</th>';}).join('');
+  var colgroup='<colgroup>'
+    +'<col style="width:9%"><col style="width:14%">'
+    +'<col style="width:8%"><col style="width:8%">'
+    +yrcols.map(function(){return '<col style="width:'+(44/ncols).toFixed(1)+'%">';}).join('')
+    +'</colgroup>';
   var thead='<thead><tr>'
-    +'<th class="left" rowspan="2">Brand</th><th class="left" rowspan="2">Model</th>'
-    +'<th>Cash</th><th>KDP</th>'
-    +hdrCols.map(function(c){return '<th>'+c+'</th>';}).join('')
+    +'<th class="left" rowspan="3">Brand</th><th class="left" rowspan="3">Model</th>'
+    +'<th rowspan="3">Cash OTR</th>'
+    +'<th colspan="'+(ncols+1)+'" style="background:#dbeafe;color:#1e40af">Kedai</th>'
     +'</tr><tr>'
-    +'<th class="r2">HP</th><th class="r2">Loan</th>'
-    +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th><th class="r2">Ins 3rd</th>'
+    +'<th style="background:#dbeafe;color:#1e40af;font-size:8px">DP</th>'
+    +yrHdrs
+    +'</tr><tr>'
+    +'<th class="r2" style="background:#f0f9f0;color:#15803d;font-size:7.5px">Ins</th>'
+    +'<th class="r2" style="background:#f0f9f0;color:#15803d;font-size:7.5px">RTax</th>'
+    +'<th class="r2" colspan="'+ncols+'" style="background:#f5f5f5;color:#555;font-size:7.5px;text-align:left">AEON: DP · '+yrcols.join('yr · ')+'yr</th>'
     +'</tr></thead>';
 
   var inner='<div class="pl-pdf-hdr">'
-    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div>'
-    +'<div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
+    +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div class="pl-pdf-footer-note">For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<div style="margin-top:6px;font-size:7.5px;color:#666">🔵 Kedai · 🟣 AEON · Ins = 1st+1st+ · For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
-  if(!sheet||!inner_el){alert('PDF sheet not found. Please try again.');console.error('plPdfSheet or plPdfInner missing');return;}
+  if(!sheet||!inner_el){alert('PDF sheet not found.');return;}
   inner_el.innerHTML=inner;
   sheet.style.display='block';
   document.body.style.overflow='hidden';
@@ -3846,7 +3891,7 @@ function upPrintSelected(){
   var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
   if(!entries.length){alert('No entries selected.');return;}
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
-  function inst(loan,pa,yr){
+  function instV(loan,pa,yr){
     if(!loan||loan<=0||!pa||!yr)return null;
     return Math.ceil(loan*(1+pa/100*yr)/(yr*12));
   }
@@ -3857,46 +3902,64 @@ function upPrintSelected(){
     var loan=hp-dp;
     var pa=parseFloat(r.pa)||_upDefaultPa;
     var loanyear=parseInt(r.loanyear)||5;
-    var shade=idx%2===0;var r1=shade?'row-a':'row-b';var r2=shade?'row-a2':'row-b2';
-    var condLabel=r.condition?r.condition.charAt(0).toUpperCase()+r.condition.slice(1):'—';
-    var yrCells='';
-    [2,3,4,5].forEach(function(yr){
-      if(yr>loanyear){yrCells+='<td class="na">—</td>';return;}
-      var v=inst(loan,pa,yr);
-      yrCells+=v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
-    });
-    rows+='<tr class="'+r1+'">'
-      +'<td class="left plate" rowspan="2">'+esc(r.plate_no||'—')+'</td>'
-      +'<td class="model" rowspan="2">'+esc((r.brand||'')+(r.model?' '+r.model:''))+'<br><span style="font-size:7px;color:#888">'+esc(r.year?String(r.year):'')+'  '+condLabel+'</span></td>'
+    var inssum=parseFloat(r.inssum)||0;
+    var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
+    // Condition badge
+    var condColor={'good':'#1a6b2a','fair':'#7a6010','poor':'#7a1a1a'}[r.condition]||'#555';
+    var condBg={'good':'#e6f4ea','fair':'#fef9e7','poor':'#fde8e8'}[r.condition]||'#f5f5f5';
+    var condLabel=r.condition?r.condition.charAt(0).toUpperCase()+r.condition.slice(1):'';
+    var instCells=[2,3,4,5].map(function(yr){
+      if(yr>loanyear)return '<td class="na">—</td>';
+      var v=instV(loan,pa,yr);
+      return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">—</td>';
+    }).join('');
+    // Brand/Model cell: brand bold, model normal, year+condition badge inline
+    var brandModel='<span style="font-weight:700">'+esc(r.brand||'')+'</span> '+esc(r.model||'')
+      +(r.year||condLabel?'<br><span style="font-size:7.5px;color:#666">'+(r.year?r.year+' ':'')
+        +(condLabel?'<span style="background:'+condBg+';color:'+condColor+';border-radius:3px;padding:0 3px;font-size:7px">'+condLabel+'</span>':'')+'</span>':'');
+    rows+='<tr class="'+ra+'">'
+      +'<td class="left plate" rowspan="'+(r.notes?3:2)+'">'+esc(r.plate_no||'—')+'</td>'
+      +'<td class="model" rowspan="'+(r.notes?3:2)+'">'+brandModel+'</td>'
       +'<td class="cash">'+rm(r.cash_price)+'</td>'
       +'<td class="dp">'+rm(r.down_payment)+'</td>'
-      +yrCells+'</tr>'
-      +'<tr class="'+r2+'">'
-      +'<td class="hp">'+rm(r.loan_price)+'</td>'
-      +'<td class="loan">'+(loan>0?'RM '+Math.round(loan).toLocaleString():'—')+'</td>'
+      +instCells+'</tr>'
+      +'<tr class="'+rb+'">'
+      +'<td class="hp">'+rm(hp)+'</td>'
       +'<td class="sub">'+rm(r.road_tax_1yr)+'</td>'
       +'<td class="sub">'+rm(r.insurance_1st)+'</td>'
-      +'<td class="sub">'+(r.ins1p?rm(r.ins1p):'—')+'</td>'
+      +'<td class="sub">'+(r.ins1p&&parseFloat(r.ins1p)>0?rm(r.ins1p):'—')+'</td>'
       +'<td class="sub">'+rm(r.insurance_3rd)+'</td>'
+      +'<td class="sub">'+(inssum>0?rm(inssum):'—')+'</td>'
       +'</tr>'
-      +(r.notes?'<tr><td colspan="10" style="font-size:7px;color:#888;padding:2px 5px;border-top:none">'+esc(r.notes)+'</td></tr>':'');
+      +(r.notes?'<tr><td colspan="6" style="font-size:7.5px;color:#888;padding:1px 5px 3px;font-style:italic;border-top:none">'+esc(r.notes)+'</td></tr>':'');
     idx++;
   });
   var dateStr=pdfDateStr();
-  var colgroup='<colgroup><col style="width:12%"><col style="width:18%"><col style="width:9%"><col style="width:9%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>';
+  var colgroup='<colgroup>'
+    +'<col style="width:11%"><col style="width:17%">'
+    +'<col style="width:9%"><col style="width:8%">'
+    +'<col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%">'
+    +'<col style="width:8%"><col style="width:7.5%"><col style="width:7%"><col style="width:7%">'
+    +'</colgroup>';
   var thead='<thead><tr>'
-    +'<th class="left" rowspan="2">Plate</th><th class="left" rowspan="2">Brand / Model</th>'
-    +'<th>Cash</th><th>DP</th>'
-    +'<th>2yr</th><th>3yr</th><th>4yr</th><th>5yr</th>'
+    +'<th class="left" rowspan="2">Plate</th>'
+    +'<th class="left" rowspan="2">Brand / Model</th>'
+    +'<th rowspan="2">Cash</th><th rowspan="2">KDP</th>'
+    +'<th colspan="4" style="background:#dbeafe;color:#1e40af">Monthly (Kedai)</th>'
     +'</tr><tr>'
-    +'<th class="r2">HP</th><th class="r2">Loan</th>'
-    +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th><th class="r2">Ins 3rd</th>'
+    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">2yr</th>'
+    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">3yr</th>'
+    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">4yr</th>'
+    +'<th style="background:#eff6ff;color:#1e40af;font-size:7px">5yr</th>'
+    +'<th class="r2">HP</th>'
+    +'<th class="r2">RTax</th><th class="r2">Ins 1st</th><th class="r2">Ins 1st+</th>'
+    +'<th class="r2">Ins 3rd</th><th class="r2">Ins SUM</th>'
     +'</tr></thead>';
   var inner='<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer · Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<table>'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
-    +'<div class="pl-pdf-footer-note">For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
+    +'<div class="pl-pdf-footer-note">Instalment calculated at PA shown · For reference only · © 2026 HuangMotor M Sdn Bhd · '+dateStr+'</div>';
   var sheet2=ge('plPdfSheet');var inner2=ge('plPdfInner');
   if(!sheet2||!inner2){alert('PDF sheet not found.');return;}
   inner2.innerHTML=inner;
