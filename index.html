@@ -904,21 +904,6 @@ body.theme-white .home-welcome{color:#555}
 
 </div><!-- /plp -->
 
-<!-- Pricelist PDF Sheet -->
-<div id="plPdfSheet">
-  <div class="pl-pdf-inner" id="plPdfInner"></div>
-  <div class="pl-pdf-actions">
-    <!-- Font size control -->
-    <div style="display:flex;align-items:center;gap:8px;background:#2a2a2a;padding:8px 14px;border-radius:7px;box-shadow:0 3px 12px rgba(0,0,0,.3)">
-      <span style="font-size:12px;color:#aaa;white-space:nowrap">Font size</span>
-      <button onclick="adjustPdfFont(-1)" style="width:28px;height:28px;border:1px solid #555;border-radius:5px;background:#1a1a1a;color:#fff;font-size:16px;cursor:pointer;line-height:1">−</button>
-      <span id="pdfFontSizeLabel" style="font-size:13px;font-weight:700;color:#fff;min-width:36px;text-align:center">11px</span>
-      <button onclick="adjustPdfFont(1)" style="width:28px;height:28px;border:1px solid #555;border-radius:5px;background:#1a1a1a;color:#fff;font-size:16px;cursor:pointer;line-height:1">+</button>
-    </div>
-    <button class="pl-pdf-act" style="background:#1a1a1a;color:#fff" onclick="printPLPdf()">🖨 Print / Save PDF</button>
-    <button class="pl-pdf-act" style="background:#fff;color:#1a1a1a" onclick="closePLPdf()">✕ Close</button>
-  </div>
-</div>
 
 <!-- ══════════════════════════════════════════════════
      CALCULATOR PANEL
@@ -1150,6 +1135,22 @@ body.theme-white .home-welcome{color:#555}
   <div class="code-wrap" id="codeWrap"><div class="code-box" id="codeBox"></div></div>
 </div>
 </div><!-- /gw -->
+
+<!-- Pricelist PDF Sheet -->
+<div id="plPdfSheet">
+  <div class="pl-pdf-inner" id="plPdfInner"></div>
+  <div class="pl-pdf-actions">
+    <!-- Font size control -->
+    <div style="display:flex;align-items:center;gap:8px;background:#2a2a2a;padding:8px 14px;border-radius:7px;box-shadow:0 3px 12px rgba(0,0,0,.3)">
+      <span style="font-size:12px;color:#aaa;white-space:nowrap">Font size</span>
+      <button onclick="adjustPdfFont(-1)" style="width:28px;height:28px;border:1px solid #555;border-radius:5px;background:#1a1a1a;color:#fff;font-size:16px;cursor:pointer;line-height:1">−</button>
+      <span id="pdfFontSizeLabel" style="font-size:13px;font-weight:700;color:#fff;min-width:36px;text-align:center">11px</span>
+      <button onclick="adjustPdfFont(1)" style="width:28px;height:28px;border:1px solid #555;border-radius:5px;background:#1a1a1a;color:#fff;font-size:16px;cursor:pointer;line-height:1">+</button>
+    </div>
+    <button class="pl-pdf-act" style="background:#1a1a1a;color:#fff" onclick="printPLPdf()">🖨 Print / Save PDF</button>
+    <button class="pl-pdf-act" style="background:#fff;color:#1a1a1a" onclick="closePLPdf()">✕ Close</button>
+  </div>
+</div>
 <!-- HOME SCREEN -->
 <div id="homeScreen" style="display:none;padding:32px 24px;background:#0d1117;min-height:calc(100vh - 36px)">
   <div class="home-welcome">Welcome, <span id="homeUser" style="color:#f0f6fc;font-weight:600"></span> — select a tool</div>
@@ -1240,7 +1241,6 @@ body.theme-white .home-welcome{color:#555}
         <div id="upEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px;flex-wrap:wrap">
           <button onclick="openUPModal(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ Add Vehicle</button>
           <button id="upPrintModeBtn" onclick="upTogglePrintMode()" style="padding:5px 11px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer;white-space:nowrap">🖨 Print Mode</button>
-          <button id="upPrintSelBtn" onclick="upPrintSelected()" style="display:none;padding:5px 14px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Print Selected</button>
           <span id="upPrintLabel" style="font-size:10px;color:#4a6fa5"></span>
           <span id="upCountLabel" style="font-size:10px;color:#4a6fa5;margin-left:auto"></span>
         </div>
@@ -3335,6 +3335,12 @@ function goHome(){
 var _editMode=false;
 function setEditMode(on){
   _editMode=on;
+  if(!on){
+    // Exit print modes when edit mode turns off
+    if(_plPrintMode){_plPrintMode=false;var ps=ge('plPrintSelBtn');if(ps)ps.style.display='none';}
+    if(_upPrintMode){_upPrintMode=false;}
+    var upb=ge('upPrintModeBtn');if(upb){upb.style.background='none';upb.style.color='#8b949e';upb.style.borderColor='#30363d';}
+  }
   var btn=document.getElementById('editModeBtn');
   if(btn){
     btn.textContent=on?'✏ Edit Mode ON':'✏ Edit Mode';
@@ -3342,7 +3348,6 @@ function setEditMode(on){
     btn.style.color=on?'#fff':'#8b949e';
     btn.style.borderColor=on?'#388bfd':'#30363d';
   }
-  // Re-render current module to show/hide edit controls
   var active=document.querySelector('.mod-page.active');
   if(active){
     var id=active.id.replace('mod-','');
@@ -3412,8 +3417,15 @@ function switchPLTab(tab){
   if(np)np.style.display=tab==='new'?'block':'none';
   if(up)up.style.display=tab==='used'?'block':'none';
   if(tab==='used')upSyncEditBar();
-  if(tab==='used'&&!_upData.length)loadUPData();
-  if(tab==='new'){plSyncToolbar();renderNewVehicleList();}
+  // Kill print mode on the tab we're leaving
+  if(tab==='used'){
+    if(_plPrintMode){_plPrintMode=false;var ps=ge('plPrintSelBtn');if(ps)ps.style.display='none';}
+    if(!_upData.length)loadUPData();else{upSyncEditBar();renderUPList();}
+  }
+  if(tab==='new'){
+    if(_upPrintMode){_upPrintMode=false;var upb=ge('upPrintModeBtn');if(upb){upb.style.background='none';upb.style.color='#8b949e';upb.style.borderColor='#30363d';}}
+    plSyncToolbar();renderNewVehicleList();
+  }
 }
 
 async function loadPricelistModule(){
@@ -3447,6 +3459,12 @@ function renderPricelistModule(){
 }
 
 /* ── Toolbar sync ── */
+// Unified print dispatcher — works for both New and Used tab
+function plPrintAny(){
+  if(_plCurrentTab==='used')upPrintSelected();
+  else plPrintSelected();
+}
+
 function plUpdatePrintBtn(){
   var n=_plChecked.size;
   var ps=ge('plPrintSelBtn');
@@ -3711,8 +3729,7 @@ function plToggleCheck(id){
 }
 function plPrintSelected(){
   var entries=_plData.filter(function(e){return _plChecked.has(String(e.id))||_plChecked.has(e.id);});
-  if(!entries.length){alert('No entries selected. Checked: '+[..._plChecked].join(', ')+' | Data IDs: '+_plData.slice(0,3).map(function(e){return e.id;}).join(', '));return;}
-  if(!confirm('Print '+entries.length+' entr'+(entries.length>1?'ies':'y')+'?'))return;
+  if(!entries.length){alert('No entries selected.');return;}
 
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
   function inst(hp,dpk,pa,yr){
@@ -3804,23 +3821,30 @@ var _upPrintMode=false;
 
 function upTogglePrintMode(){
   _upPrintMode=!_upPrintMode;
+  if(!_upPrintMode)_upChecked.clear();
   var btn=ge('upPrintModeBtn');
   if(btn){btn.style.background=_upPrintMode?'#1a3a1a':'none';btn.style.color=_upPrintMode?'#3fb950':'#8b949e';btn.style.borderColor=_upPrintMode?'#238636':'#30363d';btn.textContent='🖨 Print Mode'+(_upPrintMode?' ON':'');}
-  var ps=ge('upPrintSelBtn');if(ps)ps.style.display=(_upPrintMode&&_upChecked.size>0)?'':'none';
-  var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=_upPrintMode&&_upChecked.size?_upChecked.size+' selected':'';
+  upUpdatePrintBtn();
   renderUPList();
 }
 function upToggleCheck(id){
   var sid=String(id);
   if(_upChecked.has(sid))_upChecked.delete(sid);else _upChecked.add(sid);
   try{localStorage.setItem('up_checked',JSON.stringify([..._upChecked]));}catch(e){}
-  var ps=ge('upPrintSelBtn');if(ps)ps.style.display=(_upPrintMode&&_upChecked.size>0)?'':'none';
-  var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=_upChecked.size?_upChecked.size+' selected':'';
+  var cb=document.querySelector('input[onchange*="upToggleCheck(\''+sid+'\'"]');
+  if(cb)cb.checked=_upChecked.has(sid);
+  upUpdatePrintBtn();
+}
+function upUpdatePrintBtn(){
+  var n=_upChecked.size;
+  var ps=ge('plPrintSelBtn');
+  if(ps)ps.style.display=(_upPrintMode&&n>0)?'block':'none';
+  var cnt=ge('plPrintSelCount');if(cnt)cnt.textContent=n;
+  var lbl=ge('upPrintLabel');if(lbl)lbl.textContent=n?n+' selected':'';
 }
 function upPrintSelected(){
   var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
   if(!entries.length){alert('No entries selected.');return;}
-  if(!confirm('Print '+entries.length+' vehicle'+(entries.length>1?'s':'')+'?'))return;
   function rm(v){return v&&parseFloat(v)>0?'RM '+Number(parseFloat(v)).toLocaleString():'—';}
   function inst(loan,pa,yr){
     if(!loan||loan<=0||!pa||!yr)return null;
@@ -4876,9 +4900,9 @@ async function removePart(orderId,idx){
 }
 </script>
 <!-- Floating Print Selected button — fixed position, always on top -->
-<button id="plPrintSelBtn" onclick="plPrintSelected()"
-  style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;padding:10px 22px;background:#1f6feb;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(31,111,235,.5);pointer-events:auto">
-  🖨 Print Selected (<span id="plPrintSelCount">0</span>)
+<button id="plPrintSelBtn" onclick="plPrintAny()"
+  style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 24px;background:#1f6feb;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 24px rgba(31,111,235,.6);pointer-events:auto;letter-spacing:.01em">
+  🖨 Print Selected &nbsp;<span id="plPrintSelCount" style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px">0</span>
 </button>
 </body>
 </html>
