@@ -1431,11 +1431,14 @@ body.theme-white .home-welcome{color:#555}
       </div>
       <!-- Comparison cards -->
       <div id="pcCards" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
-      <!-- EPP bank section -->
-      <div id="pcEppSection" style="display:none;margin-top:14px">
-        <div style="font-size:11px;color:#4a6fa5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">EPP — Select Bank</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="pcBankBtns"></div>
-        <div id="pcEppDetail" style="background:#111827;border:1px solid #1e2d45;border-radius:8px;padding:12px"></div>
+      <!-- Comparison table -->
+      <div id="pcCompare" style="display:none;margin-top:14px">
+        <div style="font-size:11px;color:#4a6fa5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Side-by-Side Comparison</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span style="font-size:11px;color:#8b949e">Tenure:</span>
+          <div id="pcCompareTenureBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        <div id="pcCompareTable"></div>
       </div>
     </div>
   </div>
@@ -4747,28 +4750,22 @@ async function pcPopulateItems(){
 }
 
 function calcPC(){
-  var src=ge('pcSource').value;
-  var vid=ge('pcVehicle').value;
-  var cards=ge('pcCards');
-  var epp_sec=ge('pcEppSection');
+  var src=ge('pcSource').value,vid=ge('pcVehicle').value;
+  var cards=ge('pcCards'),cmp=ge('pcCompare');
   if(!vid){
     cards.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#2a4a6a;font-size:12px">Select a vehicle to compare</div>';
-    if(epp_sec)epp_sec.style.display='none';
+    if(cmp)cmp.style.display='none';
     return;
   }
-
   var e=null;
   if(src==='new'){
     e=_plData.find(function(x){return String(x.id)===String(vid);})||
       (window.PL&&PL.list.find(function(x){return String(x.id)===String(vid);}));
-  } else {
-    try{e=JSON.parse(vid);}catch(ex){return;}
-  }
+  } else {try{e=JSON.parse(vid);}catch(ex){return;}}
   if(!e){cards.innerHTML='<div style="grid-column:1/-1;color:#e24b4a;padding:1rem">Vehicle data not found.</div>';return;}
 
   var isNew=src==='new';
-  // Extract values
-  var cash=parseFloat(e.cash||(isNew?e.cash:e.cash))||0;
+  var cash=parseFloat(e.cash)||0;
   var hp=parseFloat(isNew?e.hp:e.hp)||0;
   var dpk=parseFloat(isNew?e.dpk:e.dp)||0;
   var pa=parseFloat(e.pa)||0;
@@ -4778,19 +4775,14 @@ function calcPC(){
   var rtax=parseFloat(isNew?e.rtax:e.rtax)||0;
   var hand=parseFloat(isNew?e.hand:0)||0;
   var other=parseFloat(isNew?e.other:0)||0;
-
-  // Cash OTR (Used: +RM60 更名费)
   var tukarFee=isNew?0:60;
+
   var cashOTR=cash+ins1+rtax+tukarFee;
-
-  // Kedai: use lowest DP (dpk), max loanyear (capped 5)
-  var kLoan=hp-dpk;
-  var kYr=Math.min(loanyear,5);
+  var kLoan=hp-dpk,kYr=Math.min(loanyear,5);
   var kMonthly=(pa&&kLoan>0)?Math.ceil(kLoan*(1+pa/100*kYr)/(kYr*12)):0;
-  var kTotal=kMonthly*kYr*12+dpk+ins1+rtax;
+  var kTotal=kMonthly*kYr*12+dpk+ins1+rtax+tukarFee;
 
-  // AEON: lowest DP from MF lookup, max loanyear
-  var tsp=cash+hand+other+ins1+rtax;
+  var tsp=cash+hand+other+ins1+rtax+tukarFee;
   var mf=plMfLookup(e.brand,e.model);
   var aeonDP=mf!==null?Math.max(0,tsp-mf):0;
   var aeonLoan=tsp-aeonDP;
@@ -4798,133 +4790,165 @@ function calcPC(){
   var aMonthly=(aeon_pa&&aeonLoan>0)?Math.ceil(aeonLoan*(1+aeon_pa/100*aYr)/(aYr*12)):0;
   var aTotal=aMonthly*aYr*12+aeonDP;
 
-  // EPP price: cashOTR ÷ 0.86, round up to nearest 10
-  var eppRaw=cashOTR/0.86;
-  var eppPrice=Math.ceil(eppRaw/10)*10;
+  var eppPrice=Math.ceil(cashOTR/0.86/10)*10;
   _pcEppPrice=eppPrice;
+  _pcCalcData={cash:cashOTR,hp:hp,dpk:dpk,pa:pa,kLoan:kLoan,kYr:kYr,kMonthly:kMonthly,kTotal:kTotal,
+    aeonDP:aeonDP,aeon_pa:aeon_pa,aeonLoan:aeonLoan,aYr:aYr,aMonthly:aMonthly,aTotal:aTotal,
+    eppPrice:eppPrice,tsp:tsp,loanyear:loanyear};
 
-  var isAdmin=currentUser&&currentUser.role==='admin';
   function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
-  function diff(total){
+  function extraRow(total){
     var d=total-cashOTR;
-    if(d<=0)return '';
-    return '<span style="font-size:10px;color:#e24b4a">比现金多付 RM '+Math.round(d).toLocaleString()+'</span>';
+    return d>0?'<div style="font-size:10px;color:#e24b4a;text-align:right;margin-top:4px">+RM '+Math.round(d).toLocaleString()+' vs Cash</div>':'';
   }
-
-  function ccCard(accent,label,rows,highlight,extraHtml){
-    return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px;border-top:3px solid '+accent+'">'
-      +'<div style="font-size:10px;font-weight:700;color:'+accent+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">'+label+'</div>'
-      +(highlight?'<div style="font-size:20px;font-weight:800;color:'+accent+';margin-bottom:8px">'+highlight+'</div>':'')
-      +rows.map(function(r){
-        return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #0d1626;font-size:11px">'
-          +'<span style="color:#4a6fa5">'+r[0]+'</span>'
-          +'<span style="color:#c9d1d9;font-weight:600">'+r[1]+'</span></div>';
-      }).join('')
+  function row(l,r){
+    return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0d1626;font-size:11px">'
+      +'<span style="color:#4a6fa5">'+l+'</span><span style="color:#c9d1d9;font-weight:600">'+r+'</span></div>';
+  }
+  function card(accent,label,totalPaid,monthly,rows,extraHtml){
+    return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px;border-top:3px solid '+accent+';display:flex;flex-direction:column;gap:4px">'
+      +'<div style="font-size:10px;font-weight:700;color:'+accent+';text-transform:uppercase;letter-spacing:.06em">'+label+'</div>'
+      +(totalPaid?'<div style="font-size:11px;color:#8b949e;margin-top:4px">Total Paid</div>'
+        +'<div style="font-size:22px;font-weight:800;color:'+accent+'">'+totalPaid+'</div>':'')
+      +(monthly?'<div style="font-size:11px;color:#8b949e">Monthly</div>'
+        +'<div style="font-size:15px;font-weight:700;color:#c9d1d9">'+monthly+'</div>':'')
+      +'<div style="margin-top:6px">'+rows.map(function(r2){return row(r2[0],r2[1]);}).join('')+'</div>'
       +(extraHtml||'')
     +'</div>';
   }
 
-  cards.innerHTML=
-    // CASH
-    ccCard('#3fb950','💵 Cash OTR',
-      [['Cash Price',rm(cash)],['Insurance 1st',rm(ins1)],['Road Tax',rm(rtax)]
-       .concat(isNew?[]:['Transfer of Ownership','RM 60'])
-       .concat([['Total Outlay',rm(cashOTR)]])
-      ],rm(cashOTR))+
+  // EPP bank picker inline
+  var bankBtns=Object.keys(EPP_BANKS).map(function(b){
+    var active=b===_pcSelectedBank;
+    return '<button onclick="pcSelectBank(\''+b+'\')" style="padding:4px 10px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:5px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:10px;cursor:pointer;margin:2px">'+b+'</button>';
+  }).join('');
 
-    // KEDAI
+  var eppDetail=pcBuildEppDetail(eppPrice);
+  var eppSaveHtml=aTotal>0&&eppPrice>0&&aTotal>eppPrice
+    ?'<div style="margin-top:8px;padding:6px 8px;background:#0a1f0a;border-radius:5px;font-size:10px;color:#3fb950">💰 Save RM '+Math.round(aTotal-eppPrice).toLocaleString()+' vs AEON full payment</div>'
+    :'';
+
+  cards.innerHTML=
+    card('#3fb950','💵 Cash OTR',rm(cashOTR),null,
+      [['Cash Price',rm(cash)],['Insurance 1st',rm(ins1)],['Road Tax',rm(rtax)]]
+      .concat(tukarFee?[['Transfer of Ownership','RM '+tukarFee]]:[]))+
+
     (pa&&kLoan>0
-      ?ccCard('#58a6ff','🏦 Kedai',
-        [['HP',rm(hp)],['Down Payment',rm(dpk)],['Loan',rm(kLoan)],
-         ['Rate',pa+'% p.a. / '+kYr+'yr'],
-         ['Monthly',rm(kMonthly)],['Total Paid',rm(kTotal)]],
-        rm(kMonthly)+'/mo',
-        '<div style="margin-top:6px">'+diff(kTotal)+'</div>')
-      :ccCard('#58a6ff','🏦 Kedai',
-        [['HP',rm(hp)],['Down Payment',rm(dpk)]],null,
+      ?card('#58a6ff','🏦 Kedai',rm(kTotal),rm(kMonthly)+'/mo',
+        [['HP',rm(hp)],['Down Payment',rm(dpk)],['Loan',rm(kLoan)],['Rate',pa+'% / '+kYr+'yr']],
+        extraRow(kTotal))
+      :card('#58a6ff','🏦 Kedai',null,null,
+        [['HP',rm(hp)],['Down Payment',rm(dpk)]],
         '<div style="font-size:10px;color:#2a4a6a;margin-top:6px">Kedai PA not set</div>'))+
 
-    // AEON
     (isNew
       ?(aeon_pa&&aeonLoan>0
-        ?ccCard('#d2a8ff','🔷 AEON',
-          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)+(mf===null?' (Full Loan)':'')],['Loan',rm(aeonLoan)],
-           ['Rate',aeon_pa+'% p.a. / '+aYr+'yr'],
-           ['Monthly',rm(aMonthly)],['Total Paid',rm(aTotal)]],
-          rm(aMonthly)+'/mo',
-          '<div style="margin-top:6px">'+diff(aTotal)+'</div>')
-        :ccCard('#d2a8ff','🔷 AEON',
-          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)]],null,
+        ?card('#d2a8ff','🔷 AEON',rm(aTotal),rm(aMonthly)+'/mo',
+          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)],['Loan',rm(aeonLoan)],['Rate',aeon_pa+'% / '+aYr+'yr']],
+          extraRow(aTotal))
+        :card('#d2a8ff','🔷 AEON',null,null,
+          [['TSP',rm(tsp)],['Lowest DP',rm(aeonDP)]],
           '<div style="font-size:10px;color:#2a4a6a;margin-top:6px">AEON PA not set</div>'))
       :'')+
 
-    // EPP
-    ccCard('#f0883e','💳 EPP',
-      [['EPP Price',''],['Select Bank below','']],
-      rm(eppPrice),
-      +(aTotal>0&&eppPrice>0?'<div style="margin-top:6px;padding:6px 8px;background:#0a1f0a;border-radius:5px;font-size:10px;color:#3fb950">💰 Save RM '+Math.round(aTotal-eppPrice).toLocaleString()+' vs AEON full payment</div>':'')+'<button onclick="pcShowBanks()" style="width:100%;margin-top:8px;padding:6px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer">Select Bank →</button>');
+    card('#f0883e','💳 EPP',rm(eppPrice),'Select bank below',
+      [['EPP Price',rm(eppPrice)]],
+      '<div style="margin-top:8px"><div style="font-size:9px;color:#4a6fa5;margin-bottom:4px">SELECT BANK</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:2px">'+bankBtns+'</div>'
+      +'<div style="margin-top:8px">'+eppDetail+'</div>'
+      +eppSaveHtml+'</div>');
 
-  if(epp_sec)epp_sec.style.display='block';
-  pcRenderBanks();
-}
-
-function pcShowBanks(){
-  var sec=ge('pcEppSection');
-  if(sec){sec.style.display='block';sec.scrollIntoView({behavior:'smooth'});}
-}
-
-function pcRenderBanks(){
-  var btns=ge('pcBankBtns');if(!btns)return;
-  btns.innerHTML=Object.keys(EPP_BANKS).map(function(bank){
-    var active=bank===_pcSelectedBank;
-    return '<button onclick="pcSelectBank(\''+bank+'\')" style="padding:5px 12px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:6px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:11px;cursor:pointer">'+bank+'</button>';
-  }).join('');
-  pcRenderEppDetail();
-}
-
-function pcSelectBank(bank){
-  _pcSelectedBank=bank;
-  pcRenderBanks();
-}
-
-function pcRenderEppDetail(){
-  var el=ge('pcEppDetail');if(!el)return;
-  if(!_pcSelectedBank||!_pcEppPrice){
-    el.innerHTML='<div style="font-size:11px;color:#2a4a6a">Select a bank above to see available tenures</div>';
-    return;
+  // Comparison section
+  if(cmp){
+    cmp.style.display='block';
+    pcRenderCompareTenures();
   }
+}
+
+function pcBuildEppDetail(price){
+  if(!_pcSelectedBank||!price)
+    return '<div style="font-size:10px;color:#2a4a6a">Select a bank above</div>';
   var bank=EPP_BANKS[_pcSelectedBank];
-  var price=_pcEppPrice;
   var months=[6,12,24,36,48,60];
-  var available=months.filter(function(m){return bank[m]&&bank[m]>0&&price>=bank[m];});
-  var notAvail=months.filter(function(m){return bank[m]&&bank[m]>0&&price<bank[m];});
-  var notSupported=months.filter(function(m){return !bank[m]||bank[m]===0;});
-
-  var html='<div style="font-size:11px;color:#c9d1d9;font-weight:600;margin-bottom:8px">'+_pcSelectedBank+' — EPP RM '+price.toLocaleString()+'</div>';
-
-  if(available.length){
-    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
-    available.forEach(function(m){
-      var monthly=Math.ceil(price/m);
-      html+='<div style="background:#0a0f1a;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center">'
-        +'<div style="font-size:10px;color:#4a6fa5;margin-bottom:2px">'+m+' months</div>'
-        +'<div style="font-size:15px;font-weight:700;color:#58a6ff">RM '+monthly.toLocaleString()+'</div>'
-        +'<div style="font-size:9px;color:#2a4a6a">0% interest</div>'
+  var avail=months.filter(function(m){return bank[m]>0&&price>=bank[m];});
+  var below=months.filter(function(m){return bank[m]>0&&price<bank[m];});
+  var html='';
+  if(avail.length){
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">';
+    avail.forEach(function(m){
+      var mo=Math.ceil(price/m);
+      html+='<div style="background:#0a0f1a;border:1px solid #1e3a5f;border-radius:6px;padding:6px;text-align:center">'
+        +'<div style="font-size:9px;color:#4a6fa5">'+m+' mo</div>'
+        +'<div style="font-size:14px;font-weight:700;color:#58a6ff">RM '+mo.toLocaleString()+'</div>'
         +'</div>';
     });
     html+='</div>';
   }
+  if(below.length)html+='<div style="font-size:9px;color:#3a2a1a;margin-top:4px">Below min: '+below.map(function(m){return m+'mo≥RM'+bank[m].toLocaleString();}).join(' · ')+'</div>';
+  return html;
+}
 
-  if(notAvail.length){
-    html+='<div style="font-size:9px;color:#4a3a2a;margin-top:4px">Below min spend: '
-      +notAvail.map(function(m){return m+'mo (min RM '+bank[m].toLocaleString()+')'}).join(', ')+'</div>';
-  }
-  if(notSupported.length){
-    html+='<div style="font-size:9px;color:#2a4a6a;margin-top:2px">Not supported: '
-      +notSupported.map(function(m){return m+'mo'}).join(', ')+'</div>';
+function pcSelectBank(bank){
+  _pcSelectedBank=bank;
+  // Re-render EPP card's bank section only
+  calcPC();
+}
+
+var _pcCompareTenure=12;
+var _pcCalcData={};
+
+function pcRenderCompareTenures(){
+  var d=_pcCalcData;if(!d.eppPrice)return;
+  var months=[6,12,24,36,48,60];
+  var btns=ge('pcCompareTenureBtns');if(!btns)return;
+  btns.innerHTML=months.map(function(m){
+    var active=m===_pcCompareTenure;
+    return '<button onclick="pcSetCompareTenure('+m+')" style="padding:4px 10px;border:1px solid '+(active?'#1f6feb':'#30363d')+';border-radius:5px;background:'+(active?'#1f6feb':'none')+';color:'+(active?'#fff':'#8b949e')+';font-size:11px;cursor:pointer">'+m+'mo</button>';
+  }).join('');
+  pcRenderCompareTable();
+}
+
+function pcSetCompareTenure(m){_pcCompareTenure=m;pcRenderCompareTenures();}
+
+function pcRenderCompareTable(){
+  var d=_pcCalcData,m=_pcCompareTenure;
+  var el=ge('pcCompareTable');if(!el||!d.eppPrice)return;
+  function rm(v){return v>0?'RM '+Math.round(v).toLocaleString():'—';}
+
+  // Kedai at tenure m
+  var kM=(d.pa&&d.kLoan>0&&m/12<=d.kYr)?Math.ceil(d.kLoan*(1+d.pa/100*(m/12))/(m)):0;
+  var kT=kM*m+d.dpk;
+
+  // AEON at tenure m
+  var aM=(d.aeon_pa&&d.aeonLoan>0&&m/12<=d.aYr)?Math.ceil(d.aeonLoan*(1+d.aeon_pa/100*(m/12))/(m)):0;
+  var aT=aM*m+d.aeonDP;
+
+  // EPP at tenure m — check bank min
+  var bank=_pcSelectedBank?EPP_BANKS[_pcSelectedBank]:null;
+  var eppOk=bank&&bank[m]>0&&d.eppPrice>=bank[m];
+  var eppM=eppOk?Math.ceil(d.eppPrice/m):0;
+  var eppT=d.eppPrice;
+
+  function col(label,dp,total,monthly,accent){
+    return '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid #0d1626">'
+      +'<div style="font-size:10px;font-weight:700;color:'+accent+';margin-bottom:6px">'+label+'</div>'
+      +'<div style="font-size:9px;color:#4a6fa5">Down Payment</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#c9d1d9;margin-bottom:4px">'+rm(dp)+'</div>'
+      +'<div style="font-size:9px;color:#4a6fa5">Total Paid</div>'
+      +'<div style="font-size:16px;font-weight:800;color:'+accent+';margin-bottom:4px">'+rm(total)+'</div>'
+      +'<div style="font-size:9px;color:#4a6fa5">Monthly ('+m+' mo)</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#c9d1d9">'+(monthly?rm(monthly)+'/mo':'—')+'</div>'
+      +'</td>';
   }
 
-  el.innerHTML=html;
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;background:#0d1117;border:1px solid #21262d;border-radius:8px;overflow:hidden">'
+    +'<tr>'
+    +col('🏦 Kedai',d.dpk,kT||0,kM,'#58a6ff')
+    +col('🔷 AEON',d.aeonDP,aT||0,aM,'#d2a8ff')
+    +col('💳 EPP'+(bank?' ('+_pcSelectedBank+')':''),0,eppT,eppM,'#f0883e')
+    +'</tr></table>'
+    +(!eppOk&&_pcSelectedBank?'<div style="font-size:10px;color:#3a2a1a;margin-top:4px">'+_pcSelectedBank+' doesn\'t support '+m+'mo or min spend not met (RM '+((bank&&bank[m])||0).toLocaleString()+')</div>':'')
+    +(!_pcSelectedBank?'<div style="font-size:10px;color:#2a4a6a;margin-top:4px">Select a bank in the EPP card above to compare</div>':'');
 }
 
 
