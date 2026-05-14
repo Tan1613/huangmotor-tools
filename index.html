@@ -173,6 +173,7 @@ body{font-family:sans-serif;font-size:13px;color:#1a1a1a;background:#f0efeb;min-
   #plPdfSheet{display:block!important;position:static!important;background:#fff!important;overflow:visible!important;z-index:auto!important}
   .pl-pdf-actions{display:none!important}
   .pl-pdf-inner{margin:0!important;box-shadow:none!important;width:100%!important;padding:6mm!important;min-height:auto!important}
+  .pl-pdf-table tbody{page-break-inside:avoid}
   /* Quotation PDF */
   #pdfSheet{display:none!important}
   .pdf-actions{display:none!important}
@@ -1258,6 +1259,15 @@ body.theme-white .home-welcome{color:#555}
             </div>
           </div>
           <div id="plSettingStatus" style="font-size:10px;color:#3fb950;margin-top:6px;display:none">✓ Saved</div>
+          <!-- Brand Order -->
+          <div style="margin-top:12px;border-top:1px solid #1e2d45;padding-top:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:10px;color:#4a6fa5;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Brand Display Order</span>
+              <button onclick="plResetBrandOrder()" style="padding:2px 8px;background:none;border:1px solid #30363d;border-radius:4px;color:#8b949e;font-size:9px;cursor:pointer">↺ A–Z</button>
+            </div>
+            <div id="plSettingBrandList" style="max-height:160px;overflow-y:auto"></div>
+            <div style="font-size:9px;color:#2a4a6a;margin-top:4px">拖动排序 · 影响展示和打印顺序</div>
+          </div>
         </div>
         <div id="plNewEditBar" style="display:none;margin-top:8px;align-items:center;gap:8px">
           <button onclick="openPLForm(null)" style="padding:5px 14px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ New Entry</button>
@@ -3524,7 +3534,6 @@ async function plToggleSettings(){
   var btn=ge('plSettingsBtn');
   if(btn){btn.style.background=open?'#0d1e35':'none';btn.style.color=open?'#58a6ff':'#8b949e';btn.style.borderColor=open?'#1f6feb':'#30363d';}
   if(open){
-    // Load current values
     try{
       var rows=await sbGet('app_config','key=in.(pl_min_instalment,used_default_pa)&select=key,value');
       (rows||[]).forEach(function(r){
@@ -3532,7 +3541,46 @@ async function plToggleSettings(){
         if(r.key==='used_default_pa'){var el=ge('plSettingUsedPa');if(el)el.value=r.value||'';}
       });
     }catch(e){}
+    plRenderSettingsBrandOrder();
   }
+}
+
+function plRenderSettingsBrandOrder(){
+  // Sync PL_BRAND with _plData brands
+  var present=[...new Set(_plData.map(function(e){return e.brand;}).filter(Boolean))];
+  PL_BRAND.order=PL_BRAND.order.filter(function(b){return present.indexOf(b)>=0;});
+  present.filter(function(b){return PL_BRAND.order.indexOf(b)<0;}).sort().forEach(function(b){PL_BRAND.order.push(b);});
+
+  var wrap=ge('plSettingBrandList');if(!wrap)return;
+  wrap.innerHTML='';
+  var dragIdx=null;
+  PL_BRAND.order.forEach(function(brand,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:5px;background:#161b22;margin-bottom:3px;cursor:grab;user-select:none;font-size:11px;color:#c9d1d9';
+    row.draggable=true;
+    row.innerHTML='<span style="color:#2a4a6a;font-size:12px">⠿</span><span style="flex:1">'+brand+'</span><span style="font-size:9px;color:#2a4a6a">#'+(i+1)+'</span>';
+    row.addEventListener('dragstart',function(){dragIdx=i;row.style.opacity='.4';});
+    row.addEventListener('dragend',function(){row.style.opacity='1';plRenderSettingsBrandOrder();});
+    row.addEventListener('dragover',function(e){e.preventDefault();row.style.background='#1e2d45';});
+    row.addEventListener('dragleave',function(){row.style.background='#161b22';});
+    row.addEventListener('drop',function(e){
+      e.preventDefault();row.style.background='#161b22';
+      if(dragIdx===null||dragIdx===i)return;
+      var moved=PL_BRAND.order.splice(dragIdx,1)[0];
+      PL_BRAND.order.splice(i,0,moved);
+      dragIdx=null;
+      plSaveBrandOrder();
+      plRenderSettingsBrandOrder();
+    });
+    wrap.appendChild(row);
+  });
+}
+
+function plResetBrandOrder(){
+  var present=[...new Set(_plData.map(function(e){return e.brand;}).filter(Boolean))].sort();
+  PL_BRAND.order=present;
+  plSaveBrandOrder();
+  plRenderSettingsBrandOrder();
 }
 
 async function plSaveSetting(key,inputId){
@@ -3856,10 +3904,18 @@ function plPrintSelected(){
   var seen={};var brands=[];
   entries.forEach(function(e){var b=e.brand||'';if(!seen[b]){seen[b]=[];brands.push(b);}seen[b].push(e);});
 
-  // Empty cell with fixed min-height so row 3 never collapses
-  var emptyCell='<td style="min-height:24px;height:24px">&nbsp;</td>';
+  // Sort brands by PL_BRAND order; unordered brands go at end alphabetically
+  if(window.PL_BRAND&&PL_BRAND.order&&PL_BRAND.order.length){
+    brands.sort(function(a,b){
+      var ai=PL_BRAND.order.indexOf(a),bi=PL_BRAND.order.indexOf(b);
+      if(ai<0)ai=999;if(bi<0)bi=999;
+      return ai!==bi?ai-bi:a.localeCompare(b);
+    });
+  } else {
+    brands.sort();
+  }
 
-  var rows='';var idx=0;
+  var tbodies='';var idx=0;
   brands.forEach(function(brand){
     (seen[brand]||[]).forEach(function(e){
       var cash=parseFloat(e.cash)||0,hp=parseFloat(e.hp)||0,dpk=parseFloat(e.dpk)||0;
@@ -3876,13 +3932,11 @@ function plPrintSelected(){
       var shade=idx%2===0;var ra=shade?'row-a':'row-b';var rb=shade?'row-a2':'row-b2';
       var aYrs=loanyear<=5?[2,3,4,5]:[3,4,5,7];
 
-      // Kedai: plain number only
       var kCells=[2,3,4,5].map(function(yr){
         var v=(!pa||!kloan)?null:instV(kloan,pa,yr);
         return v?'<td class="inst">'+v.toLocaleString()+'</td>':'<td class="na">--</td>';
       }).join('');
 
-      // AEON: xxx (16px) 2yr (11px) — no wrap
       var aCells=aYrs.map(function(yr){
         var v=(yr>loanyear)?null:instV(aeonLoan,aeon_pa,yr);
         return v
@@ -3890,30 +3944,30 @@ function plPrintSelected(){
           :'<td style="text-align:right;white-space:nowrap;height:24px"><span style="font-size:11px;color:#ccc">'+yr+'yr</span></td>';
       }).join('');
 
-      // Row 3 td style — fixed height so empty row keeps spacing
-      var row3style='style="height:26px;vertical-align:middle"';
-
-      rows+=
-        '<tr class="'+ra+'">'
-          +'<td class="left" rowspan="3" style="white-space:normal;vertical-align:top"><b>'+esc(brand)+'</b><br>'+esc(e.model||'')+'</td>'
-          +'<td class="cash">'+rm(cash)+'</td>'
-          +'<td style="text-align:right">'+rm(dpk)+'</td>'
-          +kCells
-        +'</tr>'
-        +'<tr class="'+rb+'">'
-          +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+rm(rtax)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+rm(ins1)+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+(ins1p?rm(ins1p):'--')+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+(ins3?rm(ins3):'--')+'</td>'
-          +'<td style="text-align:right;font-size:8px">'+(inssum?rm(inssum):'--')+'</td>'
-        +'</tr>'
-        +'<tr class="'+ra+'">'
-          +(hasAeonCalc
-            ?'<td colspan="2" '+row3style+'><span style="font-size:11px;color:#888">Lowest DP </span><span style="font-size:16px;font-weight:700">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</span></td>'+aCells
-            :'<td colspan="6" '+row3style+'>&nbsp;</td>'
-          )
-        +'</tr>';
+      // Each vehicle = its own <tbody> so page-break-inside:avoid keeps 3 rows together
+      tbodies+=
+        '<tbody style="page-break-inside:avoid">'
+          +'<tr class="'+ra+'">'
+            +'<td class="left" style="white-space:normal;vertical-align:top"><b>'+esc(brand)+'</b><br>'+esc(e.model||'')+'</td>'
+            +'<td class="cash">'+rm(cash)+'</td>'
+            +'<td style="text-align:right">'+rm(dpk)+'</td>'
+            +kCells
+          +'</tr>'
+          +'<tr class="'+rb+'">'
+            +'<td style="text-align:right;font-size:8px">'+rm(hp)+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+rm(rtax)+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+rm(ins1)+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(ins1p?rm(ins1p):'--')+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(ins3?rm(ins3):'--')+'</td>'
+            +'<td style="text-align:right;font-size:8px">'+(inssum?rm(inssum):'--')+'</td>'
+          +'</tr>'
+          +'<tr class="'+ra+'">'
+            +(hasAeonCalc
+              ?'<td colspan="2" style="white-space:nowrap"><span style="font-size:11px;color:#888">Lowest DP </span><span style="font-size:16px;font-weight:700">'+(aeonDP>0?rm(aeonDP):'RM 0')+'</span></td>'+aCells
+              :'<td colspan="6" style="height:26px">&nbsp;</td>'
+            )
+          +'</tr>'
+        +'</tbody>';
       idx++;
     });
   });
@@ -3940,7 +3994,7 @@ function plPrintSelected(){
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM)</div>'
-    +'<table class="pl-pdf-table">'+colgroup+thead+'<tbody>'+rows+'</tbody></table>'
+    +'<table class="pl-pdf-table">'+colgroup+thead+tbodies+'</table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
