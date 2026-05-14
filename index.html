@@ -3997,7 +3997,7 @@ function plPrintSelected(){
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM)</div>'
-    +'<div style="border:4px double #1a1a1a;display:block;width:100%;margin-bottom:8px"><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed">'+colgroup+thead+tbodies+'</table></div>'
+    +'<div style="><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed;border:4px double #1a1a1a">'+colgroup+thead+tbodies+'</table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
@@ -4131,7 +4131,7 @@ function upPrintSelected(){
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
     +'<div style="font-size:7px;color:#888;margin-bottom:4px">Monthly instalment (RM) &middot; PA shown per vehicle</div>'
-    +'<div style="border:4px double #1a1a1a;display:block;width:100%;margin-bottom:8px"><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed">'+colgroup+thead+tbodies+'</table></div>'
+    +'<div style="><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed;border:4px double #1a1a1a">'+colgroup+thead+tbodies+'</table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet2=ge('plPdfSheet');var inner2=ge('plPdfInner');
