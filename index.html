@@ -1447,7 +1447,6 @@ body.theme-white .home-welcome{color:#555}
       <div style="display:flex;gap:8px;margin-left:auto">
         <button onclick="closeVCModal()" style="padding:6px 14px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Cancel</button>
         <button onclick="saveVC()" style="padding:6px 16px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Save</button>
-        <button id="vcSyncPLBtn" onclick="vcPushToPricelist()" style="display:none;padding:6px 16px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">↗ Push to Pricelist</button>
       </div>
     </div>
   </div>
@@ -3712,6 +3711,7 @@ async function loadPricelistModule(){
 function renderPricelistModule(){
   plSyncToolbar();
   if(_plCurrentTab==='used'){upSyncEditBar();renderUPList();}
+  else if(_plCurrentTab==='vehicle'){renderVCList();}
   else renderNewVehicleList();
 }
 
@@ -5455,8 +5455,8 @@ async function saveVC(){
   if(!brand||!model){alert('Brand and Model are required.');return;}
   var cc=parseInt(ge('vc_cc').value)||null;
   var type=ge('vc_type').value||null;
-  var rt=cc?vcRoadTax(cc):null;
-  var data={
+  var rt=cc?vcRoadTax(cc):0;
+  var catalogData={
     brand:brand,model:model,cc:cc,type:type,
     pa:parseFloat(ge('vc_pa').value)||0,
     aeon_pa:parseFloat(ge('vc_aeon_pa').value)||0,
@@ -5476,22 +5476,88 @@ async function saveVC(){
   var id=ge('vc_id').value;
   try{
     var savedId=id;
-    if(id){await sbPatch('vehicle_catalog',{id:id},data);}
-    else{
-      var res=await fetch(SB_URL+'/rest/v1/vehicle_catalog',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(data)});
+    if(id){
+      await sbPatch('vehicle_catalog',{id:id},catalogData);
+    } else {
+      var res=await fetch(SB_URL+'/rest/v1/vehicle_catalog',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(catalogData)});
       var arr=await res.json();
       if(arr&&arr[0])savedId=arr[0].id;
     }
-    // Save variants
+    // Save variants to vehicle_variants AND sync to pricelist
+    var active=_vcVariants.filter(function(v){return v.is_active;});
     for(var i=0;i<_vcVariants.length;i++){
       var v=_vcVariants[i];
-      var vdata={catalog_id:savedId,variant_type:v.variant_type,suffix:v.suffix,cash:v.cash,hp:v.hp,dp:v.dp,is_active:v.is_active};
-      if(v.id)await sbPatch('vehicle_variants',{id:v.id},vdata);
-      else await sbPost('vehicle_variants',vdata);
+      var vdata={catalog_id:savedId,variant_type:v.variant_type,suffix:v.suffix,
+        cash:v.cash,hp:v.hp,dp:v.dp,is_active:v.is_active};
+      if(v.id){
+        await sbPatch('vehicle_variants',{id:v.id},vdata);
+      } else {
+        var vr=await fetch(SB_URL+'/rest/v1/vehicle_variants',{method:'POST',
+          headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(vdata)});
+        var va=await vr.json();
+        if(va&&va[0])v.id=va[0].id;
+      }
+      // Auto-sync to pricelist if variant is active
+      if(v.is_active){
+        var isSingleStd=active.length===1&&(v.variant_type==='standard'||!v.variant_type);
+        var rawSfx=(v.suffix||'').trim();
+        var sfx=isSingleStd?'':rawSfx;
+        var fmtSfx=sfx.replace(/^(SE|LE|STD|LT)(\s+PROMO)?$/i,function(m,t,p){return '('+t.toUpperCase()+')'+(p?' PROMO':'');}).replace(/^PROMO$/i,'PROMO');
+        var modelName=model+(fmtSfx?' '+fmtSfx:'');
+        var plData={
+          brand:brand,model:modelName,
+          cash:parseFloat(v.cash)||null,hp:parseFloat(v.hp)||null,dpk:parseFloat(v.dp)||null,
+          pa:catalogData.pa,aeon_pa:catalogData.aeon_pa,loanyear:catalogData.loanyear,
+          rtax:rt,hand:catalogData.handling,
+          ins1:catalogData.ins1,ins1p:catalogData.ins1p,ins3:catalogData.ins3,inssum:catalogData.inssum,
+          other:catalogData.other,
+          catalog_id:parseInt(savedId),variant_id:v.id?parseInt(v.id):null,
+          auto_rtax:true,auto_hand:true,is_deleted:false
+        };
+        if(v.pricelist_id){
+          await fetch(SB_URL+'/rest/v1/pricelist?id=eq.'+v.pricelist_id,{method:'PATCH',
+            headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
+        } else {
+          var pr=await fetch(SB_URL+'/rest/v1/pricelist',{method:'POST',
+            headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
+          var pa=await pr.json();
+          if(pr.ok&&pa&&pa[0]){
+            v.pricelist_id=pa[0].id;
+            if(v.id)await sbPatch('vehicle_variants',{id:v.id},{pricelist_id:pa[0].id});
+          }
+        }
+      } else if(v.pricelist_id){
+        // Inactive variant → soft-delete its pricelist entry
+        await sbPatch('pricelist',{id:v.pricelist_id},{is_deleted:true});
+      }
     }
-    closeVCModal();await loadVCData();
-  }catch(e){alert('Save failed.');}
+    // Refresh pricelist cache
+    var rows=await sbGet('pricelist','order=brand.asc,model.asc');
+    _plData=(rows||[]).filter(function(x){return !x.is_deleted;});
+    closeVCModal();
+    await loadVCData();
+  }catch(e){alert('Save failed: '+e.message);}
 }
+  var cc=parseInt(ge('vc_cc').value)||null;
+  var type=ge('vc_type').value||null;
+  var rt=cc?vcRoadTax(cc):null;
+  var data={
+    brand:brand,model:model,cc:cc,type:type,
+    pa:parseFloat(ge('vc_pa').value)||0,
+    aeon_pa:parseFloat(ge('vc_aeon_pa').value)||0,
+    loanyear:parseInt(ge('vc_loanyear').value)||5,
+    handling:parseFloat(ge('vc_handling').value)||450,
+    handling_override:_vcHandlingEdited,
+    ins1:parseFloat(ge('vc_ins1').value)||0,
+    ins1p:parseFloat(ge('vc_ins1p').value)||0,
+    ins3:parseFloat(ge('vc_ins3').value)||0,
+    inssum:parseFloat(ge('vc_inssum').value)||0,
+    other:parseFloat(ge('vc_other')&&ge('vc_other').value)||0,
+    stock_qty:parseInt(ge('vc_stock').value)||0,
+    colors:ge('vc_colors').value||null,
+    features:ge('vc_features').value||null,
+    description:ge('vc_desc').value||null
+  };
 
 async function deleteVC(){
   var id=ge('vc_id').value;if(!id)return;
