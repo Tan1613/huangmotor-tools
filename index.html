@@ -1339,7 +1339,6 @@ body.theme-white .home-welcome{color:#555}
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <div id="vcSummary" style="font-size:10px;color:#4a6fa5"></div>
-    <button id="vcUpdateBtn" onclick="vcUpdateSpecsFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #2a3a1e;border-radius:5px;color:#3fb950;font-size:10px;cursor:pointer">↻ Update Specs</button>
     <button id="vcLogBtn" onclick="vcToggleLog()" style="display:none;padding:4px 12px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">📋 Log</button>
     <button id="vcAuditBtn" onclick="vcToggleAudit()" style="padding:4px 12px;background:none;border:1px solid #2a1a3a;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">🔍 Audit</button>
   </div>
@@ -3676,6 +3675,12 @@ var _plLogData=[];
 /* ── Load ── */
 function switchPLTab(tab){
   _plCurrentTab=tab;
+  // Exit print mode on tab switch (keep selections)
+  if(_plPrintMode){_plPrintMode=false;
+    var _ps=ge('plPrintSelBtn');if(_ps)_ps.style.display='none';
+    var _pb=ge('plPrintModeBtn');if(_pb){_pb.style.background='none';_pb.style.color='#8b949e';_pb.style.borderColor='#30363d';}}
+  if(_upPrintMode){_upPrintMode=false;
+    var _ub=ge('upPrintModeBtn');if(_ub){_ub.style.background='none';_ub.style.color='#8b949e';_ub.style.borderColor='#30363d';}}
   var act='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
   var inact='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
   if(ge('plTabNew'))ge('plTabNew').style.cssText=tab==='new'?act:inact;
@@ -3955,7 +3960,6 @@ function plSyncToolbar(){
   var mh=ge('plNVManagedHint');if(mh)mh.style.display=(_plCurrentTab==='new'&&_editMode)?'block':'none';
   // Vehicle Mgmt buttons
   var isAdmin2=canEdit&&currentUser.role==='admin';
-  var ub2=ge('vcUpdateBtn');if(ub2)ub2.style.display=isAdmin2?'inline-block':'none';
   var ab2=ge('vcAddBtn');if(ab2)ab2.style.display=canEdit?'inline-block':'none';
   var lb2=ge('vcLogBtn');if(lb2)lb2.style.display=canEdit?'inline-block':'none';
   var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
@@ -4424,7 +4428,7 @@ async function plToggleLog(){
   var btn=ge('plLogBtn');
   if(btn){btn.style.background=_plLogOpen?'#0d1e35':'none';btn.style.color=_plLogOpen?'#58a6ff':'#8b949e';btn.style.borderColor=_plLogOpen?'#1f6feb':'#30363d';}
   if(_plLogOpen){
-    var rows=await sbGet('pricelist_log','order=created_at.desc&limit=100');
+    var rows=await sbGet('pricelist_log','order=created_at.desc&limit=200&select=*');
     _plLogData=rows||[];
   }
   renderNewVehicleList();
@@ -5260,7 +5264,6 @@ async function loadVCData(){
   if(wrap)wrap.innerHTML='<div style="padding:2rem;text-align:center;color:#4a6fa5;font-size:12px">Loading...</div>';
   var rows=await sbGet('vehicle_catalog','order=brand.asc,model.asc');
   _vcData=rows||[];
-  var ub=ge('vcUpdateBtn');
   var vlb=ge('vcLogBtn');
   var isAdmin=_editMode&&currentUser&&currentUser.role==='admin';
   if(ub)ub.style.display=isAdmin?'inline-block':'none';
@@ -5834,7 +5837,7 @@ async function vcFixUnlinked(){
 
 async function vcUpdateSpecsFromPricelist(){
   if(!confirm('直接把 Pricelist 数据复制到 Vehicle Mgmt?\n\n每条 Catalog 找同名 Pricelist 记录 → 复制规格 + 建一个 Standard 变体\n已有变体不重复创建\n\nProceed?'))return;
-  var btn=ge('vcUpdateBtn');if(btn){btn.textContent='Copying...';btn.disabled=true;}
+  var btn=null;
 
   var rows=await sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc');
   if(!rows||!rows.length){if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}alert('No pricelist data.');return;}
@@ -5892,7 +5895,7 @@ async function vcUpdateSpecsFromPricelist(){
     }
   }
 
-  if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}
+
   await loadVCData();
   alert('✓ Done!\n\nSpecs updated: '+updated+'\nVariants created: '+varCreated+'\nSkipped (no match / already exist): '+skipped+(errors?'\nErrors: '+errors:''));
 }
@@ -5913,7 +5916,7 @@ async function vcLoadLog(){
     var bef=r.before||{};var aft=r.after||{};
     var name=esc(((aft.brand||bef.brand||'')+' '+(aft.model||bef.model||r.entry_id||'')).trim());
     var diffs=[];
-    ['cash','hp','dpk','pa','aeon_pa','loanyear','hand','rtax','ins1','inssum','other'].forEach(function(k){
+    ['brand','model','cash','hp','dpk','pa','aeon_pa','loanyear','hand','rtax','ins1','ins1p','ins3','inssum','other','stock_qty','type','cc'].forEach(function(k){
       if(aft[k]!==undefined&&bef[k]!==undefined&&String(aft[k])!==String(bef[k]))
         diffs.push('<span style="color:#4a6fa5">'+k+'</span> <span style="color:#e24b4a">'+bef[k]+'</span>→<span style="color:#3fb950">'+aft[k]+'</span>');
     });
