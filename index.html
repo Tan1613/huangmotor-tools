@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1320,10 +1321,13 @@ body.theme-white .home-welcome{color:#555}
     </div><!-- /plPanelUsed -->
 <!-- Vehicle Management Panel -->
 <div id="plPanelVehicle" style="display:none">
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-    <input id="vcSearch" type="text" placeholder="Search brand / model..." oninput="renderVCList()"
-      style="flex:1;min-width:200px;padding:7px 12px;background:#0d1117;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:12px;outline:none">
-    <select id="vcFilterType" onchange="renderVCList()" style="padding:6px 10px;background:#0d1117;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:11px;outline:none">
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <input id="vcSearch" type="text" placeholder="🔍 Brand / model / CC..." oninput="renderVCList()"
+      style="flex:1;min-width:160px;padding:6px 10px;background:#0d1117;border:1px solid #21262d;border-radius:7px;color:#c9d1d9;font-size:11px;outline:none">
+    <select id="vcFilterBrand" onchange="renderVCList()" style="padding:5px 8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:11px;outline:none">
+      <option value="">All brands</option>
+    </select>
+    <select id="vcFilterType" onchange="renderVCList()" style="padding:5px 8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:11px;outline:none">
       <option value="">All types</option>
       <option value="moped">Moped</option>
       <option value="scooter">Scooter</option>
@@ -1332,6 +1336,16 @@ body.theme-white .home-welcome{color:#555}
       <option value="big_bike">Big Bike</option>
       <option value="super_bike">Super Bike</option>
     </select>
+    <select id="vcFilterStock" onchange="renderVCList()" style="padding:5px 8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:11px;outline:none">
+      <option value="">All stock</option>
+      <option value="instock">In stock</option>
+      <option value="nostock">No stock</option>
+    </select>
+    <select id="vcFilterVariant" onchange="renderVCList()" style="padding:5px 8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:11px;outline:none">
+      <option value="">All variants</option>
+      <option value="linked">Has variants</option>
+      <option value="novariant">No variants</option>
+    </select>
     <button id="vcAddBtn" onclick="openVCModal(null)" style="display:none;padding:6px 14px;background:#238636;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ Add Vehicle</button>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1339,7 +1353,6 @@ body.theme-white .home-welcome{color:#555}
     <button id="vcUpdateBtn" onclick="vcUpdateSpecsFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #2a3a1e;border-radius:5px;color:#3fb950;font-size:10px;cursor:pointer">↻ Update Specs</button>
     <button id="vcLogBtn" onclick="vcToggleLog()" style="display:none;padding:4px 12px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">📋 Log</button>
     <button id="vcAuditBtn" onclick="vcToggleAudit()" style="padding:4px 12px;background:none;border:1px solid #2a1a3a;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">🔍 Audit</button>
-    <button id="vcClearBtn" onclick="vcClearOldPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">🗑 Clear Old PL</button>
   </div>
   <div id="vcList"></div>
   <div id="vcLogPanel" style="display:none;margin-top:12px"></div>
@@ -1449,6 +1462,27 @@ body.theme-white .home-welcome{color:#555}
         <button onclick="saveVC()" style="padding:6px 16px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Save</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Vehicle Mgmt Log Modal -->
+<div id="vcLogModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:9100;overflow:auto">
+  <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;max-width:700px;margin:30px auto;display:flex;flex-direction:column;max-height:calc(100vh - 60px)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #21262d;flex-shrink:0">
+      <span style="font-size:13px;font-weight:700;color:#c9d1d9">📋 Change Log</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="vcLogSearch" type="text" placeholder="Search..." oninput="vcFilterLog()" style="padding:4px 10px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;width:140px">
+        <select id="vcLogAction" onchange="vcFilterLog()" style="padding:4px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">
+          <option value="">All actions</option>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+          <option value="restore">Restore</option>
+        </select>
+        <button onclick="ge('vcLogModal').style.display='none'" style="background:none;border:none;color:#8b949e;font-size:16px;cursor:pointer">✕</button>
+      </div>
+    </div>
+    <div id="vcLogModalBody" style="overflow-y:auto;flex:1;padding:0;min-height:200px"></div>
   </div>
 </div>
 
@@ -3688,6 +3722,12 @@ async function loadPricelistModule(){
   if(ge('plPanelNew'))ge('plPanelNew').style.display='block';
   if(ge('plPanelUsed'))ge('plPanelUsed').style.display='none';
   if(ge('plPanelVehicle'))ge('plPanelVehicle').style.display='none';
+  var _act='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
+  var _inact='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
+  if(ge('plTabNew'))ge('plTabNew').style.cssText=_act;
+  if(ge('plTabUsed'))ge('plTabUsed').style.cssText=_inact;
+  if(ge('plTabVehicle'))ge('plTabVehicle').style.cssText=_inact;
+  if(ge('plPanelVehicle'))ge('plPanelVehicle').style.display='none';
   // Reset tab styles
   var act='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
   var inact='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
@@ -3930,6 +3970,10 @@ function plSyncToolbar(){
   var eb=ge('plNewEditBar');if(eb)eb.style.display='none'; // Managed from Vehicle Mgmt
   // Show managed hint for NV tab
   var mh=ge('plNVManagedHint');if(mh)mh.style.display=(_plCurrentTab==='new'&&_editMode)?'block':'none';
+  var _isAdminVC=canEdit&&currentUser&&currentUser.role==='admin';
+  var _ub2=ge('vcUpdateBtn');if(_ub2)_ub2.style.display=_isAdminVC?'inline-block':'none';
+  var _ab2=ge('vcAddBtn');if(_ab2)_ab2.style.display=canEdit?'inline-block':'none';
+  var _lb2=ge('vcLogBtn');if(_lb2)_lb2.style.display=canEdit?'inline-block':'none';
   // Vehicle Mgmt buttons
   var isAdmin2=canEdit&&currentUser.role==='admin';
   var ub2=ge('vcUpdateBtn');if(ub2)ub2.style.display=isAdmin2?'inline-block':'none';
@@ -3938,7 +3982,7 @@ function plSyncToolbar(){
   var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
   var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'':'none';
   var lb=ge('plLogBtn');if(lb)lb.style.display='none'; // Log moved to Vehicle Mgmt
-  var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'inline-block':'none';
+  var tb=ge('plTrashBtn');if(tb)tb.style.display=(_plCurrentTab==='used'&&canEdit)?'inline-block':'none';
   var vab=ge('vcAddBtn');if(vab)vab.style.display=canEdit?'inline-block':'none';
   var sb=ge('plSettingsBtn');if(sb)sb.style.display=(_editMode&&currentUser.role==='admin')?'':'none';
   // Print mode button state
@@ -4924,8 +4968,9 @@ async function deleteUP(id){
   if(!r||!confirm('Delete "'+( r.plate_no||'?')+' '+(r.brand||'')+' '+(r.model||'')+'"?'))return;
   await fetch(SB_URL+'/rest/v1/used_vehicles?id=eq.'+id,{method:'DELETE',headers:sbHeaders()});
   _upData=_upData.filter(function(x){return x.id!==id;});
+  _upChecked.delete(String(id));_upChecked.delete(id);
   if(_upSelectedId===id)_upSelectedId=null;
-  renderUPList();
+  upUpdatePrintBtn();renderUPList();
 }
 
 /* ══ PRICE COMPARE ══ */
@@ -5249,10 +5294,22 @@ function renderVCList(){
   var wrap=ge('vcList');if(!wrap)return;
   var q=(ge('vcSearch')&&ge('vcSearch').value||'').toLowerCase();
   var tf=ge('vcFilterType')&&ge('vcFilterType').value||'';
+  var bf=ge('vcFilterBrand')&&ge('vcFilterBrand').value||'';
+  var sf=ge('vcFilterStock')&&ge('vcFilterStock').value||'';
+  var vf=ge('vcFilterVariant')&&ge('vcFilterVariant').value||'';
   var canEdit=_editMode&&(currentUser.role==='admin'||currentUser.can_edit_pricelist);
+  // Populate brand dropdown once
+  var brandSel=ge('vcFilterBrand');
+  if(brandSel&&brandSel.options.length<=1){
+    var _brands=[...new Set(_vcData.map(function(r){return r.brand;}).filter(Boolean))].sort();
+    _brands.forEach(function(b){var o=document.createElement('option');o.value=b;o.textContent=b;brandSel.appendChild(o);});
+  }
   var list=_vcData.filter(function(r){
     if(tf&&r.type!==tf)return false;
-    if(q&&!(r.brand||'').toLowerCase().includes(q)&&!(r.model||'').toLowerCase().includes(q))return false;
+    if(bf&&(r.brand||'')!==bf)return false;
+    if(sf==='instock'&&!(parseInt(r.stock_qty)>0))return false;
+    if(sf==='nostock'&&parseInt(r.stock_qty)>0)return false;
+    if(q){var _s=((r.brand||'')+' '+(r.model||'')+(r.cc?' '+r.cc:'')).toLowerCase();if(!_s.includes(q))return false;}
     return true;
   });
   var sm=ge('vcSummary');
@@ -5267,7 +5324,7 @@ function renderVCList(){
   var brands={};
   list.forEach(function(r){var b=r.brand||'?';if(!brands[b])brands[b]=[];brands[b].push(r);});
   // Load variant counts async
-  setTimeout(vcLoadVariantCounts,100);
+  setTimeout(function(){vcLoadVariantCounts(vf);},100);
   wrap.innerHTML=Object.keys(brands).sort().map(function(brand){
     var rows=brands[brand];
     return '<div style="margin-bottom:12px">'
@@ -5687,7 +5744,7 @@ async function vcClearOldPricelist(){
 }
 
 
-async function vcLoadVariantCounts(){
+async function vcLoadVariantCounts(vf){
   // Load all variants for displayed catalog entries
   var ids=_vcData.map(function(r){return r.id;});
   if(!ids.length)return;
@@ -5707,9 +5764,13 @@ async function vcLoadVariantCounts(){
     if(!list.length){
       el.style.background='#2a0a0a';el.style.color='#e24b4a';
       el.textContent='No variants';
+      var _card=el.closest ? el.closest('div[style*="border:1px solid #21262d"]') : null;
+      if(vf==='linked'&&_card)_card.style.display='none';
     } else {
       el.style.background='#0a1a0a';el.style.color='#3fb950';
       el.textContent=active.length+' variant'+(active.length!==1?'s':'')+(linked.length?' · '+linked.length+' linked':'');
+      var _card2=el.closest ? el.closest('div[style*="border:1px solid #21262d"]') : null;
+      if(vf==='novariant'&&_card2)_card2.style.display='none';
     }
   });
 }
@@ -5864,31 +5925,46 @@ async function vcUpdateSpecsFromPricelist(){
   alert('✓ Done!\n\nSpecs updated: '+updated+'\nVariants created: '+varCreated+'\nSkipped (no match / already exist): '+skipped+(errors?'\nErrors: '+errors:''));
 }
 function vcToggleLog(){
-  var panel=ge('vcLogPanel');var btn=ge('vcLogBtn');
-  if(!panel)return;
-  var open=panel.style.display==='none';
-  panel.style.display=open?'block':'none';
-  if(btn){btn.style.background=open?'#0d1e35':'none';btn.style.color=open?'#58a6ff':'#8b949e';}
-  if(open)vcLoadLog();
+  ge('vcLogModal').style.display='block';
+  vcLoadLog();
 }
 
 async function vcLoadLog(){
-  var panel=ge('vcLogPanel');if(!panel)return;
-  panel.innerHTML='<div style="font-size:10px;color:#4a6fa5;padding:8px">Loading...</div>';
-  var rows=await sbGet('pricelist_log','order=created_at.desc&limit=50');
-  if(!rows||!rows.length){panel.innerHTML='<div style="font-size:10px;color:#2a4a6a;padding:8px">No log entries.</div>';return;}
-  panel.innerHTML='<div style="font-size:10px;color:#4a6fa5;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Recent Changes</div>'
-    +rows.map(function(r){
-      var d=new Date(r.created_at);
-      var ds=d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
-      var after=r.after||{};
-      return '<div style="padding:6px 8px;background:#0d1117;border:1px solid #21262d;border-radius:6px;margin-bottom:4px;font-size:10px">'
-        +'<span style="color:'+(r.action==='create'?'#3fb950':r.action==='delete'?'#e24b4a':'#58a6ff')+'">'+r.action+'</span>'
-        +' <span style="color:#c9d1d9">'+esc((after.brand||'')+' '+(after.model||r.entry_id||''))+'</span>'
-        +' <span style="color:#4a6fa5">by '+esc(r.operator||'—')+'</span>'
-        +' <span style="color:#2a4a6a">'+ds+'</span>'
-      +'</div>';
-    }).join('');
+  var panel=ge('vcLogModalBody');if(!panel)return;
+  panel.innerHTML='<div style="padding:2rem;text-align:center;color:#4a6fa5;font-size:12px">Loading...</div>';
+  var rows=await sbGet('pricelist_log','order=created_at.desc&limit=100');
+  if(!rows||!rows.length){panel.innerHTML='<div style="padding:2rem;text-align:center;color:#2a4a6a;font-size:11px">No log entries.</div>';return;}
+  var ac={create:'#3fb950',delete:'#e24b4a',update:'#58a6ff',restore:'#f0883e'};
+  panel.innerHTML=rows.map(function(r){
+    var d=new Date(r.created_at);
+    var ds=d.getDate().toString().padStart(2,'0')+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+    var bef=r.before||{};var aft=r.after||{};
+    var name=esc(((aft.brand||bef.brand||'')+' '+(aft.model||bef.model||r.entry_id||'')).trim());
+    var diffs=[];
+    ['cash','hp','dpk','pa','aeon_pa','loanyear','hand','rtax','ins1','inssum','other'].forEach(function(k){
+      if(aft[k]!==undefined&&bef[k]!==undefined&&String(aft[k])!==String(bef[k])){
+        diffs.push(k+': <span style="color:#e24b4a">'+bef[k]+'</span>→<span style="color:#3fb950">'+aft[k]+'</span>');
+      }
+    });
+    return '<div data-action="'+(r.action||'')+'" style="padding:8px 12px;border-bottom:1px solid #161b22">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        +'<span style="padding:1px 7px;border-radius:8px;border:1px solid '+(ac[r.action]||'#30363d')+';color:'+(ac[r.action]||'#8b949e')+';font-size:9px">'+esc(r.action||'?')+'</span>'
+        +'<span style="color:#c9d1d9;font-weight:600;font-size:11px">'+name+'</span>'
+        +'<span style="color:#4a6fa5;margin-left:auto;font-size:10px;white-space:nowrap">'+esc(r.operator||'—')+' · '+ds+'</span>'
+      +'</div>'
+      +(diffs.length?'<div style="font-size:10px;color:#8b949e;margin-top:3px;padding-left:4px">'+diffs.join(' &nbsp; ')+'</div>':'')
+    +'</div>';
+  }).join('');
+}
+
+function vcFilterLog(){
+  var q=(ge('vcLogSearch')&&ge('vcLogSearch').value||'').toLowerCase();
+  var action=ge('vcLogAction')&&ge('vcLogAction').value||'';
+  var body=ge('vcLogModalBody');if(!body)return;
+  body.querySelectorAll('[data-action]').forEach(function(r){
+    var hide=(action&&r.dataset.action!==action)||(q&&!r.textContent.toLowerCase().includes(q));
+    r.style.display=hide?'none':'';
+  });
 }
 
 async function vcSyncFromPricelist(){
