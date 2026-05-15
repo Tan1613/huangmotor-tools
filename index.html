@@ -1341,45 +1341,105 @@ body.theme-white .home-welcome{color:#555}
 </div>
 
 <!-- Vehicle Catalog Modal -->
-<div id="vcModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9000;overflow:auto">
-  <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;max-width:560px;margin:40px auto;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div id="vcModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:9000;overflow:auto">
+  <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;max-width:680px;margin:30px auto;padding:0">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #21262d">
       <span id="vcModalTitle" style="font-size:13px;font-weight:700;color:#c9d1d9">Add Vehicle</span>
       <button onclick="closeVCModal()" style="background:none;border:none;color:#8b949e;font-size:16px;cursor:pointer">✕</button>
     </div>
-    <input type="hidden" id="vc_id">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Brand *</label>
-        <input id="vc_brand" type="text" placeholder="e.g. YAMAHA" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
-      <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Model *</label>
-        <input id="vc_model" type="text" placeholder="e.g. Y15ZR" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
-      <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">CC</label>
-        <input id="vc_cc" type="number" placeholder="e.g. 155" oninput="vcAutoFill()" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
-      <div>
-        <label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Body Style</label>
-        <div style="display:flex;gap:6px">
-          <button type="button" id="vcBsScooter" onclick="vcSetBodyStyle('scooter')" style="flex:1;padding:5px;border:1px solid #30363d;border-radius:5px;background:none;color:#8b949e;font-size:11px;cursor:pointer">🛵 Scooter</button>
-          <button type="button" id="vcBsBike" onclick="vcSetBodyStyle('bike')" style="flex:1;padding:5px;border:1px solid #30363d;border-radius:5px;background:none;color:#8b949e;font-size:11px;cursor:pointer">🏍 Bike</button>
-        </div>
-        <div id="vcTypeResult" style="margin-top:4px;font-size:10px;color:#3fb950"></div>
-        <input type="hidden" id="vc_type">
-      </div>
-      <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Road Tax <span style="color:#2a4a6a">(auto)</span></label>
-        <div id="vcRoadTax" style="padding:6px 8px;background:#0a0f1a;border:1px solid #1e2d45;border-radius:5px;color:#3fb950;font-size:11px;min-height:28px">—</div></div>
-      <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Stock Qty</label>
-        <input id="vc_stock" type="number" value="0" min="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid #21262d">
+      <button id="vcMTabSpec" onclick="vcMTab('spec')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:11px;cursor:pointer">📋 Specs</button>
+      <button id="vcMTabVar" onclick="vcMTab('var')" style="padding:10px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:11px;cursor:pointer">🏷 Variants & Pricing</button>
     </div>
-    <div style="margin-top:8px"><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Colors <span style="color:#2a4a6a">comma separated</span></label>
-      <input id="vc_colors" type="text" placeholder="e.g. Red, Blue, Matte Black" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
-    <div style="margin-top:8px"><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Key Features <span style="color:#2a4a6a">comma separated</span></label>
-      <input id="vc_features" type="text" placeholder="e.g. LED Headlamp, ABS, Smart Key" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
-    <div style="margin-top:8px"><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Description</label>
-      <textarea id="vc_desc" rows="3" placeholder="Short product description..." style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;resize:vertical;box-sizing:border-box"></textarea></div>
-    <div style="display:flex;justify-content:space-between;margin-top:14px">
+    <input type="hidden" id="vc_id">
+
+    <!-- SPEC TAB -->
+    <div id="vcPaneSpec" style="padding:16px 20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Brand *</label>
+          <input id="vc_brand" type="text" placeholder="e.g. YAMAHA" oninput="this.value=this.value.toUpperCase()" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Model *</label>
+          <input id="vc_model" type="text" placeholder="e.g. Y15ZR" oninput="this.value=this.value.toUpperCase()" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">CC</label>
+          <input id="vc_cc" type="number" placeholder="e.g. 155" oninput="vcAutoFill()" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Body Style</label>
+          <div style="display:flex;gap:6px;margin-top:2px">
+            <button type="button" id="vcBsScooter" onclick="vcSetBodyStyle('scooter')" style="flex:1;padding:5px;border:1px solid #30363d;border-radius:5px;background:none;color:#8b949e;font-size:11px;cursor:pointer">🛵 Scooter</button>
+            <button type="button" id="vcBsBike" onclick="vcSetBodyStyle('bike')" style="flex:1;padding:5px;border:1px solid #30363d;border-radius:5px;background:none;color:#8b949e;font-size:11px;cursor:pointer">🏍 Bike</button>
+          </div>
+          <div id="vcTypeResult" style="margin-top:4px;font-size:10px;color:#3fb950"></div>
+          <input type="hidden" id="vc_type"></div>
+        <!-- Auto fields -->
+        <div style="background:#0a0f1a;border:1px solid #1e2d45;border-radius:6px;padding:8px">
+          <div style="font-size:9px;color:#4a6fa5;margin-bottom:4px">Road Tax <span style="color:#2a4a6a">(auto from CC)</span></div>
+          <div id="vcRoadTax" style="font-size:13px;font-weight:700;color:#3fb950">—</div>
+        </div>
+        <div style="background:#0a0f1a;border:1px solid #1e2d45;border-radius:6px;padding:8px">
+          <div style="font-size:9px;color:#4a6fa5;margin-bottom:2px">Handling <span style="color:#2a4a6a">(auto from type)</span></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="vc_handling" type="number" oninput="vcHandlingEdited()" style="width:80px;padding:4px 6px;background:#161b22;border:1px solid #21262d;border-radius:4px;color:#f0883e;font-size:12px;font-weight:700;outline:none">
+            <span id="vcHandlingAuto" style="font-size:9px;color:#2a4a6a"></span>
+          </div>
+        </div>
+      </div>
+      <!-- Loan rates -->
+      <div style="margin-top:10px;font-size:10px;color:#4a6fa5;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Loan Rates</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Kedai PA %</label>
+          <input id="vc_pa" type="number" step="0.1" placeholder="e.g. 3.5" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">AEON PA % <span style="color:#2a4a6a">0=off</span></label>
+          <input id="vc_aeon_pa" type="number" step="0.1" placeholder="0 = no AEON" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Max Loan Year</label>
+          <select id="vc_loanyear" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box">
+            <option value="5" selected>5yr (Moped)</option>
+            <option value="7">7yr (Big Bike)</option>
+          </select></div>
+      </div>
+      <!-- Insurance -->
+      <div style="margin-top:10px;font-size:10px;color:#4a6fa5;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Insurance & Fees</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Ins 1st</label>
+          <input id="vc_ins1" type="number" step="0.01" placeholder="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Ins 1st+</label>
+          <input id="vc_ins1p" type="number" step="0.01" placeholder="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Ins 3rd</label>
+          <input id="vc_ins3" type="number" step="0.01" placeholder="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Ins SUM</label>
+          <input id="vc_inssum" type="number" step="0.01" placeholder="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+      </div>
+      <!-- Other info -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Stock Qty</label>
+          <input id="vc_stock" type="number" value="0" min="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Colors</label>
+          <input id="vc_colors" type="text" placeholder="Red, Blue, White" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+      </div>
+      <div style="margin-top:8px"><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Key Features</label>
+        <input id="vc_features" type="text" placeholder="LED Headlamp, ABS, Smart Key" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
+      <div style="margin-top:8px"><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Description</label>
+        <textarea id="vc_desc" rows="2" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;resize:vertical;box-sizing:border-box"></textarea></div>
+    </div>
+
+    <!-- VARIANT TAB -->
+    <div id="vcPaneVar" style="display:none;padding:16px 20px">
+      <div style="font-size:10px;color:#4a6fa5;margin-bottom:10px">每款车型可以有多个变体，每个变体会自动同步到 New Vehicle Pricelist</div>
+      <div id="vcVarList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button onclick="vcAddVariant()" style="width:100%;margin-top:10px;padding:7px;background:none;border:1px dashed #21262d;border-radius:6px;color:#4a6fa5;font-size:11px;cursor:pointer">+ Add Variant</button>
+      <div style="margin-top:12px;padding:10px;background:#0a0f1a;border-radius:6px;font-size:10px;color:#2a4a6a">
+        💡 如果只有一个变体，建议勾选 Standard (STD) 后缀<br>
+        多个变体时，每个变体会以后缀区分，例如: Y15ZR (STD)、Y15ZR (SE)、Y15ZR PROMO
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid #21262d">
       <button id="vcDeleteBtn" onclick="deleteVC()" style="display:none;padding:6px 14px;background:none;border:1px solid #e24b4a;border-radius:6px;color:#e24b4a;font-size:11px;cursor:pointer">Delete</button>
       <div style="display:flex;gap:8px;margin-left:auto">
         <button onclick="closeVCModal()" style="padding:6px 14px;background:none;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;cursor:pointer">Cancel</button>
         <button onclick="saveVC()" style="padding:6px 16px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">Save</button>
+        <button id="vcSyncPLBtn" onclick="vcPushToPricelist()" style="display:none;padding:6px 16px;background:#238636;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">↗ Push to Pricelist</button>
       </div>
     </div>
   </div>
@@ -5196,6 +5256,23 @@ function renderVCList(){
 }
 
 var _vcBodyStyle='';
+var _vcHandlingEdited=false;
+var _vcVariants=[]; // working copy for modal
+
+function vcMTab(tab){
+  ge('vcPaneSpec').style.display=tab==='spec'?'block':'none';
+  ge('vcPaneVar').style.display=tab==='var'?'block':'none';
+  var ts=ge('vcMTabSpec'),tv=ge('vcMTabVar');
+  if(ts){ts.style.borderBottomColor=tab==='spec'?'#1f6feb':'transparent';ts.style.color=tab==='spec'?'#58a6ff':'#8b949e';}
+  if(tv){tv.style.borderBottomColor=tab==='var'?'#1f6feb':'transparent';tv.style.color=tab==='var'?'#58a6ff':'#8b949e';}
+  if(tab==='var')vcRenderVariants();
+}
+
+function vcHandlingEdited(){
+  _vcHandlingEdited=true;
+  var ha=ge('vcHandlingAuto');if(ha)ha.textContent='(custom)';
+}
+
 function vcSetBodyStyle(style){
   _vcBodyStyle=style;
   var sb=ge('vcBsScooter'),bb=ge('vcBsBike');
@@ -5208,174 +5285,114 @@ function vcAutoFill(){
   var cc=parseInt(ge('vc_cc')&&ge('vc_cc').value)||0;
   var rt=vcRoadTax(cc);
   var rtEl=ge('vcRoadTax');if(rtEl)rtEl.textContent=rt?'RM '+rt:'—';
-  // Auto-determine type from cc + body style
+  // Type
   var type='';
-  if(_vcBodyStyle==='scooter'){
-    type=cc>200?'maxi_scooter':'scooter';
-  } else if(_vcBodyStyle==='bike'){
+  if(_vcBodyStyle==='scooter') type=cc>200?'maxi_scooter':'scooter';
+  else if(_vcBodyStyle==='bike'){
     if(cc<=200)type='moped_bike';
     else if(cc<=500)type='big_bike';
     else type='super_bike';
   }
   var typeEl=ge('vc_type');if(typeEl)typeEl.value=type;
-  var res=ge('vcTypeResult');
-  if(res)res.textContent=type?(VC_TYPE_LABELS[type]||type)+(rt?' · Road Tax RM '+rt:''):'';
-}
-
-var _vcAIPlatform='wa';
-var _vcAIActiveTab='post';
-var _vcAIHashtags=[];
-var _vcAIVehicle=null;
-
-var VC_PLATFORM={
-  wa:{label:'WhatsApp',ratio:'9:16',ratioLabel:'9:16 (1080×1920)',desc:'Short, punchy, emoji-rich. Max 700 chars for Status.'},
-  fb:{label:'Facebook',ratio:'4:5',ratioLabel:'4:5 (1080×1350)',desc:'Engaging story format, call-to-action, price highlight. 150-300 words.'},
-  ig:{label:'Instagram',ratio:'1:1',ratioLabel:'1:1 (1080×1080) or 4:5 (1080×1350)',desc:'Visual-first, minimal text on image, hashtags in caption. 80-150 words.'}
-};
-
-function vcSetPlatform(p){
-  _vcAIPlatform=p;
-  ['wa','fb','ig'].forEach(function(k){
-    var btn=ge('vcPl'+k.charAt(0).toUpperCase()+k.slice(1).charAt(0).toUpperCase()+k.slice(2));
-    // fix: button ids are vcPlWA, vcPlFB, vcPlIG
-  });
-  var ids={wa:'vcPlWA',fb:'vcPlFB',ig:'vcPlIG'};
-  Object.keys(ids).forEach(function(k){
-    var btn=ge(ids[k]);if(!btn)return;
-    var active=k===p;
-    btn.style.borderColor=active?'#1f6feb':'#30363d';
-    btn.style.background=active?'#0d1e35':'none';
-    btn.style.color=active?'#58a6ff':'#8b949e';
-  });
-  vcRebuildPrompt();
-}
-
-function vcAITab(tab){
-  _vcAIActiveTab=tab;
-  var tp=ge('vcTabPost'),ti=ge('vcTabImg');
-  if(tp){tp.style.borderBottomColor=tab==='post'?'#1f6feb':'transparent';tp.style.color=tab==='post'?'#58a6ff':'#8b949e';}
-  if(ti){ti.style.borderBottomColor=tab==='img'?'#1f6feb':'transparent';ti.style.color=tab==='img'?'#58a6ff':'#8b949e';}
-  vcRebuildPrompt();
-}
-
-function vcAddCustomHashtag(){
-  var el=ge('vcCustomHashtag');if(!el)return;
-  var val=el.value.trim().replace(/\s+/g,'');
-  if(!val)return;
-  if(!val.startsWith('#'))val='#'+val;
-  if(!_vcAIHashtags.find(function(h){return h.tag===val;})){
-    _vcAIHashtags.push({tag:val,on:true,custom:true});
-    vcRenderHashtags();vcRebuildPrompt();
+  var res=ge('vcTypeResult');if(res)res.textContent=type?(VC_TYPE_LABELS[type]||type):'';
+  // Auto handling (if not manually edited)
+  if(!_vcHandlingEdited){
+    var autoHand=['maxi_scooter','big_bike','super_bike'].indexOf(type)>=0?700:450;
+    var hEl=ge('vc_handling');if(hEl)hEl.value=autoHand;
+    var ha=ge('vcHandlingAuto');if(ha)ha.textContent='auto';
   }
-  el.value='';
 }
 
-function vcToggleHashtag(idx){
-  if(_vcAIHashtags[idx])_vcAIHashtags[idx].on=!_vcAIHashtags[idx].on;
-  vcRenderHashtags();vcRebuildPrompt();
+// Variant helpers
+var VARIANT_TYPES=[
+  {id:'standard',label:'Standard',suffix:'STD',color:'#8b949e'},
+  {id:'promo',label:'Promo',suffix:'PROMO',color:'#3fb950'},
+  {id:'se',label:'Special Edition',suffix:'SE',color:'#d2a8ff'},
+  {id:'le',label:'Limited Edition',suffix:'LE',color:'#f0883e'},
+  {id:'custom',label:'Custom',suffix:'',color:'#58a6ff'}
+];
+
+function vcAddVariant(){
+  _vcVariants.push({id:null,variant_type:'standard',suffix:'STD',cash:'',hp:'',dp:'',cash_diff:0,hp_diff:0,dp_diff:0,is_active:true,pricelist_id:null,_new:true});
+  vcRenderVariants();
 }
 
-function vcRenderHashtags(){
-  var wrap=ge('vcHashtagBtns');if(!wrap)return;
-  wrap.innerHTML=_vcAIHashtags.map(function(h,i){
-    return '<button onclick="vcToggleHashtag('+i+')" style="padding:3px 8px;border:1px solid '+(h.on?'#1f6feb':'#30363d')+';border-radius:12px;background:'+(h.on?'#0d1e35':'none')+';color:'+(h.on?'#58a6ff':'#4a6fa5')+';font-size:10px;cursor:pointer">'
-      +esc(h.tag)+(h.custom?' ×':'')+'</button>';
+function vcRenderVariants(){
+  var wrap=ge('vcVarList');if(!wrap)return;
+  if(!_vcVariants.length){wrap.innerHTML='<div style="text-align:center;padding:1rem;color:#2a4a6a;font-size:11px">No variants yet. Click + Add Variant.</div>';return;}
+  wrap.innerHTML=_vcVariants.map(function(v,i){
+    var vt=VARIANT_TYPES.find(function(x){return x.id===v.variant_type;})||VARIANT_TYPES[0];
+    var suffixVal=v.suffix!==null&&v.suffix!==undefined?v.suffix:vt.suffix;
+    return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;position:relative">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">'
+        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Type</label>'
+          +'<select onchange="vcVariantType('+i+',this.value)" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">'
+          +VARIANT_TYPES.map(function(t){return '<option value="'+t.id+'"'+(v.variant_type===t.id?' selected':'')+' style="color:'+t.color+'">'+t.label+'</option>';}).join('')
+          +'</select></div>'
+        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Suffix <span style="color:#2a4a6a">after model name</span></label>'
+          +'<input type="text" value="'+esc(suffixVal)+'" onchange="vcVariantSuffix('+i+',this.value)" placeholder="e.g. STD" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:'+vt.color+';font-size:11px;font-weight:700;outline:none;box-sizing:border-box"></div>'
+        +'<div style="display:flex;gap:4px">'
+          +'<button onclick="vcVariantToggle('+i+')" style="padding:5px 8px;border:1px solid '+(v.is_active?'#238636':'#30363d')+';border-radius:5px;background:none;color:'+(v.is_active?'#3fb950':'#8b949e')+';font-size:10px;cursor:pointer">'+(v.is_active?'✓ Active':'○ Off')+'</button>'
+          +'<button onclick="vcVariantRemove('+i+')" style="padding:5px 8px;border:1px solid #3a1a1a;border-radius:5px;background:none;color:#e24b4a;font-size:10px;cursor:pointer">✕</button>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">'
+        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Cash Price</label>'
+          +'<input type="number" value="'+(v.cash||'')+'" data-vi="'+i+'" data-f="cash" onchange="vcVF(this)" placeholder="RM" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'
+        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">HP (Loan)</label>'
+          +'<input type="number" value="'+(v.hp||'')+'" data-vi="'+i+'" data-f="hp" onchange="vcVF(this)" placeholder="RM" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'
+        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Down Payment</label>'
+          +'<input type="number" value="'+(v.dp||'')+'" data-vi="'+i+'" data-f="dp" onchange="vcVF(this)" placeholder="RM" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'+(v.pricelist_id?'<div style="font-size:9px;color:#2a4a6a;margin-top:6px">Linked to Pricelist #'+v.pricelist_id+'</div>':'')
+    +'</div>';
   }).join('');
 }
 
-function vcBuildHashtagStr(){
-  return _vcAIHashtags.filter(function(h){return h.on;}).map(function(h){return h.tag;}).join(' ');
-}
-
-function vcRebuildPrompt(){
-  if(!_vcAIVehicle)return;
-  var r=_vcAIVehicle;
-  var rt=vcRoadTax(r.cc);
-  var typeLabel=VC_TYPE_LABELS[r.type]||r.type||'';
-  var colors=(r.colors||'').split(',').map(function(c){return c.trim();}).filter(Boolean);
-  var features=(r.features||'').split(',').map(function(f){return f.trim();}).filter(Boolean);
-  var pl=_plData.find(function(p){return (p.brand||'').toUpperCase()===(r.brand||'').toUpperCase()&&(p.model||'').toUpperCase()===(r.model||'').toUpperCase();});
-  var cashStr=pl?'RM '+Math.round(parseFloat(pl.cash)).toLocaleString():'';
-  var hpStr=pl?'RM '+Math.round(parseFloat(pl.hp)).toLocaleString():'';
-  var plat=VC_PLATFORM[_vcAIPlatform];
-  var htags=vcBuildHashtagStr();
-  var hint=ge('vcAIImgHint');
-  if(hint)hint.textContent=_vcAIActiveTab==='post'?'Platform: '+plat.label+' · Image ratio: '+plat.ratioLabel:'Image generation prompt for Midjourney / DALL-E 3 · Ratio: '+plat.ratioLabel;
-
-  var prompt='';
-  if(_vcAIActiveTab==='post'){
-    prompt='You are a motorcycle dealer social media content writer for HuangMotor M Sdn Bhd, Penang.\n'
-      +'Write a '+plat.label+' post. '+plat.desc+'\n\n'
-      +'=== VEHICLE ===\n'
-      +'Brand: '+r.brand+'\nModel: '+r.model+'\n'
-      +(r.cc?'Engine: '+r.cc+'cc\n':'')
-      +(typeLabel?'Type: '+typeLabel+'\n':'')
-      +(colors.length?'Colors: '+colors.join(', ')+'\n':'')
-      +(rt?'Road Tax: RM '+rt+'/yr\n':'')
-      +(cashStr?'Cash Price: '+cashStr+'\n':'')
-      +(hpStr?'HP (Loan): '+hpStr+'\n':'')
-      +(features.length?'\nFeatures:\n'+features.map(function(f){return '- '+f;}).join('\n')+'\n':'')
-      +(r.description?'\nDescription: '+r.description+'\n':'')
-      +'\n=== FORMAT ===\n'
-      +'- Bilingual (Bahasa Malaysia + English)\n'
-      +'- Enthusiastic, friendly tone with relevant emojis\n'
-      +'- Include call to action: WhatsApp / visit HuangMotor\n'
-      +'- Image ratio recommendation: '+plat.ratioLabel+'\n'
-      +(htags?'- End with these hashtags: '+htags+'\n':'')
-      +'- Dealer: HuangMotor M Sdn Bhd, Kepala Batas, Penang\n';
-  } else {
-    // Image prompt
-    var style=r.type==='super_bike'||r.type==='big_bike'?'dramatic moody motorcycle photography':'bright clean product motorcycle photography';
-    prompt='Create a '+style+' for social media.\n\n'
-      +'Subject: '+r.brand+' '+r.model+(r.cc?' '+r.cc+'cc':'')+(typeLabel?' '+typeLabel:'')+'\n'
-      +(colors.length?'Color: '+colors[0]+'\n':'')
-      +'\nStyle: Professional automotive product shot\n'
-      +'Lighting: '+(r.type==='super_bike'?'dramatic studio lighting with rim light':'bright showroom lighting')+'\n'
-      +'Background: '+(r.type==='super_bike'||r.type==='big_bike'?'dark gradient / urban night scene':'clean white or gradient showroom')+'\n'
-      +'Angle: 3/4 front view, slightly low angle\n'
-      +'Aspect Ratio: '+plat.ratio+'\n'
-      +'Quality: photorealistic, 8K, sharp detail\n'
-      +'No text, no watermark, no people\n\n'
-      +'[For Midjourney add: --ar '+plat.ratio.replace(':','+')+' --style raw --q 2]\n'
-      +'[For DALL-E 3: specify '+plat.ratioLabel+' in the prompt]';
-  }
-  ge('vcAIPrompt').value=prompt;
-}
-
-function vcOpenAI(id){
-  var r=_vcData.find(function(x){return x.id===id;});if(!r)return;
-  _vcAIVehicle=r;
-  _vcAIPlatform='wa';_vcAIActiveTab='post';
-  // Build default hashtags
-  var defaultTags=['#HuangMotor','#'+r.brand,'#'+r.model.replace(/\s+/g,''),
-    '#Penang','#KepalaBatas','#Malaysia','#2026','#Motorcycle'];
-  if(r.type)defaultTags.push('#'+(VC_TYPE_LABELS[r.type]||r.type).replace(/\s+/g,''));
-  // Dedupe and init
-  _vcAIHashtags=defaultTags.filter(function(t,i){return defaultTags.indexOf(t)===i;}).map(function(t){return {tag:t,on:true,custom:false};});
-  vcRenderHashtags();
-  // Reset platform buttons
-  vcSetPlatform('wa');
-  vcAITab('post');
-  ge('vcAIModal').style.display='block';
-}
+function vcVariantType(i,val){_vcVariants[i].variant_type=val;var vt=VARIANT_TYPES.find(function(x){return x.id===val;})||VARIANT_TYPES[0];_vcVariants[i].suffix=vt.suffix;vcRenderVariants();}
+function vcVariantSuffix(i,val){_vcVariants[i].suffix=val;}
+function vcVariantToggle(i){_vcVariants[i].is_active=!_vcVariants[i].is_active;vcRenderVariants();}
+function vcVariantRemove(i){_vcVariants.splice(i,1);vcRenderVariants();}
+function vcVariantField(i,field,val){_vcVariants[i][field]=parseFloat(val)||null;}
+function vcVF(el){var i=parseInt(el.dataset.vi);var f=el.dataset.f;if(!isNaN(i)&&f)_vcVariants[i][f]=parseFloat(el.value)||null;}
 
 function openVCModal(id){
+  _vcHandlingEdited=false;
+  _vcVariants=[];
   var r=id?_vcData.find(function(x){return x.id===id;}):null;
   ge('vc_id').value=id||'';
-  ge('vcModalTitle').textContent=id?'Edit Vehicle':'Add Vehicle';
+  ge('vcModalTitle').textContent=id?'Edit: '+(r?r.brand+' '+r.model:'Vehicle'):'Add Vehicle';
   ge('vc_brand').value=r?r.brand||'':'';
   ge('vc_model').value=r?r.model||'':'';
   ge('vc_cc').value=r?r.cc||'':'';
   ge('vc_type').value=r?r.type||'':'';
+  ge('vc_pa').value=r?r.pa||'':'';
+  ge('vc_aeon_pa').value=r?r.aeon_pa||'':'';
+  ge('vc_loanyear').value=r?r.loanyear||5:5;
+  ge('vc_handling').value=r?r.handling||450:450;
+  ge('vc_ins1').value=r?r.ins1||'':'';
+  ge('vc_ins1p').value=r?r.ins1p||'':'';
+  ge('vc_ins3').value=r?r.ins3||'':'';
+  ge('vc_inssum').value=r?r.inssum||'':'';
   ge('vc_stock').value=r?r.stock_qty||0:0;
   ge('vc_colors').value=r?r.colors||'':'';
   ge('vc_features').value=r?r.features||'':'';
   ge('vc_desc').value=r?r.description||'':'';
   ge('vcDeleteBtn').style.display=id?'block':'none';
+  var syncBtn=ge('vcSyncPLBtn');if(syncBtn)syncBtn.style.display=id?'inline-block':'none';
   var t=r?r.type||'':'';
   _vcBodyStyle=['scooter','maxi_scooter'].indexOf(t)>=0?'scooter':['moped_bike','big_bike','super_bike','moped'].indexOf(t)>=0?'bike':'';
   vcSetBodyStyle(_vcBodyStyle);
+  if(r&&r.handling_override)_vcHandlingEdited=true;
+  ge('vcHandlingAuto').textContent=_vcHandlingEdited?'(custom)':'auto';
+  // Load variants if editing
+  if(id)vcLoadVariants(id);
+  vcMTab('spec');
   ge('vcModal').style.display='block';
+}
+
+async function vcLoadVariants(catalogId){
+  var rows=await sbGet('vehicle_variants','catalog_id=eq.'+catalogId+'&order=created_at.asc');
+  _vcVariants=(rows||[]).map(function(r){return {id:r.id,variant_type:r.variant_type||'standard',suffix:r.suffix,cash:r.cash,hp:r.hp,dp:r.dp,is_active:r.is_active!==false,pricelist_id:r.pricelist_id};});
+  vcRenderVariants();
 }
 
 function closeVCModal(){ge('vcModal').style.display='none';}
@@ -5385,86 +5402,93 @@ async function saveVC(){
   var model=(ge('vc_model').value||'').trim().toUpperCase();
   if(!brand||!model){alert('Brand and Model are required.');return;}
   var cc=parseInt(ge('vc_cc').value)||null;
-  var data={brand:brand,model:model,cc:cc,type:ge('vc_type').value||null,
+  var type=ge('vc_type').value||null;
+  var rt=cc?vcRoadTax(cc):null;
+  var data={
+    brand:brand,model:model,cc:cc,type:type,
+    pa:parseFloat(ge('vc_pa').value)||0,
+    aeon_pa:parseFloat(ge('vc_aeon_pa').value)||0,
+    loanyear:parseInt(ge('vc_loanyear').value)||5,
+    handling:parseFloat(ge('vc_handling').value)||450,
+    handling_override:_vcHandlingEdited,
+    ins1:parseFloat(ge('vc_ins1').value)||0,
+    ins1p:parseFloat(ge('vc_ins1p').value)||0,
+    ins3:parseFloat(ge('vc_ins3').value)||0,
+    inssum:parseFloat(ge('vc_inssum').value)||0,
     stock_qty:parseInt(ge('vc_stock').value)||0,
-    colors:ge('vc_colors').value||null,features:ge('vc_features').value||null,description:ge('vc_desc').value||null};
+    colors:ge('vc_colors').value||null,
+    features:ge('vc_features').value||null,
+    description:ge('vc_desc').value||null
+  };
   var id=ge('vc_id').value;
   try{
-    if(id)await sbPatch('vehicle_catalog',{id:id},data);
-    else await sbPost('vehicle_catalog',data);
+    var savedId=id;
+    if(id){await sbPatch('vehicle_catalog',{id:id},data);}
+    else{
+      var res=await fetch(SUPABASE_URL+'/rest/v1/vehicle_catalog',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(data)});
+      var arr=await res.json();
+      if(arr&&arr[0])savedId=arr[0].id;
+    }
+    // Save variants
+    for(var i=0;i<_vcVariants.length;i++){
+      var v=_vcVariants[i];
+      var vdata={catalog_id:savedId,variant_type:v.variant_type,suffix:v.suffix,cash:v.cash,hp:v.hp,dp:v.dp,is_active:v.is_active};
+      if(v.id)await sbPatch('vehicle_variants',{id:v.id},vdata);
+      else await sbPost('vehicle_variants',vdata);
+    }
     closeVCModal();await loadVCData();
   }catch(e){alert('Save failed.');}
 }
 
 async function deleteVC(){
   var id=ge('vc_id').value;if(!id)return;
-  if(!confirm('Delete this vehicle?'))return;
+  if(!confirm('Delete this vehicle and all its variants?'))return;
   await sbDelete('vehicle_catalog',{id:id});
   closeVCModal();await loadVCData();
 }
 
-async function vcSyncFromPricelist(){
-  if(!confirm('Sync all New Pricelist entries to Vehicle Catalog?\nExisting entries will NOT be overwritten — only new brands/models will be added.'))return;
-  if(!_plData.length){alert('Load New Pricelist first.');return;}
-  var btn=ge('vcSyncBtn');if(btn){btn.textContent='Syncing...';btn.disabled=true;}
-  var existing=new Set(_vcData.map(function(r){return (r.brand+'|'+r.model).toUpperCase();}));
-  var toAdd=[];
-  _plData.forEach(function(e){
-    var key=((e.brand||'')+'|'+(e.model||'')).toUpperCase();
-    if(!existing.has(key)&&e.brand&&e.model){
-      toAdd.push({
-        brand:(e.brand||'').toUpperCase(),
-        model:(e.model||'').toUpperCase(),
-        cc:null,type:null,
-        stock_qty:0,is_active:true
-      });
-      existing.add(key);
-    }
-  });
-  if(!toAdd.length){
-    if(btn){btn.textContent='⟳ Sync from New Pricelist';btn.disabled=false;}
-    alert('All pricelist models already exist in Vehicle Catalog.');return;
+async function vcPushToPricelist(){
+  var catalogId=ge('vc_id').value;if(!catalogId)return;
+  var r=_vcData.find(function(x){return String(x.id)===String(catalogId);});if(!r)return;
+  var rt=vcRoadTax(r.cc)||0;
+  if(!_vcVariants.length){alert('Add at least one variant first.');return;}
+  var active=_vcVariants.filter(function(v){return v.is_active;});
+  if(!active.length){alert('No active variants to push.');return;}
+  var pushed=0;
+  for(var i=0;i<active.length;i++){
+    var v=active[i];
+    var suffix=v.suffix?v.suffix.trim():'';
+    var modelName=r.model+(suffix?' ('+suffix+')':'');
+    var plData={
+      brand:r.brand,model:modelName,
+      cash:v.cash,hp:v.hp,dpk:v.dp,
+      pa:r.pa,aeon_pa:r.aeon_pa,loanyear:r.loanyear,
+      rtax:rt,hand:r.handling,
+      ins1:r.ins1,ins1p:r.ins1p,ins3:r.ins3,inssum:r.inssum,
+      catalog_id:catalogId,variant_id:v.id||null,
+      auto_rtax:true,auto_hand:true,is_deleted:false
+    };
+    try{
+      if(v.pricelist_id){
+        await sbPatch('pricelist',{id:v.pricelist_id},plData);
+      } else {
+        var res=await fetch(SUPABASE_URL+'/rest/v1/pricelist',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
+        var arr=await res.json();
+        if(arr&&arr[0]&&v.id){
+          await sbPatch('vehicle_variants',{id:v.id},{pricelist_id:arr[0].id});
+          v.pricelist_id=arr[0].id;
+        }
+      }
+      pushed++;
+    }catch(e){}
   }
-  var ok=0;
-  for(var i=0;i<toAdd.length;i++){
-    try{await sbPost('vehicle_catalog',toAdd[i]);ok++;}catch(e){}
-  }
-  if(btn){btn.textContent='⟳ Sync from New Pricelist';btn.disabled=false;}
-  alert('Synced '+ok+' new model'+(ok!==1?'s':'')+' added.\nPlease fill in CC and Type for each.');
-  await loadVCData();
+  alert('Pushed '+pushed+' variant'+(pushed!==1?'s':'')+' to New Vehicle Pricelist!');
+  vcRenderVariants();
+  // Refresh pricelist data
+  var rows=await sbGet('pricelist','order=brand.asc,model.asc');
+  _plData=(rows||[]).filter(function(r){return !r.is_deleted;});
 }
 
-function vcOpenAI(id){
-  var r=_vcData.find(function(x){return x.id===id;});if(!r)return;
-  var rt=vcRoadTax(r.cc);
-  var typeLabel=VC_TYPE_LABELS[r.type]||r.type||'';
-  var colors=(r.colors||'').split(',').map(function(c){return c.trim();}).filter(Boolean);
-  var features=(r.features||'').split(',').map(function(f){return f.trim();}).filter(Boolean);
-  var pl=_plData.find(function(p){return (p.brand||'').toUpperCase()===(r.brand||'').toUpperCase()&&(p.model||'').toUpperCase()===(r.model||'').toUpperCase();});
-  var cashStr=pl?'RM '+Math.round(parseFloat(pl.cash)).toLocaleString():'';
-  var hpStr=pl?'RM '+Math.round(parseFloat(pl.hp)).toLocaleString():'';
-  var prompt='You are a motorcycle dealer social media content writer.\n'
-    +'Write an engaging Bahasa Malaysia / English bilingual social media post for the following motorcycle.\n\n'
-    +'=== VEHICLE DETAILS ===\n'
-    +'Brand: '+r.brand+'\nModel: '+r.model+'\n'
-    +(r.cc?'Engine: '+r.cc+'cc\n':'')
-    +(typeLabel?'Category: '+typeLabel+'\n':'')
-    +(colors.length?'Available Colors: '+colors.join(', ')+'\n':'')
-    +(rt?'Road Tax: RM '+rt+' / year\n':'')
-    +(cashStr?'Cash Price: '+cashStr+'\n':'')
-    +(hpStr?'HP (Loan): '+hpStr+'\n':'')
-    +(features.length?'\nKey Features:\n'+features.map(function(f){return '- '+f;}).join('\n')+'\n':'')
-    +(r.description?'\nDescription:\n'+r.description+'\n':'')
-    +'\n=== INSTRUCTIONS ===\n'
-    +'- Write in a friendly, enthusiastic tone\n- Include relevant emojis\n'
-    +'- Add a call to action (contact us / visit showroom)\n'
-    +'- Include hashtags (motorcycle, brand name, Malaysia)\n'
-    +'- Keep it suitable for Facebook and Instagram\n'
-    +'- Mention the price if provided\n'
-    +'- Dealer: HuangMotor M Sdn Bhd, Penang\n';
-  ge('vcAIPrompt').value=prompt;
-  ge('vcAIModal').style.display='block';
-}
 
 /* ══ STOCK KIT ══ */
 var _skData=[];var _skCat='';
