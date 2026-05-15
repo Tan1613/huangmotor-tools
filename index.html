@@ -2087,9 +2087,19 @@ function printPLPdf(){
   win.focus();
   setTimeout(function(){win.print();},600);
 }
-function closePLPdf(){document.getElementById('plPdfSheet').style.display='none';document.body.style.overflow='';}
+function plPrintFilename(docType){
+  var n=new Date();
+  var d=n.getDate().toString().padStart(2,'0')
+    +(n.getMonth()+1).toString().padStart(2,'0')
+    +n.getFullYear();
+  var t=n.getHours().toString().padStart(2,'0')
+    +n.getMinutes().toString().padStart(2,'0');
+  return docType+' '+d+' '+t;
+}
 
-var pdfFontSize=15; // default, user can adjust
+function closePLPdf(){document.getElementById('plPdfSheet').style.display='none';document.body.style.overflow='';document.title='HuangMotor Tools';}
+
+var pdfFontSize=14; // default, user can adjust
 function adjustPdfFont(delta){
   pdfFontSize=Math.min(20,Math.max(8,pdfFontSize+delta));
   document.getElementById('pdfFontSizeLabel').textContent=pdfFontSize+'px';
@@ -3623,12 +3633,13 @@ function upPrintSelected(){
     +'<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>Used Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Monthly instalment (RM) &middot; PA shown per vehicle</div>'
+    +''
     +'<table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed;border:4px double #1a1a1a">'+colgroup+thead+tbodies+'</table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
   if(!sheet||!inner_el){alert('PDF sheet not found.');return;}
   inner_el.innerHTML=inner;
+  document.title=plPrintFilename('New Vehicle Pricelist');
   sheet.style.display='block';
   document.body.style.overflow='hidden';
   var lbl=ge('pdfFontSizeLabel');if(lbl)lbl.textContent=pdfFontSize+'px';
@@ -4114,13 +4125,14 @@ function plPrintSelected(){
     +'<div class="pl-pdf-hdr">'
     +'<div><div class="pl-pdf-co">HuangMotor M Sdn Bhd</div><div class="pl-pdf-sub">Motor Dealer &middot; Authorised Sales &amp; Service</div></div>'
     +'<div class="pl-pdf-date"><b>New Vehicle Pricelist</b><br>'+dateStr+'</div></div>'
-    +'<div style="font-size:7px;color:#888;margin-bottom:4px">Kedai max 5yr &middot; Monthly instalment (RM)</div>'
+    +''
     +'<div><table class="pl-pdf-table" style="width:100%;border-collapse:collapse;font-size:8.5px;table-layout:fixed;border:4px double #1a1a1a">'+colgroup+thead+tbodies+'</table>'
     +'<div class="pl-pdf-footer-note">Printed by: '+(currentUser?currentUser.username:'--')+' &middot; &copy; 2026 HuangMotor M Sdn Bhd &middot; '+dateStr+'</div>';
 
   var sheet=ge('plPdfSheet');var inner_el=ge('plPdfInner');
   if(!sheet||!inner_el){alert('PDF sheet not found.');return;}
   inner_el.innerHTML=inner;
+  document.title=plPrintFilename('Used Vehicle Pricelist');
   sheet.style.display='block';
   document.body.style.overflow='hidden';
   var lbl=ge('pdfFontSizeLabel');if(lbl)lbl.textContent=pdfFontSize+'px';
