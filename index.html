@@ -4326,6 +4326,8 @@ var _upData=[];
 var _upDefaultPa=10;
 var _upMinInst=0;
 var _upSelectedId=null;
+var _upPrintMode=false;
+var _upChecked=new Set();
 
 async function loadUPData(){
   try{_upData=await sbGet('used_vehicles','order=created_at.desc')||[];}catch(e){_upData=[];}
