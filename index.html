@@ -5624,8 +5624,8 @@ async function vcFixUnlinked(){
 }
 
 async function vcUpdateSpecsFromPricelist(){
-  if(!confirm('Update Specs → existing Vehicle Catalog entries will be patched with PA%, Insurance, Fees from Pricelist.\n\nProceed?'))return;
-  var btn=ge('vcUpdateBtn');if(btn){btn.textContent='Updating...';btn.disabled=true;}
+  if(!confirm('直接把 Pricelist 数据复制到 Vehicle Mgmt?\n\n每条 Catalog 找同名 Pricelist 记录 → 复制规格 + 建一个 Standard 变体\n已有变体不重复创建\n\nProceed?'))return;
+  var btn=ge('vcUpdateBtn');if(btn){btn.textContent='Copying...';btn.disabled=true;}
 
   var rows=await sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc');
   if(!rows||!rows.length){if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}alert('No pricelist data.');return;}
@@ -5633,80 +5633,59 @@ async function vcUpdateSpecsFromPricelist(){
   var mfRows=await sbGet('max_finance','select=brand,model,amt');
   var mfMap={};(mfRows||[]).forEach(function(r){mfMap[((r.brand||'')+'|'+(r.model||'')).toUpperCase()]=parseFloat(r.amt)||0;});
 
-  // Suffix helpers
-  var SFXLIST3=['STD','STANDARD','SE','LE','LT','PROMO'];
-  function hasSfx3(m,s){return new RegExp('\\s+\\('+s+'\\)\\s*$','i').test(m)||new RegExp('(?<![\\(a-zA-Z0-9])'+s+'\\s*$','i').test(m);}
-  function getSfxOf(m){for(var si=0;si<SFXLIST3.length;si++){if(hasSfx3(m,SFXLIST3[si]))return SFXLIST3[si].replace('STANDARD','STD').toUpperCase();}return null;}
-  function stripSfx(m){var sfx=getSfxOf(m);if(!sfx)return m.trim().toUpperCase();return m.trim().toUpperCase().replace(new RegExp('\\s+\\('+sfx+'\\)\\s*$','i'),'').replace(new RegExp('(?<![\\(a-zA-Z0-9])'+sfx+'\\s*$','i'),'').trim();}
-  function getVT(s){if(!s)return 'standard';var u=(s||'').toUpperCase();return u==='SE'?'se':u==='LE'||u==='LT'?'le':u==='PROMO'?'promo':'standard';}
-
-  // Build pricelist index: both full model AND base model → entry
-  var plByFull={};  // brand|fullmodel → entries[]
-  var plByBase={};  // brand|basemodel → entries[]
+  // Index pricelist by brand|model (exact)
+  var plIdx={};
   rows.forEach(function(r){
-    var brand=(r.brand||'').toUpperCase();
-    var full=(r.model||'').toUpperCase();
-    var base=stripSfx(full);
-    var kf=brand+'|'+full; if(!plByFull[kf])plByFull[kf]=[];plByFull[kf].push(r);
-    var kb=brand+'|'+base; if(!plByBase[kb])plByBase[kb]=[];plByBase[kb].push(r);
+    var k=((r.brand||'').toUpperCase()+'|'+(r.model||'').toUpperCase());
+    plIdx[k]=r;
   });
 
-  var updated=0,varUpdated=0,errors=0,total=_vcData.length;
+  var updated=0,varCreated=0,skipped=0,errors=0,total=_vcData.length;
 
   for(var ci=0;ci<_vcData.length;ci++){
     var cat=_vcData[ci];
-    if(btn)btn.textContent='Updating '+(ci+1)+'/'+total+'...';
-    var brand=(cat.brand||'').toUpperCase();
-    var catModel=(cat.model||'').toUpperCase();
-    var catBase=stripSfx(catModel);
+    if(btn)btn.textContent='Copying '+(ci+1)+'/'+total+'...';
 
-    // Find matching pricelist entries:
-    // If catalog model itself has a suffix (old bad entry like "ADV 160 (SE)"),
-    // treat the catalog model as a single variant, match by full name
-    var matchingEntries=plByFull[brand+'|'+catModel]||plByBase[brand+'|'+catModel]||plByBase[brand+'|'+catBase]||[];
-    if(!matchingEntries.length)continue;
+    var k=((cat.brand||'').toUpperCase()+'|'+(cat.model||'').toUpperCase());
+    var pl=plIdx[k];
+    if(!pl){skipped++;continue;}
 
-    var rep=matchingEntries[0];
-    var specPatch={
-      pa:parseFloat(rep.pa)||0,aeon_pa:parseFloat(rep.aeon_pa)||0,loanyear:parseInt(rep.loanyear)||5,
-      handling:parseFloat(rep.hand)||450,ins1:parseFloat(rep.ins1)||0,ins1p:parseFloat(rep.ins1p)||0,
-      ins3:parseFloat(rep.ins3)||0,inssum:parseFloat(rep.inssum)||0,other:parseFloat(rep.other)||0
-    };
-    try{await sbPatch('vehicle_catalog',{id:cat.id},specPatch);updated++;}catch(e){errors++;}
+    // Patch catalog specs
+    try{
+      await sbPatch('vehicle_catalog',{id:cat.id},{
+        pa:parseFloat(pl.pa)||0,aeon_pa:parseFloat(pl.aeon_pa)||0,
+        loanyear:parseInt(pl.loanyear)||5,handling:parseFloat(pl.hand)||450,
+        ins1:parseFloat(pl.ins1)||0,ins1p:parseFloat(pl.ins1p)||0,
+        ins3:parseFloat(pl.ins3)||0,inssum:parseFloat(pl.inssum)||0,
+        other:parseFloat(pl.other)||0
+      });
+      updated++;
+    }catch(e){errors++;continue;}
 
-    var existingVars=await sbGet('vehicle_variants','catalog_id=eq.'+cat.id+'&select=id,pricelist_id,suffix,variant_type');
+    // Check if variant for this pricelist entry already exists
+    var existing=await sbGet('vehicle_variants','catalog_id=eq.'+cat.id+'&pricelist_id=eq.'+pl.id+'&select=id');
+    if(existing&&existing.length){skipped++;continue;}
 
-    for(var ei=0;ei<matchingEntries.length;ei++){
-      var e=matchingEntries[ei];
-      // Determine suffix: if catalog itself has suffix (bad old entry), treat as STD or that suffix
-      var sfx;
-      if(matchingEntries.length===1){
-        // Single match: use catalog model's own suffix if it has one, else null
-        sfx=getSfxOf(catModel)||null;
-      } else {
-        sfx=getSfxOf((e.model||'').toUpperCase())||(matchingEntries.length>1?'STD':null);
-      }
-      var mfKey=(brand+'|'+(e.model||'').toUpperCase());
-      var mfAmt=mfMap[mfKey]||0;
-      var vdata={catalog_id:cat.id,variant_type:getVT(sfx),suffix:sfx,
-        cash:parseFloat(e.cash)||null,hp:parseFloat(e.hp)||null,dp:parseFloat(e.dpk)||null,
-        is_active:true,pricelist_id:e.id};
-      if(mfAmt>0)vdata.max_finance_amt=mfAmt;
-      var existing=(existingVars||[]).find(function(v){return v.pricelist_id===e.id;});
-      try{
-        if(existing){await sbPatch('vehicle_variants',{id:existing.id},vdata);}
-        else{
-          await sbPost('vehicle_variants',vdata);
-          try{await sbPatch('pricelist',{id:e.id},{catalog_id:cat.id});}catch(pe){}
-        }
-        varUpdated++;
-      }catch(ve){errors++;}
+    // Create one Standard variant
+    var mfAmt=mfMap[k]||0;
+    var vdata={catalog_id:cat.id,variant_type:'standard',suffix:null,
+      cash:parseFloat(pl.cash)||null,hp:parseFloat(pl.hp)||null,dp:parseFloat(pl.dpk)||null,
+      is_active:true,pricelist_id:pl.id};
+    if(mfAmt>0)vdata.max_finance_amt=mfAmt;
+    try{
+      await sbPost('vehicle_variants',vdata);
+      await sbPatch('pricelist',{id:pl.id},{catalog_id:cat.id});
+      varCreated++;
+    }catch(ve){
+      // Retry without max_finance_amt in case column not yet added
+      delete vdata.max_finance_amt;
+      try{await sbPost('vehicle_variants',vdata);varCreated++;}catch(ve2){errors++;}
     }
   }
 
   if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}
   await loadVCData();
-  alert('✓ Update Complete!\n\nCatalog specs updated: '+updated+'\nVariants updated/created: '+varUpdated+(errors?'\nErrors: '+errors:''));
+  alert('✓ Done!\n\nSpecs updated: '+updated+'\nVariants created: '+varCreated+'\nSkipped (no match / already exist): '+skipped+(errors?'\nErrors: '+errors:''));
 }
 function vcToggleLog(){
   var panel=ge('vcLogPanel');var btn=ge('vcLogBtn');
