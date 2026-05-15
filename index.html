@@ -1338,9 +1338,11 @@ body.theme-white .home-welcome{color:#555}
     <div id="vcSummary" style="font-size:10px;color:#4a6fa5"></div>
     <button id="vcUpdateBtn" onclick="vcUpdateSpecsFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #2a3a1e;border-radius:5px;color:#3fb950;font-size:10px;cursor:pointer">↻ Update Specs</button>
     <button id="vcLogBtn" onclick="vcToggleLog()" style="display:none;padding:4px 12px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">📋 Log</button>
+    <button id="vcAuditBtn" onclick="vcToggleAudit()" style="padding:4px 12px;background:none;border:1px solid #2a1a3a;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">🔍 Audit</button>
   </div>
   <div id="vcList"></div>
   <div id="vcLogPanel" style="display:none;margin-top:12px"></div>
+  <div id="vcAuditPanel" style="display:none;margin-top:12px;padding:12px;background:#0d1117;border:1px solid #21262d;border-radius:8px"></div>
 </div>
 
 <!-- Vehicle Catalog Modal -->
@@ -5237,6 +5239,8 @@ function renderVCList(){
   if(!list.length){wrap.innerHTML='<div style="padding:2rem;text-align:center;color:#4a6fa5;font-size:12px">No vehicles found</div>';return;}
   var brands={};
   list.forEach(function(r){var b=r.brand||'?';if(!brands[b])brands[b]=[];brands[b].push(r);});
+  // Load variant counts async
+  setTimeout(vcLoadVariantCounts,100);
   wrap.innerHTML=Object.keys(brands).sort().map(function(brand){
     var rows=brands[brand];
     return '<div style="margin-bottom:12px">'
@@ -5256,6 +5260,7 @@ function renderVCList(){
             +'<span style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid '+typeColor+';color:'+typeColor+'">'+typeLabel+'</span>'
             +(rt?'<span style="font-size:10px;color:#3fb950">RTax RM '+rt+'</span>':'')
             +'<span style="font-size:10px;color:'+(parseInt(r.stock_qty)>0?'#58a6ff':'#e24b4a')+'">'+(parseInt(r.stock_qty)||0)+' unit</span>'
+            +'<span id="vc_vcount_'+r.id+'" style="font-size:9px;padding:2px 6px;border-radius:10px;background:#0a1a0a;color:#2a4a6a">...</span>'
             +(canEdit?'<button onclick="openVCModal('+r.id+')" style="padding:3px 8px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">Edit</button>':'')
             +'<button onclick="vcOpenAI('+r.id+')" style="padding:3px 8px;background:none;border:1px solid #1e2d45;border-radius:5px;color:#4a6fa5;font-size:10px;cursor:pointer">🤖 AI</button>'
           +'</div>'
@@ -5503,6 +5508,116 @@ async function vcPushToPricelist(){
   _plData=(rows||[]).filter(function(r){return !r.is_deleted;});
 }
 
+async function vcLoadVariantCounts(){
+  // Load all variants for displayed catalog entries
+  var ids=_vcData.map(function(r){return r.id;});
+  if(!ids.length)return;
+  var vars=await sbGet('vehicle_variants','catalog_id=in.('+ids.join(',')+')'+'&select=catalog_id,id,suffix,is_active,pricelist_id');
+  if(!vars)return;
+  // Group by catalog_id
+  var map={};
+  vars.forEach(function(v){
+    if(!map[v.catalog_id])map[v.catalog_id]=[];
+    map[v.catalog_id].push(v);
+  });
+  ids.forEach(function(id){
+    var el=ge('vc_vcount_'+id);if(!el)return;
+    var list=map[id]||[];
+    var active=list.filter(function(v){return v.is_active!==false;});
+    var linked=list.filter(function(v){return v.pricelist_id;});
+    if(!list.length){
+      el.style.background='#2a0a0a';el.style.color='#e24b4a';
+      el.textContent='No variants';
+    } else {
+      el.style.background='#0a1a0a';el.style.color='#3fb950';
+      el.textContent=active.length+' variant'+(active.length!==1?'s':'')+(linked.length?' · '+linked.length+' linked':'');
+    }
+  });
+}
+
+function vcToggleAudit(){
+  var panel=ge('vcAuditPanel');var btn=ge('vcAuditBtn');
+  if(!panel)return;
+  var open=panel.style.display==='none';
+  panel.style.display=open?'block':'none';
+  if(btn){btn.style.background=open?'#1a0d2e':'none';btn.style.color=open?'#d2a8ff':'#8b949e';}
+  if(open)vcRunAudit();
+}
+
+async function vcRunAudit(){
+  var panel=ge('vcAuditPanel');if(!panel)return;
+  panel.innerHTML='<div style="font-size:10px;color:#4a6fa5;padding:8px">Running audit...</div>';
+
+  // Load pricelist + variants in parallel
+  var [plRows,varRows]=await Promise.all([
+    sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc'),
+    sbGet('vehicle_variants','select=id,catalog_id,pricelist_id,suffix,cash,hp,dp,is_active')
+  ]);
+  plRows=plRows||[];varRows=varRows||[];
+
+  var varByPL={};varRows.forEach(function(v){if(v.pricelist_id)varByPL[v.pricelist_id]=v;});
+  var varByCat={};varRows.forEach(function(v){if(!varByCat[v.catalog_id])varByCat[v.catalog_id]=[];varByCat[v.catalog_id].push(v);});
+
+  var linked=plRows.filter(function(r){return r.catalog_id&&varByPL[r.id];});
+  var catLinked=plRows.filter(function(r){return r.catalog_id&&!varByPL[r.id];});
+  var unlinked=plRows.filter(function(r){return !r.catalog_id;});
+
+  // Catalog entries without variants
+  var catNoVar=_vcData.filter(function(c){return !varByCat[c.id]||!varByCat[c.id].length;});
+
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
+    +'<div style="background:#0a1a0a;border:1px solid #1e3a1e;border-radius:7px;padding:10px;text-align:center">'
+      +'<div style="font-size:20px;font-weight:800;color:#3fb950">'+linked.length+'</div>'
+      +'<div style="font-size:9px;color:#2a4a6a">Fully Linked<br>(PL + Variant)</div></div>'
+    +'<div style="background:#1a1a0a;border:1px solid #3a3a1e;border-radius:7px;padding:10px;text-align:center">'
+      +'<div style="font-size:20px;font-weight:800;color:#f0883e">'+catLinked.length+'</div>'
+      +'<div style="font-size:9px;color:#2a4a6a">Catalog linked<br>No variant</div></div>'
+    +'<div style="background:#1a0a0a;border:1px solid #3a1e1e;border-radius:7px;padding:10px;text-align:center">'
+      +'<div style="font-size:20px;font-weight:800;color:#e24b4a">'+unlinked.length+'</div>'
+      +'<div style="font-size:9px;color:#2a4a6a">Pricelist<br>Unlinked</div></div>'
+    +'<div style="background:#1a0a1a;border:1px solid #3a1e3a;border-radius:7px;padding:10px;text-align:center">'
+      +'<div style="font-size:20px;font-weight:800;color:#d2a8ff">'+catNoVar.length+'</div>'
+      +'<div style="font-size:9px;color:#2a4a6a">Catalog<br>No variant</div></div>'
+  +'</div>';
+
+  // Show unlinked pricelist entries
+  if(unlinked.length){
+    html+='<div style="font-size:10px;font-weight:700;color:#e24b4a;margin-bottom:6px">⚠ Pricelist entries NOT linked to any catalog entry ('+unlinked.length+')</div>';
+    html+='<div style="max-height:200px;overflow-y:auto;margin-bottom:12px">';
+    html+=unlinked.map(function(r){
+      return '<div style="display:flex;justify-content:space-between;padding:4px 8px;background:#0d1117;border:1px solid #21262d;border-radius:5px;margin-bottom:3px;font-size:10px">'
+        +'<span style="color:#c9d1d9">'+esc(r.brand)+' '+esc(r.model)+'</span>'
+        +'<span style="color:#4a6fa5">Cash: '+(r.cash?'RM '+Math.round(r.cash).toLocaleString():'—')+'</span>'
+      +'</div>';
+    }).join('');
+    html+='</div>';
+    html+='<button onclick="vcFixUnlinked()" style="padding:6px 14px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:12px">↻ Fix Unlinked (create variants)</button>';
+  }
+
+  // Show catalog entries without variants
+  if(catNoVar.length){
+    html+='<div style="font-size:10px;font-weight:700;color:#d2a8ff;margin-bottom:6px">🏷 Catalog entries with no variants ('+catNoVar.length+')</div>';
+    html+='<div style="max-height:150px;overflow-y:auto">';
+    html+=catNoVar.map(function(r){
+      return '<div style="padding:4px 8px;background:#0d1117;border:1px solid #21262d;border-radius:5px;margin-bottom:3px;font-size:10px;color:#c9d1d9">'+esc(r.brand)+' '+esc(r.model)+'</div>';
+    }).join('');
+    html+='</div>';
+  }
+
+  if(!unlinked.length&&!catNoVar.length){
+    html+='<div style="text-align:center;padding:1rem;color:#3fb950;font-size:12px">✓ All entries are fully synced!</div>';
+  }
+
+  panel.innerHTML=html;
+}
+
+async function vcFixUnlinked(){
+  // Re-run Update Specs which handles unlinked entries
+  if(!confirm('This will attempt to create catalog entries and variants for all unlinked pricelist rows.\n\nProceed?'))return;
+  await vcUpdateSpecsFromPricelist();
+  await vcRunAudit();
+}
+
 async function vcUpdateSpecsFromPricelist(){
   if(!confirm('Update Specs → existing Vehicle Catalog entries will be patched with PA%, Insurance, Fees from Pricelist.\n\nThis will NOT touch CC, Body Style, Colors or Description.\n\nProceed?'))return;
   var btn=ge('vcUpdateBtn');if(btn){btn.textContent='Updating...';btn.disabled=true;}
@@ -5511,7 +5626,9 @@ async function vcUpdateSpecsFromPricelist(){
   if(!rows||!rows.length){if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}alert('No pricelist data.');return;}
 
   // Build pricelist map by brand|baseModel
-  function baseName(m){return (m||'').replace(/\s*\((STD|STANDARD|SE|LE|PROMO)\)\s*$/i,'').replace(/\s+(STD|STANDARD|PROMO|SE|LE)\s*$/i,'').trim().toUpperCase();}
+  var SFXLIST2=['STD','STANDARD','SE','LE','LT','PROMO'];
+  function getSfx2(m){for(var si=0;si<SFXLIST2.length;si++){var s=SFXLIST2[si];if(new RegExp('\\s+\\('+s+'\\)\\s*$','i').test(m))return s;if(new RegExp('(?<![\\(a-zA-Z0-9])'+s+'\\s*$','i').test(m))return s;}return null;}
+  function baseName(m){var clean=(m||'').trim().toUpperCase();var sfx=getSfx2(clean);if(!sfx)return clean;return clean.replace(new RegExp('\\s+\\('+sfx+'\\)\\s*$','i'),'').replace(new RegExp('(?<![\\(a-zA-Z0-9])'+sfx+'\\s*$','i'),'').trim();}
   var plMap={};
   rows.forEach(function(r){
     var k=((r.brand||'').toUpperCase()+'|'+baseName(r.model));
@@ -5639,21 +5756,26 @@ async function vcSyncFromPricelist(){
   var catRows=await sbGet('vehicle_catalog','order=brand.asc,model.asc');
   _vcData=catRows||[];
 
-  function baseName(m){
-    return (m||'')
-      .replace(/\s*\((STD|STANDARD|SE|LE|PROMO)\)\s*$/i,'')
-      .replace(/\s+(STD|STANDARD|PROMO|SE|LE)\s*$/i,'')
-      .trim();
+  var SFXLIST=['STD','STANDARD','SE','LE','LT','PROMO'];
+  function hasSfx(m,s){
+    return new RegExp('\\s+\\('+s+'\\)\\s*$','i').test(m)||
+           new RegExp('(?<![\\(a-zA-Z0-9])'+s+'\\s*$','i').test(m);
   }
   function getSfx(m,total){
-    var x=(m||'').match(/\(?(STD|STANDARD|SE|LE|PROMO)\)?$/i);
-    if(x)return x[1].replace('STANDARD','STD').toUpperCase();
-    return total>1?'STD':null; // single entry: no suffix
+    for(var si=0;si<SFXLIST.length;si++){if(hasSfx(m,SFXLIST[si]))return SFXLIST[si].replace('STANDARD','STD').toUpperCase();}
+    return total>1?'STD':null;
+  }
+  function baseName(m){
+    var clean=(m||'').trim();
+    var sfx=getSfx(clean,2);
+    if(!sfx)return clean;
+    return clean.replace(new RegExp('\\s+\\('+sfx+'\\)\\s*$','i'),'')
+                .replace(new RegExp('(?<![\\(a-zA-Z0-9])'+sfx+'\\s*$','i'),'').trim();
   }
   function getVT(s){
     if(!s)return 'standard';
-    var u=s.toUpperCase();
-    return u==='SE'?'se':u==='LE'?'le':u==='PROMO'?'promo':'standard';
+    var u=(s||'').toUpperCase();
+    return u==='SE'?'se':u==='LE'||u==='LT'?'le':u==='PROMO'?'promo':'standard';
   }
 
   // Group by brand + base model
