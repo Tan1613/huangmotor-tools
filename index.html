@@ -907,8 +907,8 @@ body.theme-white .home-welcome{color:#555}
       <div class="span2">
         <label>Max Loan Year <span style="font-size:9px;color:#444">moped=5 / bigbike=7</span></label>
         <select id="plf_loanyear" class="dark-inp">
-          <option value="5">5 Years (Moped)</option>
-          <option value="7" selected>7 Years (Big Bike)</option>
+          <option value="5" selected>5 Years (Moped)</option>
+          <option value="7">7 Years (Big Bike)</option>
           <option value="1">1 Year</option>
           <option value="2">2 Years</option>
           <option value="3">3 Years</option>
@@ -1229,8 +1229,8 @@ body.theme-white .home-welcome{color:#555}
   <div class="mod-body">
     <div style="display:flex;gap:0;border-bottom:1px solid #21262d;background:#161b22">
       <button id="plTabNew" onclick="switchPLTab('new')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer">🏍 New Vehicles</button>
-      <button id="plTabVehicle" onclick="switchPLTab('vehicle')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer">🗂 Vehicle Mgmt</button>
       <button id="plTabUsed" onclick="switchPLTab('used')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer">🔄 Used Vehicles</button>
+      <button id="plTabVehicle" onclick="switchPLTab('vehicle')" style="padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer">🗂 Vehicle Mgmt</button>
     </div>
     <div id="plPanelNew" style="display:none;height:calc(100% - 37px);overflow:auto">
       <div id="plNewToolbar" style="padding:10px 12px 8px;position:sticky;top:0;background:#0d1117;z-index:2;border-bottom:1px solid #0d1626">
@@ -1333,7 +1333,10 @@ body.theme-white .home-welcome{color:#555}
     </select>
     <button id="vcAddBtn" onclick="openVCModal(null)" style="display:none;padding:6px 14px;background:#238636;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;cursor:pointer">+ Add Vehicle</button>
   </div>
-  <div id="vcSummary" style="font-size:10px;color:#4a6fa5;margin-bottom:8px"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div id="vcSummary" style="font-size:10px;color:#4a6fa5"></div>
+    <button id="vcSyncBtn" onclick="vcSyncFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #1e2d45;border-radius:5px;color:#4a6fa5;font-size:10px;cursor:pointer">⟳ Sync from New Pricelist</button>
+  </div>
   <div id="vcList"></div>
 </div>
 
@@ -3966,7 +3969,7 @@ function renderNVEditForm(e){
       +'style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box" oninput="plEfCalc(\''+e.id+'\')"></div>';
   }
   var lySel='<select id="plef_loanyear" style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">'
-    +[5,7,1,2,3,4,6].map(function(yr){return '<option value="'+yr+'"'+(parseInt(e.loanyear||7)===yr?' selected':'')+'>'+yr+'yr'+(yr===5?' (Moped)':yr===7?' (Big Bike)':'')+'</option>';}).join('')+'</select>';
+    +[5,7,1,2,3,4,6].map(function(yr){return '<option value="'+yr+'"'+(parseInt(e.loanyear||5)===yr?' selected':'')+'>'+yr+'yr'+(yr===5?' (Moped)':yr===7?' (Big Bike)':'')+'</option>';}).join('')+'</select>';
   var s='<div style="padding:0 16px 14px;background:#0a0f1a">'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">'
     +'<div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">'+fld('brand','Brand',e.brand,'text')+fld('model','Model',e.model,'text')+'</div>'
@@ -5101,10 +5104,9 @@ function vcRoadTax(cc){
   if(cc<=150)return 2;
   if(cc<=200)return 30;
   if(cc<=250)return 50;
-  if(cc<=500)return 70;
-  if(cc<=800)return 132;
-  if(cc<=1000)return 164;
-  return 200;
+  if(cc<=500)return 100;
+  if(cc<=800)return 250;
+  return 350;
 }
 
 function vcTypeFromCC(cc){
@@ -5122,6 +5124,8 @@ async function loadVCData(){
   if(wrap)wrap.innerHTML='<div style="padding:2rem;text-align:center;color:#4a6fa5;font-size:12px">Loading...</div>';
   var rows=await sbGet('vehicle_catalog','order=brand.asc,model.asc');
   _vcData=rows||[];
+  var sb=ge('vcSyncBtn');
+  if(sb)sb.style.display=(_editMode&&currentUser&&currentUser.role==='admin')?'inline-block':'none';
   renderVCList();
 }
 
@@ -5225,6 +5229,37 @@ async function deleteVC(){
   if(!confirm('Delete this vehicle?'))return;
   await sbDelete('vehicle_catalog',{id:id});
   closeVCModal();await loadVCData();
+}
+
+async function vcSyncFromPricelist(){
+  if(!confirm('Sync all New Pricelist entries to Vehicle Catalog?\nExisting entries will NOT be overwritten — only new brands/models will be added.'))return;
+  if(!_plData.length){alert('Load New Pricelist first.');return;}
+  var btn=ge('vcSyncBtn');if(btn){btn.textContent='Syncing...';btn.disabled=true;}
+  var existing=new Set(_vcData.map(function(r){return (r.brand+'|'+r.model).toUpperCase();}));
+  var toAdd=[];
+  _plData.forEach(function(e){
+    var key=((e.brand||'')+'|'+(e.model||'')).toUpperCase();
+    if(!existing.has(key)&&e.brand&&e.model){
+      toAdd.push({
+        brand:(e.brand||'').toUpperCase(),
+        model:(e.model||'').toUpperCase(),
+        cc:null,type:null,
+        stock_qty:0,is_active:true
+      });
+      existing.add(key);
+    }
+  });
+  if(!toAdd.length){
+    if(btn){btn.textContent='⟳ Sync from New Pricelist';btn.disabled=false;}
+    alert('All pricelist models already exist in Vehicle Catalog.');return;
+  }
+  var ok=0;
+  for(var i=0;i<toAdd.length;i++){
+    try{await sbPost('vehicle_catalog',toAdd[i]);ok++;}catch(e){}
+  }
+  if(btn){btn.textContent='⟳ Sync from New Pricelist';btn.disabled=false;}
+  alert('Synced '+ok+' new model'+(ok!==1?'s':'')+' added.\nPlease fill in CC and Type for each.');
+  await loadVCData();
 }
 
 function vcOpenAI(id){
