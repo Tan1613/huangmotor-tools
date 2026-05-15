@@ -3916,6 +3916,9 @@ async function plSaveSetting(key,inputId){
 }
 
 function plUpdatePrintBtn(){
+  // Remove checked IDs that no longer exist in _plData
+  var validIds=new Set(_plData.map(function(r){return String(r.id);}));
+  _plChecked.forEach(function(id){if(!validIds.has(String(id)))_plChecked.delete(id);});
   var n=_plChecked.size;
   var ps=ge('plPrintSelBtn');
   if(ps)ps.style.display=(_plPrintMode&&n>0)?'block':'none';
@@ -4173,7 +4176,7 @@ async function plSoftDelete(id){
   await plLog(id,'delete',e,null);
   _plData=_plData.filter(function(x){return x.id!==id;});
   if(window.PL)PL.list=_plData;
-  _plChecked.delete(id);
+  _plChecked.delete(String(id));_plChecked.delete(id);
   if(_plEditingId===id)_plEditingId=null;
   if(_plSelectedId===id)_plSelectedId=null;
   renderNewVehicleList();
@@ -4375,13 +4378,19 @@ async function plPermDelete(id){
   if(!e||!confirm('Permanently delete "'+e.brand+' '+e.model+'"? This cannot be undone.'))return;
   await sbDelete('pricelist',{id:id});
   window._plTrashData=(window._plTrashData||[]).filter(function(x){return x.id!==id;});
+  _plData=_plData.filter(function(x){return x.id!==id;});
+  _plChecked.delete(String(id));_plChecked.delete(id);
+  if(window.PL)PL.list=_plData;
   renderNewVehicleList();
 }
 async function plEmptyTrash(){
   if(!confirm('Permanently delete ALL items in trash?'))return;
   var items=window._plTrashData||[];
   await Promise.all(items.map(function(e){return sbDelete('pricelist',{id:e.id});}));
+  items.forEach(function(e){_plChecked.delete(String(e.id));_plChecked.delete(e.id);});
+  _plData=_plData.filter(function(x){return !(window._plTrashData||[]).find(function(t){return t.id===x.id;});});
   window._plTrashData=[];
+  if(window.PL)PL.list=_plData;
   renderNewVehicleList();
 }
 
@@ -5207,7 +5216,7 @@ function vcRoadTax(cc){
   if(cc<=150)return 2;
   if(cc<=200)return 30;
   if(cc<=250)return 50;
-  if(cc<=500)return 100;
+  if(cc<=500)return 180;
   if(cc<=800)return 250;
   return 350;
 }
