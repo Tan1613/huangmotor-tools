@@ -5451,7 +5451,7 @@ async function saveVC(){
     var savedId=id;
     if(id){await sbPatch('vehicle_catalog',{id:id},data);}
     else{
-      var res=await fetch(SUPABASE_URL+'/rest/v1/vehicle_catalog',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(data)});
+      var res=await fetch(SB_URL+'/rest/v1/vehicle_catalog',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(data)});
       var arr=await res.json();
       if(arr&&arr[0])savedId=arr[0].id;
     }
@@ -5487,7 +5487,7 @@ async function vcPushToPricelist(){
       var vd={catalog_id:parseInt(catalogId),variant_type:sv.variant_type||'standard',
         suffix:sv.suffix||null,cash:sv.cash||null,hp:sv.hp||null,dp:sv.dp||null,is_active:true};
       try{
-        var sr=await fetch(SUPABASE_URL+'/rest/v1/vehicle_variants',{method:'POST',
+        var sr=await fetch(SB_URL+'/rest/v1/vehicle_variants',{method:'POST',
           headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(vd)});
         var sa=await sr.json();
         if(sa&&sa[0])sv.id=sa[0].id;
@@ -5524,10 +5524,10 @@ async function vcPushToPricelist(){
       var plId=v.pricelist_id;
       var pr,pa3;
       if(plId){
-        pr=await fetch(SUPABASE_URL+'/rest/v1/pricelist?id=eq.'+plId,{method:'PATCH',
+        pr=await fetch(SB_URL+'/rest/v1/pricelist?id=eq.'+plId,{method:'PATCH',
           headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
       } else {
-        pr=await fetch(SUPABASE_URL+'/rest/v1/pricelist',{method:'POST',
+        pr=await fetch(SB_URL+'/rest/v1/pricelist',{method:'POST',
           headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
       }
       pa3=await pr.json();
@@ -5850,7 +5850,7 @@ async function vcSyncFromPricelist(){
     };
 
     try{
-      var res=await fetch(SUPABASE_URL+'/rest/v1/vehicle_catalog',{
+      var res=await fetch(SB_URL+'/rest/v1/vehicle_catalog',{
         method:'POST',
         headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),
         body:JSON.stringify(catData)
