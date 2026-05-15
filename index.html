@@ -3696,7 +3696,7 @@ function switchPLTab(tab){
   if(tab==='vehicle'){
     if(np)np.style.display='none';
     if(up)up.style.display='none';
-    loadVCData();return;
+    if(_vcData.length)renderVCList();else loadVCData();return;
   }
   if(tab==='used'){
     if(_plPrintMode){_plPrintMode=false;var ps=ge('plPrintSelBtn');if(ps)ps.style.display='none';}
@@ -3746,7 +3746,7 @@ async function loadPricelistModule(){
 function renderPricelistModule(){
   plSyncToolbar();
   if(_plCurrentTab==='used'){upSyncEditBar();renderUPList();}
-  else if(_plCurrentTab==='vehicle'){renderVCList();}
+  else if(_plCurrentTab==='vehicle'){if(_vcData&&_vcData.length)renderVCList();else loadVCData();}
   else renderNewVehicleList();
 }
 
@@ -5261,7 +5261,7 @@ var VC_TYPE_COLORS={moped:'#3fb950',scooter:'#58a6ff',moped_bike:'#79c0ff',maxi_
 
 async function loadVCData(){
   var wrap=ge('vcList');
-  if(wrap)wrap.innerHTML='<div style="padding:2rem;text-align:center;color:#4a6fa5;font-size:12px">Loading...</div>';
+  if(wrap&&!_vcData.length)wrap.innerHTML='<div style="padding:2rem;text-align:center;color:#4a6fa5;font-size:12px">Loading...</div>';
   var rows=await sbGet('vehicle_catalog','order=brand.asc,model.asc');
   _vcData=rows||[];
   var vlb=ge('vcLogBtn');
