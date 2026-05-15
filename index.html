@@ -5499,45 +5499,130 @@ async function vcPushToPricelist(){
 }
 
 async function vcSyncFromPricelist(){
-  if(!confirm('Sync New Pricelist → Vehicle Catalog?\nNew brands/models created. Existing ones skipped.'))return;
+  if(!confirm('Sync New Pricelist → Vehicle Catalog?\n\n✓ New brand/models → create catalog entry + variants\n✓ Each pricelist row → one variant (STD/SE/LE/PROMO auto-detected)\n✓ Existing catalog entries skipped\n\nProceed?'))return;
+
+  var btn=ge('vcSyncBtn');if(btn){btn.textContent='Loading...';btn.disabled=true;}
+
+  // Load fresh data
   var rows=await sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc');
-  if(!rows||!rows.length){alert('No pricelist data.');return;}
-  var btn=ge('vcSyncBtn');if(btn){btn.textContent='Syncing...';btn.disabled=true;}
-  function baseName(m){return (m||'').replace(/\s*\((STD|SE|LE|PROMO)\)\s*$/i,'').replace(/\s+(STD|PROMO|SE|LE)\s*$/i,'').trim();}
-  function getSfx(m){var x=(m||'').match(/\(?(STD|SE|LE|PROMO)\)?$/i);return x?x[1].toUpperCase():null;}
-  function getVT(s){var u=(s||'').toUpperCase();return u==='SE'?'se':u==='LE'?'le':u==='PROMO'?'promo':'standard';}
+  if(!rows||!rows.length){
+    if(btn){btn.textContent='⟳ Sync from New Pricelist';btn.disabled=false;}
+    alert('No pricelist data found.');return;
+  }
+
+  // Also load MF data fresh
+  var mfRows=await sbGet('max_finance','select=brand,model,amt');
+  var mfMap={};(mfRows||[]).forEach(function(r){mfMap[((r.brand||'')+'|'+(r.model||'')).toUpperCase()]=parseFloat(r.amt)||0;});
+
+  // Reload existing catalog
+  var catRows=await sbGet('vehicle_catalog','order=brand.asc,model.asc');
+  _vcData=catRows||[];
+
+  function baseName(m){
+    return (m||'')
+      .replace(/\s*\((STD|STANDARD|SE|LE|PROMO)\)\s*$/i,'')
+      .replace(/\s+(STD|STANDARD|PROMO|SE|LE)\s*$/i,'')
+      .trim();
+  }
+  function getSfx(m,total){
+    var x=(m||'').match(/\(?(STD|STANDARD|SE|LE|PROMO)\)?$/i);
+    if(x)return x[1].replace('STANDARD','STD').toUpperCase();
+    return total>1?'STD':null; // single entry: no suffix
+  }
+  function getVT(s){
+    if(!s)return 'standard';
+    var u=s.toUpperCase();
+    return u==='SE'?'se':u==='LE'?'le':u==='PROMO'?'promo':'standard';
+  }
+
+  // Group by brand + base model
   var groups={};
-  rows.forEach(function(r){var b=baseName(r.model);var k=(r.brand+'|'+b).toUpperCase();if(!groups[k])groups[k]={brand:r.brand,base:b,entries:[]};groups[k].entries.push(r);});
-  var existing=new Set(_vcData.map(function(r){return (r.brand+'|'+r.model).toUpperCase();}));
-  var created=0,skipped=0;
+  rows.forEach(function(r){
+    var b=baseName(r.model);
+    var k=((r.brand||'').toUpperCase()+'|'+b.toUpperCase());
+    if(!groups[k])groups[k]={brand:(r.brand||'').toUpperCase(),base:b.toUpperCase(),entries:[]};
+    groups[k].entries.push(r);
+  });
+
+  var existing=new Set(_vcData.map(function(r){return ((r.brand||'')+'|'+(r.model||'')).toUpperCase();}));
+  var created=0,varCreated=0,skipped=0,errors=0;
+
+  if(btn)btn.textContent='Syncing 0/'+Object.keys(groups).length+'...';
+
+  var idx=0;
   for(var k in groups){
+    idx++;
+    if(btn)btn.textContent='Syncing '+idx+'/'+Object.keys(groups).length+'...';
     var g=groups[k];var rep=g.entries[0];
     if(existing.has(k)){skipped++;continue;}
-    var cd={brand:g.brand.toUpperCase(),model:g.base.toUpperCase(),
-      pa:parseFloat(rep.pa)||0,aeon_pa:parseFloat(rep.aeon_pa)||0,loanyear:parseInt(rep.loanyear)||5,
-      handling:parseFloat(rep.hand)||450,ins1:parseFloat(rep.ins1)||0,ins1p:parseFloat(rep.ins1p)||0,
-      ins3:parseFloat(rep.ins3)||0,inssum:parseFloat(rep.inssum)||0,other:parseFloat(rep.other)||0,
-      stock_qty:0,is_active:true};
+
+    // Catalog entry
+    var catData={
+      brand:g.brand,model:g.base,
+      pa:parseFloat(rep.pa)||0,
+      aeon_pa:parseFloat(rep.aeon_pa)||0,
+      loanyear:parseInt(rep.loanyear)||5,
+      handling:parseFloat(rep.hand)||(['maxi_scooter','big_bike','super_bike'].includes(rep.type)?700:450),
+      ins1:parseFloat(rep.ins1)||0,
+      ins1p:parseFloat(rep.ins1p)||0,
+      ins3:parseFloat(rep.ins3)||0,
+      inssum:parseFloat(rep.inssum)||0,
+      other:parseFloat(rep.other)||0,
+      stock_qty:0,is_active:true
+    };
+
     try{
-      var res=await fetch(SUPABASE_URL+'/rest/v1/vehicle_catalog',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(cd)});
-      var arr=await res.json();var catId=arr&&arr[0]?arr[0].id:null;
+      var res=await fetch(SUPABASE_URL+'/rest/v1/vehicle_catalog',{
+        method:'POST',
+        headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),
+        body:JSON.stringify(catData)
+      });
+      var arr=await res.json();
+      var catId=arr&&arr[0]?arr[0].id:null;
+
       if(catId){
-        for(var i=0;i<g.entries.length;i++){
-          var e=g.entries[i];var sfx=getSfx(e.model)||(g.entries.length>1?'STD':null);
-          var mf=plMfLookup(e.brand,e.model)||0;
-          await sbPost('vehicle_variants',{catalog_id:catId,variant_type:getVT(sfx),suffix:sfx,
-            cash:parseFloat(e.cash)||null,hp:parseFloat(e.hp)||null,dp:parseFloat(e.dpk)||null,
-            max_finance_amt:mf,pricelist_id:e.id,is_active:true});
-          await sbPatch('pricelist',{id:e.id},{catalog_id:catId});
-        }
         created++;
+        // Create one variant per pricelist entry
+        for(var i=0;i<g.entries.length;i++){
+          var e=g.entries[i];
+          var sfx=getSfx(e.model,g.entries.length);
+          var mfKey=((e.brand||'')+'|'+(e.model||'')).toUpperCase();
+          var mfAmt=mfMap[mfKey]||0;
+
+          // Build variant — try with max_finance_amt, fallback without
+          var vdata={
+            catalog_id:catId,
+            variant_type:getVT(sfx),
+            suffix:sfx,
+            cash:parseFloat(e.cash)||null,
+            hp:parseFloat(e.hp)||null,
+            dp:parseFloat(e.dpk)||null,
+            is_active:true,
+            pricelist_id:e.id
+          };
+          // Add max_finance_amt only if column exists (SQL was run)
+          if(mfAmt>0)vdata.max_finance_amt=mfAmt;
+
+          try{
+            await sbPost('vehicle_variants',vdata);
+            varCreated++;
+          }catch(ve){
+            // Column might not exist yet — retry without it
+            delete vdata.max_finance_amt;
+            try{await sbPost('vehicle_variants',vdata);varCreated++;}catch(ve2){errors++;}
+          }
+          // Link pricelist → catalog
+          try{await sbPatch('pricelist',{id:e.id},{catalog_id:catId});}catch(pe){}
+        }
       }
-    }catch(ex){}
+    }catch(ex){errors++;}
   }
+
   if(btn){btn.textContent='⟳ Sync from New Pricelist';btn.disabled=false;}
-  alert('Done!\nCreated: '+created+' · Skipped (exist): '+skipped+'\nFill in CC + Body Style for each.');
   await loadVCData();
+  alert('✓ Sync Complete!\n\nCatalog entries created: '+created+'\nVariants created: '+varCreated+'\nSkipped (already exist): '+skipped+(errors?'\nErrors: '+errors:'')+'\n\nNext: click Edit on each vehicle to fill in CC and Body Style.');
 }
+
 
 /* ══ STOCK KIT ══ */
 var _skData=[];var _skCat='';
