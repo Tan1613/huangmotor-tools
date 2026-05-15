@@ -1339,6 +1339,7 @@ body.theme-white .home-welcome{color:#555}
     <button id="vcUpdateBtn" onclick="vcUpdateSpecsFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #2a3a1e;border-radius:5px;color:#3fb950;font-size:10px;cursor:pointer">↻ Update Specs</button>
     <button id="vcLogBtn" onclick="vcToggleLog()" style="display:none;padding:4px 12px;background:none;border:1px solid #30363d;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">📋 Log</button>
     <button id="vcAuditBtn" onclick="vcToggleAudit()" style="padding:4px 12px;background:none;border:1px solid #2a1a3a;border-radius:5px;color:#8b949e;font-size:10px;cursor:pointer">🔍 Audit</button>
+    <button id="vcClearBtn" onclick="vcClearOldPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer">🗑 Clear Old PL</button>
   </div>
   <div id="vcList"></div>
   <div id="vcLogPanel" style="display:none;margin-top:12px"></div>
@@ -5220,6 +5221,7 @@ async function loadVCData(){
   var isAdmin=_editMode&&currentUser&&currentUser.role==='admin';
   if(ub)ub.style.display=isAdmin?'inline-block':'none';
   if(vlb)vlb.style.display=_editMode?'inline-block':'none';
+  var cb=ge('vcClearBtn');if(cb)cb.style.display=isAdmin?'inline-block':'none';
   renderVCList();
 }
 
@@ -5475,43 +5477,79 @@ async function vcPushToPricelist(){
   var catalogId=ge('vc_id').value;if(!catalogId)return;
   var r=_vcData.find(function(x){return String(x.id)===String(catalogId);});if(!r)return;
   var rt=vcRoadTax(r.cc)||0;
-  if(!_vcVariants.length){alert('Add at least one variant first.');return;}
   var active=_vcVariants.filter(function(v){return v.is_active;});
-  if(!active.length){alert('No active variants to push.');return;}
-  var pushed=0;
+  if(!active.length){alert('No active variants. Add and save a variant first.');return;}
+
+  // Auto-save any unsaved variants first
+  for(var si=0;si<_vcVariants.length;si++){
+    var sv=_vcVariants[si];
+    if(!sv.id){
+      var vd={catalog_id:parseInt(catalogId),variant_type:sv.variant_type||'standard',
+        suffix:sv.suffix||null,cash:sv.cash||null,hp:sv.hp||null,dp:sv.dp||null,is_active:sv.is_active!==false};
+      try{
+        var sr=await fetch(SUPABASE_URL+'/rest/v1/vehicle_variants',{method:'POST',
+          headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(vd)});
+        var sa=await sr.json();
+        if(sa&&sa[0])sv.id=sa[0].id;
+      }catch(se){}
+    }
+  }
+
+  var pushed=0,failed=0;
   for(var i=0;i<active.length;i++){
     var v=active[i];
-    var suffix=v.suffix?v.suffix.trim():'';
+    var suffix=(v.suffix||'').trim();
     var modelName=r.model+(suffix?' ('+suffix+')':'');
     var plData={
       brand:r.brand,model:modelName,
-      cash:v.cash,hp:v.hp,dpk:v.dp,
-      pa:r.pa,aeon_pa:r.aeon_pa,loanyear:r.loanyear,
-      rtax:rt,hand:r.handling,
-      ins1:r.ins1,ins1p:r.ins1p,ins3:r.ins3,inssum:r.inssum,
-      catalog_id:catalogId,variant_id:v.id||null,
+      cash:v.cash||null,hp:v.hp||null,dpk:v.dp||null,
+      pa:r.pa||0,aeon_pa:r.aeon_pa||0,loanyear:r.loanyear||5,
+      rtax:rt,hand:r.handling||450,
+      ins1:r.ins1||0,ins1p:r.ins1p||0,ins3:r.ins3||0,inssum:r.inssum||0,
+      other:r.other||0,
+      catalog_id:parseInt(catalogId),variant_id:v.id||null,
       auto_rtax:true,auto_hand:true,is_deleted:false
     };
     try{
-      if(v.pricelist_id){
-        await sbPatch('pricelist',{id:v.pricelist_id},plData);
+      var plId=v.pricelist_id;
+      if(plId){
+        var pr=await fetch(SUPABASE_URL+'/rest/v1/pricelist?id=eq.'+plId,{method:'PATCH',
+          headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
+        if(pr.ok)pushed++;else failed++;
       } else {
-        var res=await fetch(SUPABASE_URL+'/rest/v1/pricelist',{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
-        var arr=await res.json();
-        if(arr&&arr[0]&&v.id){
-          await sbPatch('vehicle_variants',{id:v.id},{pricelist_id:arr[0].id});
-          v.pricelist_id=arr[0].id;
+        var pr2=await fetch(SUPABASE_URL+'/rest/v1/pricelist',{method:'POST',
+          headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
+        var pa2=await pr2.json();
+        if(pr2.ok&&pa2&&pa2[0]){
+          v.pricelist_id=pa2[0].id;
+          if(v.id)await sbPatch('vehicle_variants',{id:v.id},{pricelist_id:pa2[0].id});
+          pushed++;
+        } else {
+          console.error('Push failed:',pa2);failed++;
         }
       }
-      pushed++;
-    }catch(e){}
+    }catch(e){console.error('Push error:',e);failed++;}
   }
-  alert('Pushed '+pushed+' variant'+(pushed!==1?'s':'')+' to New Vehicle Pricelist!');
+  var rows2=await sbGet('pricelist','order=brand.asc,model.asc');
+  _plData=(rows2||[]).filter(function(x){return !x.is_deleted;});
   vcRenderVariants();
-  // Refresh pricelist data
-  var rows=await sbGet('pricelist','order=brand.asc,model.asc');
-  _plData=(rows||[]).filter(function(r){return !r.is_deleted;});
+  alert('Push complete!\nPushed: '+pushed+(failed?' · Failed: '+failed:''));
 }
+
+async function vcClearOldPricelist(){
+  if(!confirm('⚠ Clear OLD Pricelist?\n\nThis will soft-delete ALL pricelist entries that are NOT linked to Vehicle Mgmt (no catalog_id).\n\nLinked entries will NOT be affected.\n\nThis cannot be undone easily. Proceed?'))return;
+  var rows=await sbGet('pricelist','catalog_id=is.null&is_deleted=not.is.true&select=id');
+  if(!rows||!rows.length){alert('No unlinked pricelist entries found.');return;}
+  var n=0;
+  for(var i=0;i<rows.length;i++){
+    try{await sbPatch('pricelist',{id:rows[i].id},{is_deleted:true});n++;}catch(e){}
+  }
+  var rows2=await sbGet('pricelist','order=brand.asc,model.asc');
+  _plData=(rows2||[]).filter(function(x){return !x.is_deleted;});
+  renderNewVehicleList();
+  alert('Done. Cleared '+n+' old pricelist entries.');
+}
+
 
 async function vcLoadVariantCounts(){
   // Load all variants for displayed catalog entries
