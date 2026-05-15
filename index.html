@@ -1355,16 +1355,15 @@ body.theme-white .home-welcome{color:#555}
         <input id="vc_model" type="text" placeholder="e.g. Y15ZR" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
       <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">CC</label>
         <input id="vc_cc" type="number" placeholder="e.g. 155" oninput="vcAutoFill()" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
-      <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Type <span id="vcTypeHint" style="color:#3fb950"></span></label>
-        <select id="vc_type" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box">
-          <option value="">— Select —</option>
-          <option value="moped">Moped (≤200cc)</option>
-          <option value="scooter">Scooter (≤200cc)</option>
-          <option value="moped_bike">Moped Bike (≤200cc)</option>
-          <option value="maxi_scooter">Maxi Scooter (>200cc)</option>
-          <option value="big_bike">Big Bike (200–500cc)</option>
-          <option value="super_bike">Super Bike (>500cc)</option>
-        </select></div>
+      <div>
+        <label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Body Style</label>
+        <div style="display:flex;gap:6px">
+          <button type="button" id="vcBsScooter" onclick="vcSetBodyStyle('scooter')" style="flex:1;padding:5px;border:1px solid #30363d;border-radius:5px;background:none;color:#8b949e;font-size:11px;cursor:pointer">🛵 Scooter</button>
+          <button type="button" id="vcBsBike" onclick="vcSetBodyStyle('bike')" style="flex:1;padding:5px;border:1px solid #30363d;border-radius:5px;background:none;color:#8b949e;font-size:11px;cursor:pointer">🏍 Bike</button>
+        </div>
+        <div id="vcTypeResult" style="margin-top:4px;font-size:10px;color:#3fb950"></div>
+        <input type="hidden" id="vc_type">
+      </div>
       <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Road Tax <span style="color:#2a4a6a">(auto)</span></label>
         <div id="vcRoadTax" style="padding:6px 8px;background:#0a0f1a;border:1px solid #1e2d45;border-radius:5px;color:#3fb950;font-size:11px;min-height:28px">—</div></div>
       <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Stock Qty</label>
@@ -1388,13 +1387,31 @@ body.theme-white .home-welcome{color:#555}
 
 <!-- AI Prompt Modal -->
 <div id="vcAIModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9000;overflow:auto">
-  <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;max-width:600px;margin:40px auto;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-size:13px;font-weight:700;color:#c9d1d9">🤖 AI Post Prompt</span>
+  <div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;max-width:660px;margin:30px auto;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:13px;font-weight:700;color:#c9d1d9">🤖 AI Content Generator</span>
       <button onclick="ge('vcAIModal').style.display='none'" style="background:none;border:none;color:#8b949e;font-size:16px;cursor:pointer">✕</button>
     </div>
-    <div style="font-size:10px;color:#4a6fa5;margin-bottom:6px">Copy and paste to ChatGPT / Claude</div>
-    <textarea id="vcAIPrompt" rows="16" readonly style="width:100%;padding:10px;background:#161b22;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:11px;line-height:1.6;outline:none;resize:vertical;box-sizing:border-box;font-family:monospace"></textarea>
+    <!-- Platform selector -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="vcPlWA" onclick="vcSetPlatform('wa')" style="flex:1;padding:7px;border:1px solid #1f6feb;border-radius:7px;background:#0d1e35;color:#58a6ff;font-size:11px;cursor:pointer">💬 WhatsApp<br><span style="font-size:9px;color:#4a6fa5">9:16 Status</span></button>
+      <button id="vcPlFB" onclick="vcSetPlatform('fb')" style="flex:1;padding:7px;border:1px solid #30363d;border-radius:7px;background:none;color:#8b949e;font-size:11px;cursor:pointer">📘 Facebook<br><span style="font-size:9px;color:#2a4a6a">4:5 Post</span></button>
+      <button id="vcPlIG" onclick="vcSetPlatform('ig')" style="flex:1;padding:7px;border:1px solid #30363d;border-radius:7px;background:none;color:#8b949e;font-size:11px;cursor:pointer">📷 Instagram<br><span style="font-size:9px;color:#2a4a6a">1:1 / 4:5</span></button>
+    </div>
+    <!-- Hashtags -->
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;color:#4a6fa5;margin-bottom:5px">Hashtags <span style="color:#2a4a6a">· click to toggle · add custom below</span></div>
+      <div id="vcHashtagBtns" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px"></div>
+      <input id="vcCustomHashtag" type="text" placeholder="Add custom hashtag (e.g. #kepalabatas)" onkeydown="if(event.key==='Enter')vcAddCustomHashtag()"
+        style="width:100%;padding:5px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box">
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:8px;border-bottom:1px solid #21262d">
+      <button onclick="vcAITab('post')" id="vcTabPost" style="padding:6px 14px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:11px;cursor:pointer">📝 Post Prompt</button>
+      <button onclick="vcAITab('img')" id="vcTabImg" style="padding:6px 14px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:11px;cursor:pointer">🎨 Image Prompt</button>
+    </div>
+    <div id="vcAIImgHint" style="font-size:10px;color:#4a6fa5;margin-bottom:6px"></div>
+    <textarea id="vcAIPrompt" rows="14" readonly style="width:100%;padding:10px;background:#161b22;border:1px solid #21262d;border-radius:6px;color:#c9d1d9;font-size:11px;line-height:1.6;outline:none;resize:vertical;box-sizing:border-box;font-family:monospace"></textarea>
     <button onclick="navigator.clipboard.writeText(ge('vcAIPrompt').value).then(function(){ge('vcAICopy').textContent='✓ Copied!';setTimeout(function(){ge('vcAICopy').textContent='Copy';},2000)})" id="vcAICopy"
       style="margin-top:8px;width:100%;padding:8px;background:#1f6feb;border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Copy</button>
   </div>
@@ -5178,16 +5195,168 @@ function renderVCList(){
   }).join('');
 }
 
+var _vcBodyStyle='';
+function vcSetBodyStyle(style){
+  _vcBodyStyle=style;
+  var sb=ge('vcBsScooter'),bb=ge('vcBsBike');
+  if(sb){sb.style.borderColor=style==='scooter'?'#58a6ff':'#30363d';sb.style.background=style==='scooter'?'#0d1e35':'none';sb.style.color=style==='scooter'?'#58a6ff':'#8b949e';}
+  if(bb){bb.style.borderColor=style==='bike'?'#f0883e':'#30363d';bb.style.background=style==='bike'?'#1a0f05':'none';bb.style.color=style==='bike'?'#f0883e':'#8b949e';}
+  vcAutoFill();
+}
+
 function vcAutoFill(){
   var cc=parseInt(ge('vc_cc')&&ge('vc_cc').value)||0;
   var rt=vcRoadTax(cc);
   var rtEl=ge('vcRoadTax');if(rtEl)rtEl.textContent=rt?'RM '+rt:'—';
-  var hint=ge('vcTypeHint');
-  var typeEl=ge('vc_type');
-  if(cc>0&&typeEl&&!typeEl.value){
-    var sug=vcTypeFromCC(cc);
-    if(hint)hint.textContent='→ suggest: '+(VC_TYPE_LABELS[sug]||sug);
-  } else {if(hint)hint.textContent='';}
+  // Auto-determine type from cc + body style
+  var type='';
+  if(_vcBodyStyle==='scooter'){
+    type=cc>200?'maxi_scooter':'scooter';
+  } else if(_vcBodyStyle==='bike'){
+    if(cc<=200)type='moped_bike';
+    else if(cc<=500)type='big_bike';
+    else type='super_bike';
+  }
+  var typeEl=ge('vc_type');if(typeEl)typeEl.value=type;
+  var res=ge('vcTypeResult');
+  if(res)res.textContent=type?(VC_TYPE_LABELS[type]||type)+(rt?' · Road Tax RM '+rt:''):'';
+}
+
+var _vcAIPlatform='wa';
+var _vcAIActiveTab='post';
+var _vcAIHashtags=[];
+var _vcAIVehicle=null;
+
+var VC_PLATFORM={
+  wa:{label:'WhatsApp',ratio:'9:16',ratioLabel:'9:16 (1080×1920)',desc:'Short, punchy, emoji-rich. Max 700 chars for Status.'},
+  fb:{label:'Facebook',ratio:'4:5',ratioLabel:'4:5 (1080×1350)',desc:'Engaging story format, call-to-action, price highlight. 150-300 words.'},
+  ig:{label:'Instagram',ratio:'1:1',ratioLabel:'1:1 (1080×1080) or 4:5 (1080×1350)',desc:'Visual-first, minimal text on image, hashtags in caption. 80-150 words.'}
+};
+
+function vcSetPlatform(p){
+  _vcAIPlatform=p;
+  ['wa','fb','ig'].forEach(function(k){
+    var btn=ge('vcPl'+k.charAt(0).toUpperCase()+k.slice(1).charAt(0).toUpperCase()+k.slice(2));
+    // fix: button ids are vcPlWA, vcPlFB, vcPlIG
+  });
+  var ids={wa:'vcPlWA',fb:'vcPlFB',ig:'vcPlIG'};
+  Object.keys(ids).forEach(function(k){
+    var btn=ge(ids[k]);if(!btn)return;
+    var active=k===p;
+    btn.style.borderColor=active?'#1f6feb':'#30363d';
+    btn.style.background=active?'#0d1e35':'none';
+    btn.style.color=active?'#58a6ff':'#8b949e';
+  });
+  vcRebuildPrompt();
+}
+
+function vcAITab(tab){
+  _vcAIActiveTab=tab;
+  var tp=ge('vcTabPost'),ti=ge('vcTabImg');
+  if(tp){tp.style.borderBottomColor=tab==='post'?'#1f6feb':'transparent';tp.style.color=tab==='post'?'#58a6ff':'#8b949e';}
+  if(ti){ti.style.borderBottomColor=tab==='img'?'#1f6feb':'transparent';ti.style.color=tab==='img'?'#58a6ff':'#8b949e';}
+  vcRebuildPrompt();
+}
+
+function vcAddCustomHashtag(){
+  var el=ge('vcCustomHashtag');if(!el)return;
+  var val=el.value.trim().replace(/\s+/g,'');
+  if(!val)return;
+  if(!val.startsWith('#'))val='#'+val;
+  if(!_vcAIHashtags.find(function(h){return h.tag===val;})){
+    _vcAIHashtags.push({tag:val,on:true,custom:true});
+    vcRenderHashtags();vcRebuildPrompt();
+  }
+  el.value='';
+}
+
+function vcToggleHashtag(idx){
+  if(_vcAIHashtags[idx])_vcAIHashtags[idx].on=!_vcAIHashtags[idx].on;
+  vcRenderHashtags();vcRebuildPrompt();
+}
+
+function vcRenderHashtags(){
+  var wrap=ge('vcHashtagBtns');if(!wrap)return;
+  wrap.innerHTML=_vcAIHashtags.map(function(h,i){
+    return '<button onclick="vcToggleHashtag('+i+')" style="padding:3px 8px;border:1px solid '+(h.on?'#1f6feb':'#30363d')+';border-radius:12px;background:'+(h.on?'#0d1e35':'none')+';color:'+(h.on?'#58a6ff':'#4a6fa5')+';font-size:10px;cursor:pointer">'
+      +esc(h.tag)+(h.custom?' ×':'')+'</button>';
+  }).join('');
+}
+
+function vcBuildHashtagStr(){
+  return _vcAIHashtags.filter(function(h){return h.on;}).map(function(h){return h.tag;}).join(' ');
+}
+
+function vcRebuildPrompt(){
+  if(!_vcAIVehicle)return;
+  var r=_vcAIVehicle;
+  var rt=vcRoadTax(r.cc);
+  var typeLabel=VC_TYPE_LABELS[r.type]||r.type||'';
+  var colors=(r.colors||'').split(',').map(function(c){return c.trim();}).filter(Boolean);
+  var features=(r.features||'').split(',').map(function(f){return f.trim();}).filter(Boolean);
+  var pl=_plData.find(function(p){return (p.brand||'').toUpperCase()===(r.brand||'').toUpperCase()&&(p.model||'').toUpperCase()===(r.model||'').toUpperCase();});
+  var cashStr=pl?'RM '+Math.round(parseFloat(pl.cash)).toLocaleString():'';
+  var hpStr=pl?'RM '+Math.round(parseFloat(pl.hp)).toLocaleString():'';
+  var plat=VC_PLATFORM[_vcAIPlatform];
+  var htags=vcBuildHashtagStr();
+  var hint=ge('vcAIImgHint');
+  if(hint)hint.textContent=_vcAIActiveTab==='post'?'Platform: '+plat.label+' · Image ratio: '+plat.ratioLabel:'Image generation prompt for Midjourney / DALL-E 3 · Ratio: '+plat.ratioLabel;
+
+  var prompt='';
+  if(_vcAIActiveTab==='post'){
+    prompt='You are a motorcycle dealer social media content writer for HuangMotor M Sdn Bhd, Penang.\n'
+      +'Write a '+plat.label+' post. '+plat.desc+'\n\n'
+      +'=== VEHICLE ===\n'
+      +'Brand: '+r.brand+'\nModel: '+r.model+'\n'
+      +(r.cc?'Engine: '+r.cc+'cc\n':'')
+      +(typeLabel?'Type: '+typeLabel+'\n':'')
+      +(colors.length?'Colors: '+colors.join(', ')+'\n':'')
+      +(rt?'Road Tax: RM '+rt+'/yr\n':'')
+      +(cashStr?'Cash Price: '+cashStr+'\n':'')
+      +(hpStr?'HP (Loan): '+hpStr+'\n':'')
+      +(features.length?'\nFeatures:\n'+features.map(function(f){return '- '+f;}).join('\n')+'\n':'')
+      +(r.description?'\nDescription: '+r.description+'\n':'')
+      +'\n=== FORMAT ===\n'
+      +'- Bilingual (Bahasa Malaysia + English)\n'
+      +'- Enthusiastic, friendly tone with relevant emojis\n'
+      +'- Include call to action: WhatsApp / visit HuangMotor\n'
+      +'- Image ratio recommendation: '+plat.ratioLabel+'\n'
+      +(htags?'- End with these hashtags: '+htags+'\n':'')
+      +'- Dealer: HuangMotor M Sdn Bhd, Kepala Batas, Penang\n';
+  } else {
+    // Image prompt
+    var style=r.type==='super_bike'||r.type==='big_bike'?'dramatic moody motorcycle photography':'bright clean product motorcycle photography';
+    prompt='Create a '+style+' for social media.\n\n'
+      +'Subject: '+r.brand+' '+r.model+(r.cc?' '+r.cc+'cc':'')+(typeLabel?' '+typeLabel:'')+'\n'
+      +(colors.length?'Color: '+colors[0]+'\n':'')
+      +'\nStyle: Professional automotive product shot\n'
+      +'Lighting: '+(r.type==='super_bike'?'dramatic studio lighting with rim light':'bright showroom lighting')+'\n'
+      +'Background: '+(r.type==='super_bike'||r.type==='big_bike'?'dark gradient / urban night scene':'clean white or gradient showroom')+'\n'
+      +'Angle: 3/4 front view, slightly low angle\n'
+      +'Aspect Ratio: '+plat.ratio+'\n'
+      +'Quality: photorealistic, 8K, sharp detail\n'
+      +'No text, no watermark, no people\n\n'
+      +'[For Midjourney add: --ar '+plat.ratio.replace(':','+')+' --style raw --q 2]\n'
+      +'[For DALL-E 3: specify '+plat.ratioLabel+' in the prompt]';
+  }
+  ge('vcAIPrompt').value=prompt;
+}
+
+function vcOpenAI(id){
+  var r=_vcData.find(function(x){return x.id===id;});if(!r)return;
+  _vcAIVehicle=r;
+  _vcAIPlatform='wa';_vcAIActiveTab='post';
+  // Build default hashtags
+  var defaultTags=['#HuangMotor','#'+r.brand,'#'+r.model.replace(/\s+/g,''),
+    '#Penang','#KepalaBatas','#Malaysia','#2026','#Motorcycle'];
+  if(r.type)defaultTags.push('#'+(VC_TYPE_LABELS[r.type]||r.type).replace(/\s+/g,''));
+  // Dedupe and init
+  _vcAIHashtags=defaultTags.filter(function(t,i){return defaultTags.indexOf(t)===i;}).map(function(t){return {tag:t,on:true,custom:false};});
+  vcRenderHashtags();
+  // Reset platform buttons
+  vcSetPlatform('wa');
+  vcAITab('post');
+  ge('vcAIModal').style.display='block';
 }
 
 function openVCModal(id){
@@ -5203,7 +5372,10 @@ function openVCModal(id){
   ge('vc_features').value=r?r.features||'':'';
   ge('vc_desc').value=r?r.description||'':'';
   ge('vcDeleteBtn').style.display=id?'block':'none';
-  vcAutoFill();ge('vcModal').style.display='block';
+  var t=r?r.type||'':'';
+  _vcBodyStyle=['scooter','maxi_scooter'].indexOf(t)>=0?'scooter':['moped_bike','big_bike','super_bike','moped'].indexOf(t)>=0?'bike':'';
+  vcSetBodyStyle(_vcBodyStyle);
+  ge('vcModal').style.display='block';
 }
 
 function closeVCModal(){ge('vcModal').style.display='none';}
