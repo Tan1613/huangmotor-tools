@@ -5468,9 +5468,22 @@ async function saveVC(){
 
 async function deleteVC(){
   var id=ge('vc_id').value;if(!id)return;
-  if(!confirm('Delete this vehicle and all its variants?'))return;
+  var r=_vcData.find(function(x){return String(x.id)===id;});
+  var name=r?r.brand+' '+r.model:'this vehicle';
+  if(!confirm('Delete '+name+'?\n\nThis will also remove all linked Pricelist entries.'))return;
+  // Soft-delete linked pricelist entries first
+  var vars=await sbGet('vehicle_variants','catalog_id=eq.'+id+'&select=id,pricelist_id');
+  if(vars&&vars.length){
+    for(var i=0;i<vars.length;i++){
+      if(vars[i].pricelist_id)await sbPatch('pricelist',{id:vars[i].pricelist_id},{is_deleted:true});
+    }
+  }
   await sbDelete('vehicle_catalog',{id:id});
+  // Refresh pricelist cache
+  var rows=await sbGet('pricelist','order=brand.asc,model.asc');
+  _plData=(rows||[]).filter(function(x){return !x.is_deleted;});
   closeVCModal();await loadVCData();
+  if(_plCurrentTab==='new')renderNewVehicleList();
 }
 
 async function vcPushToPricelist(){
