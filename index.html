@@ -3687,6 +3687,13 @@ async function loadPricelistModule(){
   upSyncEditBar();
   if(ge('plPanelNew'))ge('plPanelNew').style.display='block';
   if(ge('plPanelUsed'))ge('plPanelUsed').style.display='none';
+  if(ge('plPanelVehicle'))ge('plPanelVehicle').style.display='none';
+  // Reset tab styles
+  var act='padding:8px 20px;background:none;border:none;border-bottom:2px solid #1f6feb;color:#58a6ff;font-size:12px;font-weight:600;cursor:pointer';
+  var inact='padding:8px 20px;background:none;border:none;border-bottom:2px solid transparent;color:#8b949e;font-size:12px;cursor:pointer';
+  if(ge('plTabNew'))ge('plTabNew').style.cssText=act;
+  if(ge('plTabUsed'))ge('plTabUsed').style.cssText=inact;
+  if(ge('plTabVehicle'))ge('plTabVehicle').style.cssText=inact;
   var wrap=ge('newVehicleList');
   if(wrap)wrap.innerHTML='<div style="text-align:center;padding:2rem;color:#4a6fa5;font-size:12px">Loading...</div>';
   try{
@@ -5713,7 +5720,7 @@ async function vcRunAudit(){
 
   // Load pricelist + variants in parallel
   var [plRows,varRows]=await Promise.all([
-    sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc'),
+    sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc&select=id,brand,model,cash,catalog_id,variant_id'),
     sbGet('vehicle_variants','select=id,catalog_id,pricelist_id,suffix,cash,hp,dp,is_active')
   ]);
   plRows=plRows||[];varRows=varRows||[];
@@ -5721,12 +5728,14 @@ async function vcRunAudit(){
   var varByPL={};varRows.forEach(function(v){if(v.pricelist_id)varByPL[v.pricelist_id]=v;});
   var varByCat={};varRows.forEach(function(v){if(!varByCat[v.catalog_id])varByCat[v.catalog_id]=[];varByCat[v.catalog_id].push(v);});
 
-  var linked=plRows.filter(function(r){return r.catalog_id&&varByPL[r.id];});
-  var catLinked=plRows.filter(function(r){return r.catalog_id&&!varByPL[r.id];});
+  // Fully linked: pricelist has catalog_id AND (variant links back OR variant_id is set)
+  var varIdSet=new Set(varRows.filter(function(v){return v.pricelist_id;}).map(function(v){return v.pricelist_id;}));
+  var linked=plRows.filter(function(r){return r.catalog_id&&(varByPL[r.id]||r.variant_id);});
+  var catLinked=plRows.filter(function(r){return r.catalog_id&&!varByPL[r.id]&&!r.variant_id;});
   var unlinked=plRows.filter(function(r){return !r.catalog_id;});
 
   // Catalog entries without variants
-  var catNoVar=_vcData.filter(function(c){return !varByCat[c.id]||!varByCat[c.id].length;});
+  var catNoVar=_vcData.filter(function(c){var vv=varByCat[c.id]||[];return !vv.filter(function(v){return v.is_active!==false;}).length;});
 
   var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
     +'<div style="background:#0a1a0a;border:1px solid #1e3a1e;border-radius:7px;padding:10px;text-align:center">'
