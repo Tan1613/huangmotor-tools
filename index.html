@@ -5331,10 +5331,12 @@ function vcAutoFill(){
 
 // Variant helpers
 var VARIANT_TYPES=[
-  {id:'standard',label:'Standard',suffix:'STD',color:'#8b949e'},
+  {id:'standard',label:'Standard',suffix:'',color:'#8b949e'},
   {id:'promo',label:'Promo',suffix:'PROMO',color:'#3fb950'},
-  {id:'se',label:'Special Edition',suffix:'SE',color:'#d2a8ff'},
-  {id:'le',label:'Limited Edition',suffix:'LE',color:'#f0883e'},
+  {id:'se',label:'Special Edition (SE)',suffix:'SE',color:'#d2a8ff'},
+  {id:'se_promo',label:'SE Promo',suffix:'SE PROMO',color:'#b794f4'},
+  {id:'le',label:'Limited Edition (LE)',suffix:'LE',color:'#f0883e'},
+  {id:'le_promo',label:'LE Promo',suffix:'LE PROMO',color:'#ed8936'},
   {id:'custom',label:'Custom',suffix:'',color:'#58a6ff'}
 ];
 
@@ -5345,35 +5347,56 @@ function vcAddVariant(){
 
 function vcRenderVariants(){
   var wrap=ge('vcVarList');if(!wrap)return;
-  if(!_vcVariants.length){wrap.innerHTML='<div style="text-align:center;padding:1rem;color:#2a4a6a;font-size:11px">No variants yet. Click + Add Variant.</div>';return;}
-  wrap.innerHTML=_vcVariants.map(function(v,i){
+  if(!_vcVariants.length){
+    wrap.innerHTML='<div style="text-align:center;padding:1.5rem;color:#2a4a6a;font-size:11px">No variants yet — click + Add Variant</div>';
+    return;
+  }
+  // Flat table header
+  var html='<div style="display:grid;grid-template-columns:140px 90px 1fr 1fr 1fr 100px 60px;gap:0;border:1px solid #21262d;border-radius:7px;overflow:hidden">'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d">Type</div>'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d;border-left:1px solid #21262d">Suffix</div>'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d;border-left:1px solid #21262d">Cash</div>'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d;border-left:1px solid #21262d">HP</div>'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d;border-left:1px solid #21262d">DP</div>'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d;border-left:1px solid #21262d">Max Finance</div>'
+    +'<div style="font-size:9px;color:#4a6fa5;padding:5px 8px;background:#0a0f1a;border-bottom:1px solid #21262d;border-left:1px solid #21262d"></div>';
+
+  _vcVariants.forEach(function(v,i){
     var vt=VARIANT_TYPES.find(function(x){return x.id===v.variant_type;})||VARIANT_TYPES[0];
-    var suffixVal=v.suffix!==null&&v.suffix!==undefined?v.suffix:vt.suffix;
-    return '<div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;position:relative">'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">'
-        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Type</label>'
-          +'<select onchange="vcVariantType('+i+',this.value)" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none">'
-          +VARIANT_TYPES.map(function(t){return '<option value="'+t.id+'"'+(v.variant_type===t.id?' selected':'')+' style="color:'+t.color+'">'+t.label+'</option>';}).join('')
-          +'</select></div>'
-        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Suffix <span style="color:#2a4a6a">after model name</span></label>'
-          +'<input type="text" value="'+esc(suffixVal)+'" onchange="vcVariantSuffix('+i+',this.value)" placeholder="e.g. STD" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:'+vt.color+';font-size:11px;font-weight:700;outline:none;box-sizing:border-box"></div>'
-        +'<div style="display:flex;gap:4px">'
-          +'<button onclick="vcVariantToggle('+i+')" style="padding:5px 8px;border:1px solid '+(v.is_active?'#238636':'#30363d')+';border-radius:5px;background:none;color:'+(v.is_active?'#3fb950':'#8b949e')+';font-size:10px;cursor:pointer">'+(v.is_active?'✓ Active':'○ Off')+'</button>'
-          +'<button onclick="vcVariantRemove('+i+')" style="padding:5px 8px;border:1px solid #3a1a1a;border-radius:5px;background:none;color:#e24b4a;font-size:10px;cursor:pointer">✕</button>'
-        +'</div>'
-      +'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px">'
-        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Cash Price</label>'
-          +'<input type="number" value="'+(v.cash||'')+'" data-vi="'+i+'" data-f="cash" onchange="vcVF(this)" placeholder="RM" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'
-        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">HP (Loan)</label>'
-          +'<input type="number" value="'+(v.hp||'')+'" data-vi="'+i+'" data-f="hp" onchange="vcVF(this)" placeholder="RM" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'
-        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Down Payment</label>'
-          +'<input type="number" value="'+(v.dp||'')+'" data-vi="'+i+'" data-f="dp" onchange="vcVF(this)" placeholder="RM" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'
-        +'<div><label style="font-size:9px;color:#4a6fa5;display:block;margin-bottom:2px">Max Finance (RM) <span style="color:#2a4a6a">AEON</span></label>'
-          +'<input type="number" value="'+(v.max_finance_amt||'')+'" data-vi="'+i+'" data-f="max_finance_amt" onchange="vcVF(this)" placeholder="0 = full loan" style="width:100%;padding:5px 6px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>'+(v.pricelist_id?'<div style="font-size:9px;color:#2a4a6a;margin-top:6px">Linked to Pricelist #'+v.pricelist_id+'</div>':'')
-    +'</div>';
-  }).join('');
+    var isLast=i===_vcVariants.length-1;
+    var borderB=isLast?'':'border-bottom:1px solid #21262d;';
+    var row='';
+    var inp='padding:4px 6px;background:transparent;border:none;color:#c9d1d9;font-size:11px;outline:none;width:100%';
+    row+='<div style="'+borderB+'padding:2px 4px;display:flex;align-items:center">'
+      +'<select onchange="vcVariantType('+i+',this.value)" style="'+inp+';color:'+vt.color+';font-size:10px;background:#0d1117">'
+      +VARIANT_TYPES.map(function(t){return '<option value="'+t.id+'"'+(v.variant_type===t.id?' selected':'')+' style="color:'+t.color+'">'+t.label+'</option>';}).join('')
+      +'</select></div>';
+    var sfxVal=v.suffix!==null&&v.suffix!==undefined?v.suffix:vt.suffix;
+    row+='<div style="'+borderB+'border-left:1px solid #21262d;padding:2px 4px">'
+      +'<input type="text" value="'+esc(sfxVal||'')+'" onchange="vcVariantSuffix('+i+',this.value)" placeholder="auto" style="'+inp+';color:'+vt.color+';font-weight:700;font-size:10px">'
+      +'</div>';
+    row+='<div style="'+borderB+'border-left:1px solid #21262d;padding:2px 4px">'
+      +'<input type="number" value="'+(v.cash||'')+'" data-vi="'+i+'" data-f="cash" onchange="vcVF(this)" placeholder="RM" style="'+inp+'">'
+      +'</div>';
+    row+='<div style="'+borderB+'border-left:1px solid #21262d;padding:2px 4px">'
+      +'<input type="number" value="'+(v.hp||'')+'" data-vi="'+i+'" data-f="hp" onchange="vcVF(this)" placeholder="RM" style="'+inp+'">'
+      +'</div>';
+    row+='<div style="'+borderB+'border-left:1px solid #21262d;padding:2px 4px">'
+      +'<input type="number" value="'+(v.dp||'')+'" data-vi="'+i+'" data-f="dp" onchange="vcVF(this)" placeholder="RM" style="'+inp+'">'
+      +'</div>';
+    row+='<div style="'+borderB+'border-left:1px solid #21262d;padding:2px 4px">'
+      +'<input type="number" value="'+(v.max_finance_amt||'')+'" data-vi="'+i+'" data-f="max_finance_amt" onchange="vcVF(this)" placeholder="0=full" style="'+inp+'">'
+      +'</div>';
+    row+='<div style="'+borderB+'border-left:1px solid #21262d;padding:2px 4px;display:flex;gap:3px;align-items:center">'
+      +'<button onclick="vcVariantToggle('+i+')" title="'+(v.is_active?'Active':'Inactive')+'" style="padding:2px 5px;border:1px solid '+(v.is_active?'#238636':'#30363d')+';border-radius:4px;background:none;color:'+(v.is_active?'#3fb950':'#8b949e')+';font-size:10px;cursor:pointer">'+(v.is_active?'✓':'○')+'</button>'
+      +'<button onclick="vcVariantRemove('+i+')" style="padding:2px 5px;border:1px solid #3a1a1a;border-radius:4px;background:none;color:#e24b4a;font-size:10px;cursor:pointer">×</button>'
+      +'</div>';
+    html+=row;
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
 }
+
 
 function vcVariantType(i,val){_vcVariants[i].variant_type=val;var vt=VARIANT_TYPES.find(function(x){return x.id===val;})||VARIANT_TYPES[0];_vcVariants[i].suffix=vt.suffix;vcRenderVariants();}
 function vcVariantSuffix(i,val){_vcVariants[i].suffix=val;}
@@ -5515,8 +5538,15 @@ async function vcPushToPricelist(){
   var pushed=0,failed=0,errMsgs=[];
   for(var i=0;i<active.length;i++){
     var v=active[i];
-    var suffix=(v.suffix||'').trim();
-    var modelName=r.model+(suffix?' ('+suffix+')':'');
+    // Single standard variant = no suffix
+    var isSingleStd=active.length===1&&(v.variant_type==='standard'||!v.variant_type);
+    var rawSuffix=(v.suffix||'').trim();
+    var suffix=isSingleStd?'':rawSuffix;
+    // Format suffix: SE PROMO → (SE) PROMO, LE PROMO → (LE) PROMO, SE → (SE), LE → (LE), STD → (STD)
+    var fmtSfx=suffix
+      .replace(/^(SE|LE|STD|LT)(\s+PROMO)?$/i,function(m,t,p){return '('+t.toUpperCase()+')'+(p?' PROMO':'');})
+      .replace(/^PROMO$/i,'PROMO');
+    var modelName=r.model+(fmtSfx?' '+fmtSfx:'');
     var plData={
       brand:(r.brand||'').toUpperCase(),
       model:modelName.toUpperCase(),
