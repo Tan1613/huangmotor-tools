@@ -1411,7 +1411,9 @@ body.theme-white .home-welcome{color:#555}
           <input id="vc_inssum" type="number" step="0.01" placeholder="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
       </div>
       <!-- Other info -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+        <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Other Fees</label>
+          <input id="vc_other" type="number" step="0.01" placeholder="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
         <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Stock Qty</label>
           <input id="vc_stock" type="number" value="0" min="0" style="width:100%;padding:6px 8px;background:#161b22;border:1px solid #21262d;border-radius:5px;color:#c9d1d9;font-size:11px;outline:none;box-sizing:border-box"></div>
         <div><label style="font-size:10px;color:#4a6fa5;display:block;margin-bottom:3px">Colors</label>
@@ -5381,7 +5383,7 @@ function openVCModal(id){
   ge('vc_colors').value=r?r.colors||'':'';
   ge('vc_features').value=r?r.features||'':'';
   ge('vc_desc').value=r?r.description||'':'';
-  ge('vc_other').value=r?r.other||'':'';
+  var oEl=ge('vc_other');if(oEl)oEl.value=r?r.other||'':'';
   ge('vcDeleteBtn').style.display=id?'block':'none';
   var syncBtn=ge('vcSyncPLBtn');if(syncBtn)syncBtn.style.display=id?'inline-block':'none';
   var t=r?r.type||'':'';
