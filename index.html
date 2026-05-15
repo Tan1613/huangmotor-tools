@@ -1337,6 +1337,7 @@ body.theme-white .home-welcome{color:#555}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <div id="vcSummary" style="font-size:10px;color:#4a6fa5"></div>
     <button id="vcSyncBtn" onclick="vcSyncFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #1e2d45;border-radius:5px;color:#4a6fa5;font-size:10px;cursor:pointer">⟳ Sync from New Pricelist</button>
+    <button id="vcUpdateBtn" onclick="vcUpdateSpecsFromPricelist()" style="display:none;padding:4px 12px;background:none;border:1px solid #2a3a1e;border-radius:5px;color:#3fb950;font-size:10px;cursor:pointer">↻ Update Specs</button>
   </div>
   <div id="vcList"></div>
 </div>
@@ -3661,7 +3662,11 @@ function switchPLTab(tab){
   // Kill print mode on the tab we're leaving
   var vp=ge('plPanelVehicle');if(vp)vp.style.display=tab==='vehicle'?'block':'none';
   var vtb=ge('plTabVehicle');if(vtb)vtb.style.cssText=tab==='vehicle'?act:inact;
-  if(tab==='vehicle'){loadVCData();return;}
+  if(tab==='vehicle'){
+    if(np)np.style.display='none';
+    if(up)up.style.display='none';
+    loadVCData();return;
+  }
   if(tab==='used'){
     if(_plPrintMode){_plPrintMode=false;var ps=ge('plPrintSelBtn');if(ps)ps.style.display='none';}
     if(!_upData||!_upData.length)loadUPData();else{upSyncEditBar();renderUPList();}
@@ -5207,7 +5212,10 @@ async function loadVCData(){
   var rows=await sbGet('vehicle_catalog','order=brand.asc,model.asc');
   _vcData=rows||[];
   var sb=ge('vcSyncBtn');
-  if(sb)sb.style.display=(_editMode&&currentUser&&currentUser.role==='admin')?'inline-block':'none';
+  var ub=ge('vcUpdateBtn');
+  var isAdmin=_editMode&&currentUser&&currentUser.role==='admin';
+  if(sb)sb.style.display=isAdmin?'inline-block':'none';
+  if(ub)ub.style.display=isAdmin?'inline-block':'none';
   renderVCList();
 }
 
@@ -5496,6 +5504,94 @@ async function vcPushToPricelist(){
   // Refresh pricelist data
   var rows=await sbGet('pricelist','order=brand.asc,model.asc');
   _plData=(rows||[]).filter(function(r){return !r.is_deleted;});
+}
+
+async function vcUpdateSpecsFromPricelist(){
+  if(!confirm('Update Specs → existing Vehicle Catalog entries will be patched with PA%, Insurance, Fees from Pricelist.\n\nThis will NOT touch CC, Body Style, Colors or Description.\n\nProceed?'))return;
+  var btn=ge('vcUpdateBtn');if(btn){btn.textContent='Updating...';btn.disabled=true;}
+
+  var rows=await sbGet('pricelist','is_deleted=not.is.true&order=brand.asc,model.asc');
+  if(!rows||!rows.length){if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}alert('No pricelist data.');return;}
+
+  // Build pricelist map by brand|baseModel
+  function baseName(m){return (m||'').replace(/\s*\((STD|STANDARD|SE|LE|PROMO)\)\s*$/i,'').replace(/\s+(STD|STANDARD|PROMO|SE|LE)\s*$/i,'').trim().toUpperCase();}
+  var plMap={};
+  rows.forEach(function(r){
+    var k=((r.brand||'').toUpperCase()+'|'+baseName(r.model));
+    if(!plMap[k])plMap[k]=r; // use first match as representative
+  });
+
+  // Also build variant map for cash/hp/dp
+  function getSfx(m,total){var x=(m||'').match(/\(?(STD|STANDARD|SE|LE|PROMO)\)?$/i);if(x)return x[1].replace('STANDARD','STD').toUpperCase();return total>1?'STD':null;}
+  function getVT(s){if(!s)return 'standard';var u=s.toUpperCase();return u==='SE'?'se':u==='LE'?'le':u==='PROMO'?'promo':'standard';}
+
+  // MF data
+  var mfRows=await sbGet('max_finance','select=brand,model,amt');
+  var mfMap={};(mfRows||[]).forEach(function(r){mfMap[((r.brand||'')+'|'+(r.model||'')).toUpperCase()]=parseFloat(r.amt)||0;});
+
+  var updated=0,varUpdated=0,errors=0;
+  var total=_vcData.length;
+
+  for(var ci=0;ci<_vcData.length;ci++){
+    var cat=_vcData[ci];
+    if(btn)btn.textContent='Updating '+(ci+1)+'/'+total+'...';
+    var k=((cat.brand||'').toUpperCase()+'|'+(cat.model||'').toUpperCase());
+    var rep=plMap[k];
+    if(!rep)continue;
+
+    // Update catalog specs
+    var specPatch={
+      pa:parseFloat(rep.pa)||0,
+      aeon_pa:parseFloat(rep.aeon_pa)||0,
+      loanyear:parseInt(rep.loanyear)||5,
+      handling:parseFloat(rep.hand)||450,
+      ins1:parseFloat(rep.ins1)||0,
+      ins1p:parseFloat(rep.ins1p)||0,
+      ins3:parseFloat(rep.ins3)||0,
+      inssum:parseFloat(rep.inssum)||0,
+      other:parseFloat(rep.other)||0
+    };
+    try{await sbPatch('vehicle_catalog',{id:cat.id},specPatch);updated++;}catch(e){errors++;}
+
+    // Upsert variants: find all pricelist entries for this base model
+    var baseModel=(cat.model||'').toUpperCase();
+    var matchingEntries=rows.filter(function(r){
+      return (r.brand||'').toUpperCase()===(cat.brand||'').toUpperCase()
+        && baseName(r.model)===baseModel;
+    });
+
+    // Load existing variants for this catalog entry
+    var existingVars=await sbGet('vehicle_variants','catalog_id=eq.'+cat.id+'&select=id,pricelist_id,suffix,variant_type');
+
+    for(var ei=0;ei<matchingEntries.length;ei++){
+      var e=matchingEntries[ei];
+      var sfx=getSfx(e.model,matchingEntries.length);
+      var mfKey=((e.brand||'')+'|'+(e.model||'')).toUpperCase();
+      var mfAmt=mfMap[mfKey]||0;
+      var vdata={
+        catalog_id:cat.id,variant_type:getVT(sfx),suffix:sfx,
+        cash:parseFloat(e.cash)||null,hp:parseFloat(e.hp)||null,dp:parseFloat(e.dpk)||null,
+        is_active:true,pricelist_id:e.id
+      };
+      if(mfAmt>0)vdata.max_finance_amt=mfAmt;
+
+      // Check if variant already linked to this pricelist entry
+      var existing=(existingVars||[]).find(function(v){return v.pricelist_id===e.id;});
+      try{
+        if(existing){
+          await sbPatch('vehicle_variants',{id:existing.id},vdata);
+        } else {
+          await sbPost('vehicle_variants',vdata);
+          try{await sbPatch('pricelist',{id:e.id},{catalog_id:cat.id});}catch(pe){}
+        }
+        varUpdated++;
+      }catch(ve){errors++;}
+    }
+  }
+
+  if(btn){btn.textContent='↻ Update Specs';btn.disabled=false;}
+  await loadVCData();
+  alert('✓ Update Complete!\n\nCatalog specs updated: '+updated+'\nVariants updated/created: '+varUpdated+(errors?'\nErrors: '+errors:''));
 }
 
 async function vcSyncFromPricelist(){
