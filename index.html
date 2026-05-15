@@ -5478,14 +5478,14 @@ async function vcPushToPricelist(){
   var r=_vcData.find(function(x){return String(x.id)===String(catalogId);});if(!r)return;
   var rt=vcRoadTax(r.cc)||0;
   var active=_vcVariants.filter(function(v){return v.is_active;});
-  if(!active.length){alert('No active variants. Add and save a variant first.');return;}
+  if(!active.length){alert('No active variants. Add and Save a variant first.');return;}
 
-  // Auto-save any unsaved variants first
+  // Auto-save unsaved variants first
   for(var si=0;si<_vcVariants.length;si++){
     var sv=_vcVariants[si];
     if(!sv.id){
       var vd={catalog_id:parseInt(catalogId),variant_type:sv.variant_type||'standard',
-        suffix:sv.suffix||null,cash:sv.cash||null,hp:sv.hp||null,dp:sv.dp||null,is_active:sv.is_active!==false};
+        suffix:sv.suffix||null,cash:sv.cash||null,hp:sv.hp||null,dp:sv.dp||null,is_active:true};
       try{
         var sr=await fetch(SUPABASE_URL+'/rest/v1/vehicle_variants',{method:'POST',
           headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(vd)});
@@ -5495,46 +5495,64 @@ async function vcPushToPricelist(){
     }
   }
 
-  var pushed=0,failed=0;
+  var pushed=0,failed=0,errMsgs=[];
   for(var i=0;i<active.length;i++){
     var v=active[i];
     var suffix=(v.suffix||'').trim();
     var modelName=r.model+(suffix?' ('+suffix+')':'');
     var plData={
-      brand:r.brand,model:modelName,
-      cash:v.cash||null,hp:v.hp||null,dpk:v.dp||null,
-      pa:r.pa||0,aeon_pa:r.aeon_pa||0,loanyear:r.loanyear||5,
-      rtax:rt,hand:r.handling||450,
-      ins1:r.ins1||0,ins1p:r.ins1p||0,ins3:r.ins3||0,inssum:r.inssum||0,
-      other:r.other||0,
-      catalog_id:parseInt(catalogId),variant_id:v.id||null,
+      brand:(r.brand||'').toUpperCase(),
+      model:modelName.toUpperCase(),
+      cash:parseFloat(v.cash)||null,
+      hp:parseFloat(v.hp)||null,
+      dpk:parseFloat(v.dp)||null,
+      pa:parseFloat(r.pa)||0,
+      aeon_pa:parseFloat(r.aeon_pa)||0,
+      loanyear:parseInt(r.loanyear)||5,
+      rtax:rt,
+      hand:parseFloat(r.handling)||450,
+      ins1:parseFloat(r.ins1)||0,
+      ins1p:parseFloat(r.ins1p)||0,
+      ins3:parseFloat(r.ins3)||0,
+      inssum:parseFloat(r.inssum)||0,
+      other:parseFloat(r.other)||0,
+      catalog_id:parseInt(catalogId),
+      variant_id:v.id?parseInt(v.id):null,
       auto_rtax:true,auto_hand:true,is_deleted:false
     };
     try{
       var plId=v.pricelist_id;
+      var pr,pa3;
       if(plId){
-        var pr=await fetch(SUPABASE_URL+'/rest/v1/pricelist?id=eq.'+plId,{method:'PATCH',
+        pr=await fetch(SUPABASE_URL+'/rest/v1/pricelist?id=eq.'+plId,{method:'PATCH',
           headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
-        if(pr.ok)pushed++;else failed++;
       } else {
-        var pr2=await fetch(SUPABASE_URL+'/rest/v1/pricelist',{method:'POST',
+        pr=await fetch(SUPABASE_URL+'/rest/v1/pricelist',{method:'POST',
           headers:Object.assign({'Prefer':'return=representation'},sbHeaders()),body:JSON.stringify(plData)});
-        var pa2=await pr2.json();
-        if(pr2.ok&&pa2&&pa2[0]){
-          v.pricelist_id=pa2[0].id;
-          if(v.id)await sbPatch('vehicle_variants',{id:v.id},{pricelist_id:pa2[0].id});
-          pushed++;
-        } else {
-          console.error('Push failed:',pa2);failed++;
-        }
       }
-    }catch(e){console.error('Push error:',e);failed++;}
+      pa3=await pr.json();
+      if(pr.ok&&Array.isArray(pa3)&&pa3[0]){
+        if(!plId){
+          v.pricelist_id=pa3[0].id;
+          if(v.id)await sbPatch('vehicle_variants',{id:v.id},{pricelist_id:pa3[0].id});
+        }
+        pushed++;
+      } else {
+        errMsgs.push((pa3&&(pa3.message||pa3.hint||pa3.details))||JSON.stringify(pa3));
+        failed++;
+      }
+    }catch(e){errMsgs.push(e.message||String(e));failed++;}
   }
   var rows2=await sbGet('pricelist','order=brand.asc,model.asc');
   _plData=(rows2||[]).filter(function(x){return !x.is_deleted;});
   vcRenderVariants();
-  alert('Push complete!\nPushed: '+pushed+(failed?' · Failed: '+failed:''));
+  if(errMsgs.length){
+    alert('Pushed: '+pushed+' · Failed: '+failed+'\n\n'+errMsgs.slice(0,3).join('\n'));
+  } else {
+    alert('✓ Pushed '+pushed+' variant'+(pushed!==1?'s':'')+' to Pricelist!');
+  }
 }
+
 
 async function vcClearOldPricelist(){
   if(!confirm('⚠ Clear OLD Pricelist?\n\nThis will soft-delete ALL pricelist entries that are NOT linked to Vehicle Mgmt (no catalog_id).\n\nLinked entries will NOT be affected.\n\nThis cannot be undone easily. Proceed?'))return;
