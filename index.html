@@ -3928,6 +3928,7 @@ function plSyncToolbar(){
   var pb=ge('plPrintModeBtn');if(pb)pb.style.display=canEdit?'':'none';
   var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'':'none';
   var lb=ge('plLogBtn');if(lb)lb.style.display='none'; // Log moved to Vehicle Mgmt
+  var tb=ge('plTrashBtn');if(tb)tb.style.display=canEdit?'inline-block':'none';
   var vab=ge('vcAddBtn');if(vab)vab.style.display=canEdit?'inline-block':'none';
   var sb=ge('plSettingsBtn');if(sb)sb.style.display=(_editMode&&currentUser.role==='admin')?'':'none';
   // Print mode button state
@@ -4024,6 +4025,9 @@ function renderNVCard(e,expanded,editing,canEdit){
         +'</div>'
       +'</div>'
       +''
+      +(canEdit&&!_plPrintMode?
+        '<button onclick="event.stopPropagation();plSoftDelete(\''+e.id+'\')" style="padding:3px 9px;background:none;border:1px solid #6a1818;border-radius:5px;color:#e24b4a;font-size:10px;cursor:pointer;flex-shrink:0">🗑</button>':''
+      )
       +'<span onclick="plSelectEntry(\''+e.id+'\')" style="color:#4a6fa5;font-size:11px;cursor:pointer;flex-shrink:0">'+(expanded||editing?'▲':'▼')+'</span>'
     +'</div>';
   if(editing){
