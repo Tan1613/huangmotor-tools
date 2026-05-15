@@ -3535,6 +3535,12 @@ function plPrintAny(){
   else plPrintSelected();
 }
 
+function pdfDateStr(){
+  var n=new Date();
+  return n.getDate().toString().padStart(2,'0')+'/'+(n.getMonth()+1).toString().padStart(2,'0')+'/'+n.getFullYear()
+    +' '+n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+
 function upPrintSelected(){
   var entries=_upData.filter(function(r){return _upChecked.has(String(r.id));});
   if(!entries.length){alert('No entries selected.');return;}
